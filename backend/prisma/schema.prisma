@@ -7,3 +7,71 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+// Enums 
+
+enum UserRole {
+  MEMBER
+  TEAM_LEADER
+  VP
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+// Models 
+
+model Department {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  /// Null for OAuth-only accounts (no password set)
+  passwordHash String?
+  fullName     String
+  role         UserRole     @default(MEMBER)
+  provider     AuthProvider @default(LOCAL)
+  /// Null for LOCAL accounts
+  googleId     String?      @unique
+  departmentId String?
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  isDispatcher Boolean      @default(false)
+  isDisabled   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  refreshTokens     RefreshToken[]
+  passwordResetOtps PasswordResetOtp[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// bcrypt hash of the raw JWT string, the raw value is never stored
+  tokenHash String
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// bcrypt hash of the 6-digit OTP, the raw value is never stored
+  otpHash   String
+  isUsed    Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
