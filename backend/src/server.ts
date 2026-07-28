@@ -10,6 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 import { configureGoogleStrategy } from './Infrastructure/oauth/GoogleStrategy';
 import { swaggerSpec } from './swagger';
 import routes from './Presentation/routes';
+import { startCronJobs } from './Infrastructure/jobs/syncLeadsCron';
 
 dotenv.config();
 
@@ -39,6 +40,8 @@ app.use('/api', routes);
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Swagger docs  http://localhost:${PORT}/api/docs`);
+
+  startCronJobs();
 });
 
 export default app;

@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "seed:expa": "ts-node scripts/initialSeed.ts"
   },
   "keywords": [],
   "author": "",
@@ -28,8 +29,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "graphql-request": "^7.4.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.6.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "prisma": "^6.19.3",

@@ -21,16 +21,33 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum EpStatus {
+  LEAD
+  CONTACTED
+  INTERESTED
+  APPROVED
+  REALIZED
+  COMPLETED
+  FINISHED
+}
+
+enum Product {
+  GV
+  GTA
+  GTE
+}
+
 // Models 
 
 model Department {
-  id    String @id @default(cuid())
+  id    String @id @default(uuid())
   name  String @unique
   users User[]
+  eps   Ep[]
 }
 
 model User {
-  id           String       @id @default(cuid())
+  id           String       @id @default(uuid())
   email        String       @unique
   /// Null for OAuth-only accounts (no password set)
   passwordHash String?
@@ -51,7 +68,7 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// bcrypt hash of the raw JWT string, the raw value is never stored
@@ -64,7 +81,7 @@ model RefreshToken {
 }
 
 model PasswordResetOtp {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// bcrypt hash of the 6-digit OTP, the raw value is never stored
@@ -74,4 +91,56 @@ model PasswordResetOtp {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Ep {
+  id            String     @id                 
+  fullName      String
+  email         String?
+  phone         String?
+  university    String?
+  fieldOfStudy  String?
+  product       Product
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  statusOnExpa  EpStatus   @default(LEAD)
+  createdAtExpa DateTime
+  syncedAt      DateTime   @default(now()) @updatedAt
+
+  approvedDetail ApprovedDetail?
+  statusHistory  StatusHistory[]
+
+  @@index([departmentId])
+  @@index([statusOnExpa])
+}
+
+model ApprovedDetail {
+  id               String    @id @default(uuid())
+  epId             String    @unique
+  ep               Ep        @relation(fields: [epId], references: [id], onDelete: Cascade)
+  // EXPA application ID, kept for deduplication on re-sync
+  expaAppId        String    @unique
+  opportunityTitle String?
+  hostingMC        String?
+  hostingLC        String?
+  projectFees      Float?
+  approvalDate     DateTime?
+  realizedDate     DateTime?
+  completedDate    DateTime?
+  finishedDate     DateTime?
+  contractLink     String?
+  auditFolder      String?
+  syncedAt         DateTime  @default(now()) @updatedAt
+}
+
+model StatusHistory {
+  id         String   @id @default(uuid())
+  epId       String
+  ep         Ep       @relation(fields: [epId], references: [id], onDelete: Cascade)
+  fromStatus EpStatus
+  toStatus   EpStatus
+  changedAt  DateTime @default(now())
+
+  @@index([epId])
+  @@index([changedAt])
 }
