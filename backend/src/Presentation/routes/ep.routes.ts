@@ -15,7 +15,7 @@ const router = Router();
 
 /**
  * @openapi
- * /eps/approved:
+ * /approved-eps:
  *   get:
  *     tags: [EPs]
  *     summary: Get approved EPs for the caller's department
@@ -35,27 +35,45 @@ const router = Router();
  *     responses:
  *       200:
  *         description: List of approved EPs
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ApprovedEpDto'
- *                 count:
- *                   type: integer
  *       401:
  *         description: Missing or invalid access token
  *       403:
  *         description: Insufficient role
  */
 router.get(
-  '/approved',
+  '/approved-eps',
   authMiddleware,
   roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
   EpController.getApproved,
+);
+
+/**
+ * @openapi
+ * /realised-eps:
+ *   get:
+ *     tags: [EPs]
+ *     summary: Get REALIZED EPs with approved details
+ *     description: |
+ *       Returns only EPs whose status is REALIZED, joined with ApprovedDetail.
+ *       - **TEAM_LEADER**: scoped to their own department.
+ *       - **VP**: may pass `?departmentId=` to view any department.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: departmentId, schema: { type: string }, description: "VP only" }
+ *     responses:
+ *       200:
+ *         description: List of realized EPs with detail
+ *       401:
+ *         description: Missing or invalid access token
+ *       403:
+ *         description: Insufficient role
+ */
+router.get(
+  '/realised-eps',
+  authMiddleware,
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  EpController.getRealised,
 );
 
 export default router;

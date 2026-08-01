@@ -39,8 +39,9 @@ export class AuthUseCase {
     userId: string,
     role: import('../../../Domain/enums/UserRole').UserRole,
     departmentId: string | null,
+    isDispatcher: boolean,
   ): Promise<AuthTokens> {
-    const payload = { userId, role, departmentId };
+    const payload = { userId, role, departmentId, isDispatcher };
     const accessToken = this.jwt.generateAccessToken(payload);
     const rawRefreshToken = this.jwt.generateRefreshToken(payload);
 
@@ -100,7 +101,7 @@ export class AuthUseCase {
     const valid = await this.bcrypt.compare(dto.password, user.passwordHash!);
     if (!valid) throw new AppError('Invalid credentials', 401);
 
-    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId);
+    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
     return { ...tokens, user: UserMapper.toResponse(user) };
   }
 
@@ -126,7 +127,7 @@ export class AuthUseCase {
     if (!user) throw new AppError('User not found', 401);
     if (user.isDisabled) throw new AppError('Account is disabled', 403);
 
-    return this.issueTokenPair(user.id, user.role, user.departmentId);
+    return this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
   }
 
   // Logout 
@@ -164,7 +165,7 @@ export class AuthUseCase {
 
     if (user.isDisabled) throw new AppError('Account is disabled', 403);
 
-    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId);
+    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
     return { ...tokens, user: UserMapper.toResponse(user) };
   }
 

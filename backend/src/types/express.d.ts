@@ -10,6 +10,7 @@ declare global {
       id: string;
       role: UserRole;
       departmentId: string | null;
+      isDispatcher: boolean;
     }
   }
 }

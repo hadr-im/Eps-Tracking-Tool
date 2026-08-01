@@ -53,12 +53,12 @@ async function runStatusSync(): Promise<void> {
 
 export function startCronJobs(): void {
   // Daily leads sync: every day at midnight (server local time)
-  cron.schedule('0 0 -', runLeadsSync, {
+  cron.schedule('0 0 * * *', runLeadsSync, {
     name: 'daily-leads-sync',
   });
 
   // Status sync: every 15 minutes
-  cron.schedule('*/15 -', runStatusSync, {
+  cron.schedule('*/15 * * * *', runStatusSync, {
     name: 'status-sync',
   });
 

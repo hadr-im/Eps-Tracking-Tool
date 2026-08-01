@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getApprovedEpsUseCase } from '../../Infrastructure/container';
+import { getApprovedEpsUseCase, getRealisedEpsUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 
 // Shared error handler 
@@ -14,7 +14,7 @@ function handleError(res: Response, err: unknown): void {
 
 export class EpController {
   /*
-    GET /api/eps/approved
+    GET /approved-eps
     Query params:
       - departmentId (optional) VPs only; scopes the result to another department
 
@@ -28,6 +28,25 @@ export class EpController {
       const requestedDepartmentId = req.query['departmentId'] as string | undefined;
 
       const eps = await getApprovedEpsUseCase.execute(caller, requestedDepartmentId);
+
+      res.status(200).json({ data: eps, count: eps.length });
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+  /*
+    GET /realised-eps
+    Query params:
+      - departmentId (optional) VPs only; scopes the result to another department
+
+    Returns only REALIZED EPs joined with ApprovedDetail
+  */
+  static async getRealised(req: Request, res: Response): Promise<void> {
+    try {
+      const caller = req.user!;
+      const requestedDepartmentId = req.query['departmentId'] as string | undefined;
+
+      const eps = await getRealisedEpsUseCase.execute(caller, requestedDepartmentId, {});
 
       res.status(200).json({ data: eps, count: eps.length });
     } catch (err) {

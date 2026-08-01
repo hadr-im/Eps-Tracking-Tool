@@ -9,6 +9,7 @@ import { JwtService } from './jwt/JwtService';
 import { MailService } from './services/MailService';
 import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
+import { DispatchFactory } from './factories/DispatchFactory';
 
 // Auth
 const authRepository = new AuthRepository();
@@ -33,5 +34,8 @@ export const getApprovedEpsUseCase          = expaFactory.makeGetApprovedEpsUseC
 export const getApprovedEpsWithDetailUseCase = expaFactory.makeGetApprovedEpsWithDetailUseCase();
 export const getRealisedEpsUseCase          = expaFactory.makeGetRealisedEpsUseCase();
 export const getLeadsUseCase                = expaFactory.makeGetLeadsUseCase();
+
+const dispatchFactory = new DispatchFactory();
+export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
 
 export { jwtService };
