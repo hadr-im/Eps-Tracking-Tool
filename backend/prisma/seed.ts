@@ -6,9 +6,9 @@ async function main() {
   console.log('Seeding departments...');
 
   const departments = [
-    { id: 'dpt-gv',  name: 'GV'  },  // Global Volunteer = EXPA programme 9
-    { id: 'dpt-gta', name: 'GTA' },  // Global Talent    = EXPA programme 8
-    { id: 'dpt-gte', name: 'GTE' },  // Global Teacher   = EXPA programme 10
+    { id: 'dpt-gv',  name: 'GV',  product: 'GV'  as const },  // Global Volunteer = EXPA programme 9
+    { id: 'dpt-gta', name: 'GTA', product: 'GTA' as const },  // Global Talent    = EXPA programme 8
+    { id: 'dpt-gte', name: 'GTE', product: 'GTE' as const },  // Global Teacher   = EXPA programme 10
   ];
 
   for (const dept of departments) {

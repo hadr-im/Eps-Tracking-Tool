@@ -37,13 +37,39 @@ enum Product {
   GTE
 }
 
+enum TrackingPhase {
+  WAITING_FOR_ANSWER
+  EP_NOT_RESPONDING
+  EXPLAINING_AIESEC
+  LOOKING_FOR_OPPORTUNITIES
+  HAVING_INTERVIEW
+  WILL_SIGN_CONTRACT
+  CONTRACT_SIGNED
+  WAITING_FOR_CV
+  NOT_INTERESTED_ANYMORE
+}
+
+enum Duration {
+  LONG
+  MID
+  SHORT
+}
+
+enum Availability {
+  THIS_SUMMER
+  THIS_WINTER
+  NEXT_SUMMER
+  NEXT_WINTER
+}
+
 // Models 
 
 model Department {
-  id    String @id @default(uuid())
-  name  String @unique
-  users User[]
-  eps   Ep[]
+  id      String  @id @default(uuid())
+  name    String  @unique
+  product Product
+  users   User[]
+  eps     Ep[]
 }
 
 model User {
@@ -60,11 +86,16 @@ model User {
   department   Department?  @relation(fields: [departmentId], references: [id])
   isDispatcher Boolean      @default(false)
   isDisabled   Boolean      @default(false)
+  avatarUrl    String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  refreshTokens     RefreshToken[]
-  passwordResetOtps PasswordResetOtp[]
+  refreshTokens      RefreshToken[]
+  passwordResetOtps  PasswordResetOtp[]
+  ownedEps           Ep[]               @relation("EpOwner")
+  comments           Comment[]
+  triggeredTransitions TransitionHistory[]
+  statusChanges      StatusHistory[]
 }
 
 model RefreshToken {
@@ -94,24 +125,41 @@ model PasswordResetOtp {
 }
 
 model Ep {
-  id            String     @id                 
+  id            String         @id
   fullName      String
   email         String?
   phone         String?
   university    String?
   fieldOfStudy  String?
+  yearOfStudy   Int?
+  source        String?
+  cvLink        String?
   product       Product
   departmentId  String
-  department    Department @relation(fields: [departmentId], references: [id])
-  statusOnExpa  EpStatus   @default(LEAD)
+  department    Department     @relation(fields: [departmentId], references: [id])
+  ownerId       String?
+  owner         User?          @relation("EpOwner", fields: [ownerId], references: [id])
+  statusOnExpa  EpStatus       @default(LEAD)
+  trackingPhase TrackingPhase?
+  contacted     Boolean        @default(false)
+  interested    Boolean        @default(false)
+  assignedAt    DateTime?
+  contactedAt   DateTime?
+  notes         String?
+  duration      Duration?
+  availability  Availability?
   createdAtExpa DateTime
-  syncedAt      DateTime   @default(now()) @updatedAt
+  syncedAt      DateTime       @default(now()) @updatedAt
+  updatedAt     DateTime       @updatedAt
 
-  approvedDetail ApprovedDetail?
-  statusHistory  StatusHistory[]
+  approvedDetail     ApprovedDetail?
+  statusHistory      StatusHistory[]
+  transitionHistory  TransitionHistory[]
+  comments           Comment[]
 
   @@index([departmentId])
   @@index([statusOnExpa])
+  @@index([ownerId])
 }
 
 model ApprovedDetail {
@@ -134,13 +182,44 @@ model ApprovedDetail {
 }
 
 model StatusHistory {
-  id         String   @id @default(uuid())
-  epId       String
-  ep         Ep       @relation(fields: [epId], references: [id], onDelete: Cascade)
-  fromStatus EpStatus
-  toStatus   EpStatus
-  changedAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  epId        String
+  ep          Ep       @relation(fields: [epId], references: [id], onDelete: Cascade)
+  changedById String?
+  changedBy   User?    @relation(fields: [changedById], references: [id])
+  fromStatus  EpStatus
+  toStatus    EpStatus
+  changedAt   DateTime @default(now())
 
   @@index([epId])
   @@index([changedAt])
+}
+
+model TransitionHistory {
+  id              String   @id @default(uuid())
+  epId            String
+  ep              Ep       @relation(fields: [epId], references: [id], onDelete: Cascade)
+  triggeredById   String?
+  triggeredBy     User?    @relation(fields: [triggeredById], references: [id])
+  fromProduct     Product?
+  toProduct       Product?
+  fromDepartment  String?
+  toDepartment    String?
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@index([epId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  epId      String
+  ep        Ep       @relation(fields: [epId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
+  fieldName String?
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([epId])
 }
