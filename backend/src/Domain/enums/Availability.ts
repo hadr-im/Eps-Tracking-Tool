@@ -1,0 +1,6 @@
+export enum Availability {
+  THIS_SUMMER = 'THIS_SUMMER',
+  THIS_WINTER = 'THIS_WINTER',
+  NEXT_SUMMER = 'NEXT_SUMMER',
+  NEXT_WINTER = 'NEXT_WINTER',
+}

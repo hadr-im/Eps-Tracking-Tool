@@ -11,7 +11,11 @@ import { ApprovedDetail } from '../../Domain/entities/ApprovedDetail';
 import { StatusHistory } from '../../Domain/entities/StatusHistory';
 import { EpStatus } from '../../Domain/enums/EpStatus';
 import { Product } from '../../Domain/enums/Product';
+import { TrackingPhase } from '../../Domain/enums/TrackingPhase';
+import { Duration } from '../../Domain/enums/Duration';
+import { Availability } from '../../Domain/enums/Availability';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
+import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
 import { prisma } from '../Database/PrismaService';
 
 export class EpRepository implements IEpRepository {
@@ -19,13 +23,6 @@ export class EpRepository implements IEpRepository {
 
   constructor(db: PrismaClient = prisma) {
     this.db = db;
-  }
-
-  // Queries 
-
-  async findByDepartment(departmentId: string): Promise<Ep[]> {
-    const rows = await this.db.ep.findMany({ where: { departmentId } });
-    return rows.map((r) => this.toEpEntity(r));
   }
 
 
@@ -62,6 +59,67 @@ export class EpRepository implements IEpRepository {
   async findByExpaId(epId: string): Promise<Ep | null> {
     const row = await this.db.ep.findUnique({ where: { id: epId } });
     return row ? this.toEpEntity(row) : null;
+  }
+
+  // Alias, same lookup, clearer name for EP management use cases
+  async findById(epId: string): Promise<Ep | null> {
+    const row = await this.db.ep.findUnique({ where: { id: epId } });
+    return row ? this.toEpEntity(row) : null;
+  }
+
+  // Returns all EPs assigned to a member, server-side filtered
+  async findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]> {
+    const rows = await this.db.ep.findMany({
+      where: {
+        ownerId,
+        ...this.buildWhere(filters),
+      },
+      orderBy: { assignedAt: 'desc' },
+    });
+    return rows.map((r) => this.toEpEntity(r));
+  }
+
+  // Returns all EPs for a department, optionally filtered (overrides the old unfilterd version)
+  async findByDepartment(departmentId: string, filters?: EpFilters): Promise<Ep[]> {
+    const rows = await this.db.ep.findMany({
+      where: {
+        departmentId,
+        ...this.buildWhere(filters),
+      },
+      orderBy: { createdAtExpa: 'desc' },
+    });
+    return rows.map((r) => this.toEpEntity(r));
+  }
+
+  // Partial update, only fields present in data are written
+  async updateEp(epId: string, data: EpUpdateData): Promise<Ep> {
+    const updatePayload: Record<string, unknown> = {};
+
+    if ('source'         in data) updatePayload['source']         = data.source;
+    if ('cvLink'         in data) updatePayload['cvLink']         = data.cvLink;
+    if ('trackingPhase'  in data) updatePayload['trackingPhase']  = data.trackingPhase;
+    if ('notes'          in data) updatePayload['notes']          = data.notes;
+    if ('duration'       in data) updatePayload['duration']       = data.duration;
+    if ('availability'   in data) updatePayload['availability']   = data.availability;
+    if ('interested'     in data) updatePayload['interested']     = data.interested;
+
+    // contacted: auto-stamp contactedAt only on first time it becomes true
+    if ('contacted' in data && data.contacted === true) {
+      updatePayload['contacted'] = true;
+      // Only stamp if not already set (preserved on subsequent edits)
+      const existing = await this.db.ep.findUnique({ where: { id: epId }, select: { contactedAt: true } });
+      if (!existing?.contactedAt) {
+        updatePayload['contactedAt'] = new Date();
+      }
+    } else if ('contacted' in data) {
+      updatePayload['contacted'] = data.contacted;
+    }
+
+    const row = await this.db.ep.update({
+      where: { id: epId },
+      data: updatePayload,
+    });
+    return this.toEpEntity(row);
   }
 
   async findByDepartmentFiltered(
@@ -211,6 +269,33 @@ export class EpRepository implements IEpRepository {
 
   // Private mappers 
 
+  // Builds a Prisma-compatible where fragment from optional EpFilters
+  private buildWhere(filters?: EpFilters): object {
+    if (!filters) return {};
+
+    const statusFilter = filters.status
+      ? Array.isArray(filters.status)
+        ? { in: filters.status }
+        : filters.status
+      : undefined;
+
+    return {
+      ...(filters.product        && { product: filters.product as unknown as any }),
+      ...(statusFilter           && { statusOnExpa: statusFilter }),
+      ...(filters.university     && { university: filters.university }),
+      ...(filters.fieldOfStudy   && { fieldOfStudy: filters.fieldOfStudy }),
+      ...(filters.trackingPhase  && { trackingPhase: filters.trackingPhase as unknown as any }),
+      ...(filters.createdFrom || filters.createdTo
+        ? {
+            createdAtExpa: {
+              ...(filters.createdFrom && { gte: new Date(filters.createdFrom) }),
+              ...(filters.createdTo   && { lte: new Date(filters.createdTo) }),
+            },
+          }
+        : {}),
+    };
+  }
+
   private toEpEntity(row: PrismaEp): Ep {
     return new Ep(
       row.id,
@@ -219,11 +304,24 @@ export class EpRepository implements IEpRepository {
       row.phone,
       row.university,
       row.fieldOfStudy,
+      row.yearOfStudy ?? null,
       row.product as unknown as Product,
       row.departmentId,
       row.statusOnExpa,
       row.createdAtExpa,
       row.syncedAt,
+      // CRM fields
+      row.ownerId,
+      row.assignedAt,
+      row.source,
+      row.cvLink,
+      row.contacted,
+      row.contactedAt,
+      row.interested,
+      row.trackingPhase as TrackingPhase | null,
+      row.notes,
+      row.duration as Duration | null,
+      row.availability as Availability | null,
     );
   }
 

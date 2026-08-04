@@ -3,6 +3,7 @@ import { ApprovedDetail } from '../entities/ApprovedDetail';
 import { StatusHistory } from '../entities/StatusHistory';
 import { EpStatus } from '../enums/EpStatus';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
+import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
 
 
 // Lightweight projection (only what SyncStatusUseCase needs for comparison)
@@ -37,6 +38,18 @@ export interface IEpRepository {
 
   // Looks up a single EP by EXPA person ID
   findByExpaId(epId: string): Promise<Ep | null>;
+
+  // Looks up a single EP by internal ID 
+  findById(epId: string): Promise<Ep | null>;
+
+  // Returns all EPs assigned to a specific member, optionally filtered
+  findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]>;
+
+  // Returns all EPs for a department, optionally filtered (includes CRM fields)
+  findByDepartment(departmentId: string, filters?: EpFilters): Promise<Ep[]>;
+
+  // Partial update (only the fields present in data are written)
+  updateEp(epId: string, data: EpUpdateData): Promise<Ep>;
 
   // Single writes 
 

@@ -10,6 +10,7 @@ import { MailService } from './services/MailService';
 import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
+import { EpManagementFactory } from './factories/EpManagementFactory';
 
 // Auth
 const authRepository = new AuthRepository();
@@ -37,5 +38,8 @@ export const getLeadsUseCase                = expaFactory.makeGetLeadsUseCase();
 
 const dispatchFactory = new DispatchFactory();
 export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
+
+const epManagementFactory = new EpManagementFactory();
+export const epManagementUseCase = epManagementFactory.makeEpManagementUseCase();
 
 export { jwtService };

@@ -1,5 +1,6 @@
 import { EpStatus } from '../../../Domain/enums/EpStatus';
 import { Product } from '../../../Domain/enums/Product';
+import { TrackingPhase } from '../../../Domain/enums/TrackingPhase';
 
 /*
   Shared query-filter shape used across EP listing use-cases
@@ -7,20 +8,22 @@ import { Product } from '../../../Domain/enums/Product';
   Filtering is backend-driven for performance (Prisma WHERE clause, not in-memory)
 */
 export interface EpFilters {
-  // Filter by university name (exact match) 
+  // Filter by university name (exact match)
   university?: string;
-  // Filter by field of study (exact match) 
+  // Filter by field of study (exact match)
   fieldOfStudy?: string;
-  // Filter by EXPA programme type 
+  // Filter by EXPA programme type
   product?: Product;
-  // Filter by one or more statuses 
+  // Filter by one or more statuses
   status?: EpStatus | EpStatus[];
-  // Return EPs registered on/after this ISO date (inclusive) 
+  // Filter by CRM tracking phase
+  trackingPhase?: TrackingPhase;
+  // Return EPs registered on/after this ISO date (inclusive)
   createdFrom?: string;
-  // Return EPs registered on/before this ISO date (inclusive) 
+  // Return EPs registered on/before this ISO date (inclusive)
   createdTo?: string;
-  // Filter by hosting MC (for approved+ EPs) 
+  // Filter by hosting MC (for approved+ EPs)
   hostingMC?: string;
-  // Filter by hosting LC (for approved+ EPs) 
+  // Filter by hosting LC (for approved+ EPs)
   hostingLC?: string;
 }
