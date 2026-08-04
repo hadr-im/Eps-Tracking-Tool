@@ -11,6 +11,7 @@ import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
 import { EpManagementFactory } from './factories/EpManagementFactory';
+import { DashboardFactory } from './factories/DashboardFactory';
 
 // Auth
 const authRepository = new AuthRepository();
@@ -41,5 +42,8 @@ export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
 
 const epManagementFactory = new EpManagementFactory();
 export const epManagementUseCase = epManagementFactory.makeEpManagementUseCase();
+
+const dashboardFactory = new DashboardFactory();
+export const dashboardUseCase = dashboardFactory.makeDashboardUseCase();
 
 export { jwtService };
