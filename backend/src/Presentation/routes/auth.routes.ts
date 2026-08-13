@@ -81,6 +81,22 @@ router.post('/logout', authMiddleware, AuthController.logout);
 
 /**
  * @openapi
+ * /auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get currently logged in user profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/me', authMiddleware, AuthController.me);
+
+/**
+ * @openapi
  * /auth/forgot-password:
  *   post:
  *     tags: [Auth]

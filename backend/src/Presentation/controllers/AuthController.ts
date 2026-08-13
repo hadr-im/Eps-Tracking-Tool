@@ -87,6 +87,16 @@ export class AuthController {
     }
   }
 
+  // GET /auth/me protected route 
+  static async me(req: Request, res: Response): Promise<void> {
+    try {
+      const user = await authUseCase.getMe(req.user!.id);
+      res.status(200).json(user);
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
   // POST /auth/forgot-password 
   static forgotPasswordValidation = validateDto(ForgotPasswordDto);
   static async forgotPassword(req: Request, res: Response): Promise<void> {

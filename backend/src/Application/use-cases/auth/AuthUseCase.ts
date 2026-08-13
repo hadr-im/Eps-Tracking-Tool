@@ -138,8 +138,17 @@ export class AuthUseCase {
       const match = await this.findMatchingToken(payload.userId, rawRefreshToken);
       if (match) await this.repo.revokeRefreshToken(match.id);
     } catch {
-      // Silently succeed — token may already be expired/revoked
+      // Silently succeed token may already be expired/revoked
     }
+  }
+
+  // Get current user from access token payload 
+
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await this.repo.findById(userId);
+    if (!user) throw new AppError('User not found', 404);
+    if (user.isDisabled) throw new AppError('Account is disabled', 403);
+    return UserMapper.toResponse(user);
   }
 
   // Google OAuth 
