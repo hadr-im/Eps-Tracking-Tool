@@ -27,6 +27,7 @@ function parseFilters(query: Request['query']): EpFilters {
   if (typeof query['fieldOfStudy'] === 'string') filters.fieldOfStudy = query['fieldOfStudy'];
   if (typeof query['createdFrom']  === 'string') filters.createdFrom  = query['createdFrom'];
   if (typeof query['createdTo']    === 'string') filters.createdTo    = query['createdTo'];
+  if (typeof query['search']       === 'string') filters.search       = query['search'];
 
   const productParam = query['product'];
   if (typeof productParam === 'string' && Object.values(Product).includes(productParam as Product)) {
@@ -37,6 +38,17 @@ function parseFilters(query: Request['query']): EpFilters {
   if (typeof phaseParam === 'string' && Object.values(TrackingPhase).includes(phaseParam as TrackingPhase)) {
     filters.trackingPhase = phaseParam as TrackingPhase;
   }
+
+  const durationParam = query['duration'];
+  if (typeof durationParam === 'string' && Object.values(Duration).includes(durationParam as Duration)) {
+    filters.duration = durationParam as Duration;
+  }
+
+  // Boolean query params arrive as the strings 'true' / 'false'
+  if (query['contacted']  === 'true')  filters.contacted  = true;
+  if (query['contacted']  === 'false') filters.contacted  = false;
+  if (query['interested'] === 'true')  filters.interested = true;
+  if (query['interested'] === 'false') filters.interested = false;
 
   return filters;
 }

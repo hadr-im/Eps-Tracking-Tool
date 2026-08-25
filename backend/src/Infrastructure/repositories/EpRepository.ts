@@ -285,6 +285,14 @@ export class EpRepository implements IEpRepository {
       ...(filters.university     && { university: filters.university }),
       ...(filters.fieldOfStudy   && { fieldOfStudy: filters.fieldOfStudy }),
       ...(filters.trackingPhase  && { trackingPhase: filters.trackingPhase as unknown as any }),
+      ...(filters.duration       && { duration: filters.duration as unknown as any }),
+      // Boolean filters: only applied when explicitly set (undefined = no constraint)
+      ...(filters.contacted  !== undefined && { contacted:  filters.contacted }),
+      ...(filters.interested !== undefined && { interested: filters.interested }),
+      // Partial, case-insensitive fullName search
+      ...(filters.search && {
+        fullName: { contains: filters.search, mode: 'insensitive' as const },
+      }),
       ...(filters.createdFrom || filters.createdTo
         ? {
             createdAtExpa: {

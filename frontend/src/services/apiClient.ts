@@ -84,9 +84,10 @@ apiClient.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // If the failed request IS the refresh call itself -> session is dead
-    if (originalRequest?.url?.includes('/auth/refresh')) {
-      onSessionExpired();
+    // If the failed request is ANY auth endpoint, don't attempt a silent refresh
+    // A 401 from /auth/login means wrong credentials (not an expired session)
+    // A 401 from /auth/refresh means the session is dead.
+    if (originalRequest?.url?.includes('/auth/')) {
       return Promise.reject(error);
     }
 

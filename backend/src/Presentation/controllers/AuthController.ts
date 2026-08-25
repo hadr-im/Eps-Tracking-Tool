@@ -16,7 +16,9 @@ const REFRESH_COOKIE = 'refreshToken';
 const cookieOptions = {
   httpOnly: true,
   secure: process.env['NODE_ENV'] === 'production',
-  sameSite: 'strict' as const,
+  // 'lax' is required in development: frontend (localhost:5173) and backend (localhost:4000) are different origins, and 'strict' blocks the cookie
+  // from being sent on cross-origin requests (withCredentials). In production both are on the same domain so sameSite can be tightened
+  sameSite: 'lax' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 };
 
