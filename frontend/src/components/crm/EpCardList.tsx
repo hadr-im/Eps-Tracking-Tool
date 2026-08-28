@@ -56,7 +56,6 @@ export function EpCardList({
   if (eps.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-sm gap-2">
-        <span className="text-2xl">🔍</span>
         <p>No EPs found. Try adjusting your filters.</p>
       </div>
     );

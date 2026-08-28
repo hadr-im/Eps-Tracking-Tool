@@ -10,6 +10,7 @@ import { AppLayout }          from './layouts/AppLayout.tsx'
 
 // Pages: authenticated
 import MyCrmPage              from './pages/MyCrmPage.tsx'
+import MyDashboardPage        from './pages/MyDashboardPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -36,7 +37,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route index element={<Navigate to="/crm" replace />} />
                 <Route path="/crm"       element={<MyCrmPage />} />
                 {/* Stub routes: pages to be built in future iterations */}
-                <Route path="/dashboard" element={<div className="p-8 text-muted-foreground">Dashboard — coming soon</div>} />
+                <Route path="/dashboard" element={<MyDashboardPage />} />
                 <Route path="/dispatch"  element={<div className="p-8 text-muted-foreground">Dispatch — coming soon</div>} />
                 <Route path="/settings"  element={<div className="p-8 text-muted-foreground">Settings — coming soon</div>} />
               </Route>
