@@ -11,6 +11,8 @@ import { AppLayout }          from './layouts/AppLayout.tsx'
 // Pages: authenticated
 import MyCrmPage              from './pages/MyCrmPage.tsx'
 import MyDashboardPage        from './pages/MyDashboardPage.tsx'
+import TeamCrmPage            from './pages/TeamCrmPage.tsx'
+import TeamDashboardPage      from './pages/TeamDashboardPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -35,9 +37,11 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<AppLayout />}>
                 {/* Redirect root to CRM */}
                 <Route index element={<Navigate to="/crm" replace />} />
-                <Route path="/crm"       element={<MyCrmPage />} />
+                <Route path="/crm"            element={<MyCrmPage />} />
+                <Route path="/dashboard"      element={<MyDashboardPage />} />
+                <Route path="/team/crm"       element={<TeamCrmPage />} />
+                <Route path="/team/dashboard" element={<TeamDashboardPage />} />
                 {/* Stub routes: pages to be built in future iterations */}
-                <Route path="/dashboard" element={<MyDashboardPage />} />
                 <Route path="/dispatch"  element={<div className="p-8 text-muted-foreground">Dispatch — coming soon</div>} />
                 <Route path="/settings"  element={<div className="p-8 text-muted-foreground">Settings — coming soon</div>} />
               </Route>

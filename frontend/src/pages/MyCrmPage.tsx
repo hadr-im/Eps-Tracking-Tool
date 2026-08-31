@@ -71,11 +71,9 @@ export default function MyCrmPage() {
             <Badge
               id="leads-processed-badge"
               variant="outline"
-              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-emerald-500 text-white border-emerald-500"
+              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] border-transparent"
             >
-              <span className="text-base font-bold">{contactedCount}</span>
-              <span className="text-base font-bold">/ {eps.length}</span>
-              <span>Leads Contacted</span>
+              {contactedCount}/{eps.length} Leads Contacted
             </Badge>
           )}
         </div>

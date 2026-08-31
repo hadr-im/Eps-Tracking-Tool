@@ -11,6 +11,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { MessageSquare } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -67,6 +68,12 @@ interface EpTableProps {
   onCheckboxUpdate: (id: string, field: 'contacted' | 'interested', value: boolean) => void;
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
+  // When true: all inputs are disabled/hidden + table is read-only (TL/VP oversight view) 
+  readOnly?: boolean;
+  // When provided: a Comments column is added with a click handler per row
+  onCommentClick?: (ep: Ep) => void;
+  // Per-EP comment counts (key = EP id, value = count)  displayed on the comment icon badge 
+  commentCounts?: Record<string, number>;
 }
 
 // Column definitions 
@@ -74,7 +81,7 @@ interface EpTableProps {
 const col = createColumnHelper<Ep>();
 
 function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef<Ep, any>[] {
-  const { pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate } = props;
+  const { pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly = false, onCommentClick, commentCounts = {} } = props;
 
   return [
     // Frozen left columns 
@@ -161,7 +168,9 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('source', {
       id: 'source',
       header: 'Source',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
+        <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
+      ) : (
         <EditableTextCell
           id={info.row.original.id}
           field="source"
@@ -189,6 +198,7 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
             </a>
           );
         }
+        if (readOnly) return <span className="text-muted-foreground text-xs">—</span>;
         return (
           <EditableTextCell
             id={info.row.original.id}
@@ -216,7 +226,11 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('contacted', {
       id: 'contacted',
       header: 'Contacted',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
+        <span className={`text-xs font-medium ${info.getValue() ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+          {info.getValue() ? 'Yes' : 'No'}
+        </span>
+      ) : (
         <CheckboxCell
           id={info.row.original.id}
           field="contacted"
@@ -230,7 +244,11 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('interested', {
       id: 'interested',
       header: 'Interested',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
+        <span className={`text-xs font-medium ${info.getValue() ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+          {info.getValue() ? 'Yes' : 'No'}
+        </span>
+      ) : (
         <CheckboxCell
           id={info.row.original.id}
           field="interested"
@@ -244,7 +262,13 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('trackingPhase', {
       id: 'trackingPhase',
       header: 'Phase',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
+        <span className="text-xs">
+          {info.getValue()
+            ? info.getValue()!.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+            : <span className="text-muted-foreground">—</span>}
+        </span>
+      ) : (
         <TrackingPhaseCell
           id={info.row.original.id}
           value={info.getValue()}
@@ -257,7 +281,11 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('notes', {
       id: 'notes',
       header: 'Notes',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
+        <span className="text-xs max-w-[200px] block whitespace-pre-wrap">
+          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
+        </span>
+      ) : (
         <EditableTextCell
           id={info.row.original.id}
           field="notes"
@@ -299,6 +327,36 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       cell: () => <span className="text-muted-foreground text-xs">—</span>,
       meta: { minWidth: 100 },
     }),
+
+    // Comments (injected when onCommentClick is provided)
+    ...(onCommentClick
+      ? [
+          col.display({
+            id: 'comments',
+            header: () => <div className="text-center w-full">Comments</div>,
+            cell: (info) => {
+              const ep = info.row.original;
+              const count = commentCounts[ep.id] ?? 0;
+              return (
+                <button
+                  type="button"
+                  onClick={() => onCommentClick(ep)}
+                  className="relative inline-flex items-center gap-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  aria-label={`View comments for ${ep.fullName}`}
+                >
+                  <MessageSquare size={15} strokeWidth={1.6} />
+                  {count > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                      {count > 9 ? '9+' : count}
+                    </span>
+                  )}
+                </button>
+              );
+            },
+            meta: { minWidth: 80 },
+          }),
+        ]
+      : []),
   ];
 }
 
@@ -322,13 +380,16 @@ export function EpTable({
   onCheckboxUpdate,
   onPhaseUpdate,
   onTextUpdate,
+  readOnly = false,
+  onCommentClick,
+  commentCounts = {},
 }: EpTableProps) {
   // Memoize so TanStack Table never sees new column objects unless handlers change
   // (avoids unnecessary re-renders and internal state resets)
   const columns = useMemo(
-    () => buildColumns({ pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate }),
+    () => buildColumns({ pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly, onCommentClick, commentCounts }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate],
+    [pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly, onCommentClick, commentCounts],
   );
 
   const table = useReactTable({

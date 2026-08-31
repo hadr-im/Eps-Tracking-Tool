@@ -1,7 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutGrid,
+  BarChart2,
   Users,
+  Users2,
   ArrowRightLeft,
   Settings,
   LogOut,
@@ -14,13 +16,21 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-// Nav item definitions 
+// Nav section definitions (Team section gated by role in the render)
 
-const NAV_ITEMS = [
-  { to: '/crm',       icon: LayoutGrid,      label: 'My CRM' },
-  { to: '/dashboard', icon: Users,            label: 'Dashboard' },
-  { to: '/dispatch',  icon: ArrowRightLeft,   label: 'Dispatch' },
-  { to: '/settings',  icon: Settings,         label: 'Settings' },
+const PERSONAL_NAV = [
+  { to: '/crm',       icon: LayoutGrid, label: 'My CRM'      },
+  { to: '/dashboard', icon: BarChart2,  label: 'My Dashboard' },
+];
+
+const TEAM_NAV = [
+  { to: '/team/crm',       icon: Users,         label: 'Team CRM'       },
+  { to: '/team/dashboard', icon: Users2,         label: 'Team Dashboard' },
+  { to: '/dispatch',       icon: ArrowRightLeft, label: 'Dispatch'       },
+];
+
+const BOTTOM_NAV = [
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 // NavItem 
@@ -46,7 +56,7 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
         'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         isActive
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
           : 'text-sidebar-foreground/70',
         collapsed && 'justify-center px-2',
       )}
@@ -70,7 +80,18 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
   return link;
 }
 
-// Sidebar body 
+// Section label (hidden when collapsed)
+
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return null;
+  return (
+    <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 select-none">
+      {label}
+    </p>
+  );
+}
+
+// Sidebar body
 
 interface SidebarBodyProps {
   collapsed: boolean;
@@ -80,6 +101,7 @@ interface SidebarBodyProps {
 
 export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: SidebarBodyProps) {
   const { logout, user } = useAuth();
+  const isTeam = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
 
   return (
     <TooltipProvider>
@@ -104,15 +126,32 @@ export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: Sidebar
         <Separator className="bg-sidebar-border" />
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
-          {NAV_ITEMS.map((item) => (
-            <NavItem
-              key={item.to}
-              {...item}
-              collapsed={collapsed}
-              onClick={onNavClick}
-            />
+        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
+
+          {/* Personal section */}
+          <SectionLabel label="Personal" collapsed={collapsed} />
+          {PERSONAL_NAV.map((item) => (
+            <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
           ))}
+
+          {/* Team section (TL / VP only) */}
+          {isTeam && (
+            <>
+              {!collapsed && <Separator className="bg-sidebar-border my-2" />}
+              <SectionLabel label="Team" collapsed={collapsed} />
+              {TEAM_NAV.map((item) => (
+                <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
+              ))}
+            </>
+          )}
+
+          {/* Settings section */}
+          {!collapsed && <Separator className="bg-sidebar-border my-2" />}
+          <SectionLabel label="Other" collapsed={collapsed} />
+          {BOTTOM_NAV.map((item) => (
+            <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
+          ))}
+
         </nav>
 
         <Separator className="bg-sidebar-border" />

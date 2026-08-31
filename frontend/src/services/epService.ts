@@ -4,7 +4,7 @@ import type { Ep, EpFilters, EpUpdatePayload, EpsApiResponse } from '../types/ep
 // GET /eps 
 // Server-side filtered. MEMBER role -> backend automatically scopes to caller's own assigned EPs (no memberId param needed)
 
-export async function fetchMyEps(filters: EpFilters = {}): Promise<Ep[]> {
+export async function fetchMyEps(filters: EpFilters & { memberId?: string } = {}): Promise<Ep[]> {
   const params: Record<string, string> = {};
 
   // All filters are applied server-side in the Prisma WHERE clause
@@ -13,6 +13,8 @@ export async function fetchMyEps(filters: EpFilters = {}): Promise<Ep[]> {
   if (filters.contacted)     params['contacted']     = filters.contacted;
   if (filters.interested)    params['interested']    = filters.interested;
   if (filters.search)        params['search']        = filters.search;
+  // TL/VP only: scope to a specific member
+  if (filters.memberId)      params['memberId']      = filters.memberId;
 
   const { data } = await apiClient.get<EpsApiResponse>('/eps', { params });
   return data.data;
