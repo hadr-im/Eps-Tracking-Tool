@@ -139,6 +139,9 @@ export class EpRepository implements IEpRepository {
         ...(statusFilter       && { statusOnExpa: statusFilter }),
         ...(filters.university && { university: filters.university }),
         ...(filters.fieldOfStudy && { fieldOfStudy: filters.fieldOfStudy }),
+        ...(filters.search && {
+          fullName: { contains: filters.search, mode: 'insensitive' as const },
+        }),
         ...(filters.createdFrom || filters.createdTo
           ? {
               createdAtExpa: {
@@ -157,13 +160,17 @@ export class EpRepository implements IEpRepository {
             }
           : {}),
       },
-      include: { approvedDetail: true },
+      include: {
+        approvedDetail: true,
+        owner: { select: { fullName: true } },
+      },
       orderBy: { createdAtExpa: 'desc' },
     });
 
     return rows.map((r) => ({
       ep: this.toEpEntity(r),
       approvedDetail: r.approvedDetail ? this.toApprovedDetailEntity(r.approvedDetail) : null,
+      memberName: r.owner?.fullName ?? null,
     }));
   }
 

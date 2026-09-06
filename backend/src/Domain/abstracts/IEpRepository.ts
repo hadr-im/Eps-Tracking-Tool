@@ -17,6 +17,8 @@ export interface EpStatusSnapshot {
 export interface EpWithDetail {
   ep: Ep;
   approvedDetail: ApprovedDetail | null;
+  // Display name of the assigned member (owner) if joined 
+  memberName?: string | null;
 }
 
 export interface IEpRepository {

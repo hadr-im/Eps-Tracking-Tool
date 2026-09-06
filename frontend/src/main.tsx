@@ -14,6 +14,7 @@ import MyDashboardPage        from './pages/MyDashboardPage.tsx'
 import TeamCrmPage            from './pages/TeamCrmPage.tsx'
 import TeamDashboardPage      from './pages/TeamDashboardPage.tsx'
 import LeadsPage              from './pages/LeadsPage.tsx'
+import ApprovedEpsPage        from './pages/ApprovedEpsPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -43,7 +44,8 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/team/crm"       element={<TeamCrmPage />} />
                 <Route path="/team/dashboard" element={<TeamDashboardPage />} />
                 {/* Stub routes: pages to be built in future iterations */}
-                <Route path="/dispatch"  element={<LeadsPage />} />
+                <Route path="/dispatch"       element={<LeadsPage />} />
+                <Route path="/team/approved-eps" element={<ApprovedEpsPage />} />
                 <Route path="/settings"  element={<div className="p-8 text-muted-foreground">Settings — coming soon</div>} />
               </Route>
             </Route>

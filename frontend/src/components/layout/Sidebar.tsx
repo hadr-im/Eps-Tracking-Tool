@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  BadgeCheck,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -24,9 +25,10 @@ const PERSONAL_NAV = [
 ];
 
 const TEAM_NAV = [
-  { to: '/team/crm',       icon: Users,         label: 'Team CRM'       },
-  { to: '/team/dashboard', icon: Users2,         label: 'Team Dashboard' },
-  { to: '/dispatch',       icon: ArrowRightLeft, label: 'Dispatch'       },
+  { to: '/team/crm',          icon: Users,         label: 'Team CRM'       },
+  { to: '/team/dashboard',    icon: Users2,         label: 'Team Dashboard' },
+  { to: '/team/approved-eps', icon: BadgeCheck,     label: 'Approved EPs'   },
+  { to: '/dispatch',          icon: ArrowRightLeft, label: 'Dispatch'       },
 ];
 
 const BOTTOM_NAV = [
@@ -68,8 +70,8 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
 
   if (collapsed) {
     return (
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <Tooltip>
+        <TooltipTrigger>{link}</TooltipTrigger>
         <TooltipContent side="right" className="text-xs">
           {label}
         </TooltipContent>
@@ -165,8 +167,8 @@ export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: Sidebar
             </div>
           )}
 
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger>
               <Button
                 id="nav-logout"
                 variant="ghost"

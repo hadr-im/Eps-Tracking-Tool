@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getApprovedEpsUseCase, getRealisedEpsUseCase, epManagementUseCase } from '../../Infrastructure/container';
+import { getApprovedEpsWithDetailUseCase, getRealisedEpsUseCase, epManagementUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
@@ -8,6 +8,7 @@ import { Product } from '../../Domain/enums/Product';
 import { TrackingPhase } from '../../Domain/enums/TrackingPhase';
 import { Duration } from '../../Domain/enums/Duration';
 import { Availability } from '../../Domain/enums/Availability';
+import { EpStatus } from '../../Domain/enums/EpStatus';
 
 // Shared error handler
 function handleError(res: Response, err: unknown): void {
@@ -32,6 +33,11 @@ function parseFilters(query: Request['query']): EpFilters {
   const productParam = query['product'];
   if (typeof productParam === 'string' && Object.values(Product).includes(productParam as Product)) {
     filters.product = productParam as Product;
+  }
+
+  const statusParam = query['status'];
+  if (typeof statusParam === 'string' && Object.values(EpStatus).includes(statusParam as EpStatus)) {
+    filters.status = statusParam as EpStatus;
   }
 
   const phaseParam = query['trackingPhase'];
@@ -86,7 +92,7 @@ export class EpController {
   static async updateEp(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
-      const epId   = req.params['id']!;
+      const epId   = typeof req.params['id'] === 'string' ? req.params['id'] : '';
 
       // Parse only the known updatable fields (unknown keys are ignored)
       const body = req.body as Record<string, unknown>;
@@ -142,7 +148,7 @@ export class EpController {
   static async addComment(req: Request, res: Response): Promise<void> {
     try {
       const caller    = req.user!;
-      const epId      = req.params['id']!;
+      const epId      = typeof req.params['id'] === 'string' ? req.params['id'] : '';
       const { fieldName, content } = req.body as { fieldName?: string; content?: string };
 
       if (!content || typeof content !== 'string' || content.trim() === '') {
@@ -170,7 +176,7 @@ export class EpController {
   static async getComments(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
-      const epId   = req.params['id']!;
+      const epId   = typeof req.params['id'] === 'string' ? req.params['id'] : '';
       const comments = await epManagementUseCase.getComments(epId, caller);
       res.status(200).json({ data: comments, count: comments.length });
     } catch (err) {
@@ -180,13 +186,16 @@ export class EpController {
 
   /*
     GET /approved-eps
-    TL/VP (all approved EPs for the caller's department)
+    TL/VP (all approved+ EPs for the caller's department, with ApprovedDetail joined)
   */
   static async getApproved(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
-      const requestedDepartmentId = req.query['departmentId'] as string | undefined;
-      const eps = await getApprovedEpsUseCase.execute(caller, requestedDepartmentId);
+      const requestedDepartmentId = typeof req.query['departmentId'] === 'string'
+        ? req.query['departmentId']
+        : undefined;
+      const filters = parseFilters(req.query);
+      const eps = await getApprovedEpsWithDetailUseCase.execute(caller, requestedDepartmentId, filters);
       res.status(200).json({ data: eps, count: eps.length });
     } catch (err) {
       handleError(res, err);

@@ -31,7 +31,7 @@ export class GetRealisedEpsUseCase {
     return caller.departmentId;
   }
 
-  private toDto({ ep, approvedDetail }: EpWithDetail): EpDetailDto {
+  private toDto({ ep, approvedDetail, memberName }: EpWithDetail): EpDetailDto {
     return {
       id: ep.id,
       fullName: ep.fullName,
@@ -43,6 +43,8 @@ export class GetRealisedEpsUseCase {
       statusOnExpa: ep.statusOnExpa,
       createdAtExpa: ep.createdAtExpa.toISOString(),
       syncedAt: ep.syncedAt.toISOString(),
+      ownerId: ep.ownerId,
+      memberName: memberName ?? null,
       approvedDetail: approvedDetail
         ? {
             expaAppId: approvedDetail.expaAppId,
@@ -54,6 +56,8 @@ export class GetRealisedEpsUseCase {
             realizedDate: approvedDetail.realizedDate?.toISOString() ?? null,
             completedDate: approvedDetail.completedDate?.toISOString() ?? null,
             finishedDate: approvedDetail.finishedDate?.toISOString() ?? null,
+            contractLink: approvedDetail.contractLink,
+            auditFolder: approvedDetail.auditFolder,
           }
         : null,
     };

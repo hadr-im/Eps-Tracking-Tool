@@ -20,6 +20,9 @@ export interface EpDetailDto {
   statusOnExpa: string;
   createdAtExpa: string;
   syncedAt: string;
+  // Owner (the member who had this EP in their pipeline)
+  ownerId: string | null;
+  memberName: string | null;
   // ApprovedDetail fields (null if not yet created)
   approvedDetail: {
     expaAppId: string;
@@ -31,6 +34,8 @@ export interface EpDetailDto {
     realizedDate: string | null;
     completedDate: string | null;
     finishedDate: string | null;
+    contractLink: string | null;
+    auditFolder: string | null;
   } | null;
 }
 
@@ -48,9 +53,18 @@ export class GetApprovedEpsWithDetailUseCase {
       EpStatus.FINISHED,
     ];
 
+    let finalStatus: EpStatus | EpStatus[] = approvedStatuses;
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        finalStatus = filters.status.filter(s => approvedStatuses.includes(s));
+      } else {
+        finalStatus = approvedStatuses.includes(filters.status) ? filters.status : approvedStatuses;
+      }
+    }
+
     const mergedFilters: EpFilters = {
       ...filters,
-      status: approvedStatuses,
+      status: finalStatus,
     };
 
     const rows = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);
@@ -65,7 +79,7 @@ export class GetApprovedEpsWithDetailUseCase {
     return caller.departmentId;
   }
 
-  private toDto({ ep, approvedDetail }: EpWithDetail): EpDetailDto {
+  private toDto({ ep, approvedDetail, memberName }: EpWithDetail): EpDetailDto {
     return {
       id: ep.id,
       fullName: ep.fullName,
@@ -77,6 +91,8 @@ export class GetApprovedEpsWithDetailUseCase {
       statusOnExpa: ep.statusOnExpa,
       createdAtExpa: ep.createdAtExpa.toISOString(),
       syncedAt: ep.syncedAt.toISOString(),
+      ownerId: ep.ownerId,
+      memberName: memberName ?? null,
       approvedDetail: approvedDetail
         ? {
             expaAppId: approvedDetail.expaAppId,
@@ -88,6 +104,8 @@ export class GetApprovedEpsWithDetailUseCase {
             realizedDate: approvedDetail.realizedDate?.toISOString() ?? null,
             completedDate: approvedDetail.completedDate?.toISOString() ?? null,
             finishedDate: approvedDetail.finishedDate?.toISOString() ?? null,
+            contractLink: approvedDetail.contractLink,
+            auditFolder: approvedDetail.auditFolder,
           }
         : null,
     };

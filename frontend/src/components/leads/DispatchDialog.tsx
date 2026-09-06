@@ -103,7 +103,7 @@ export function DispatchDialog({
             ) : (
               <Select
                 value={selectedMemberId}
-                onValueChange={setSelectedMemberId}
+                onValueChange={(v) => setSelectedMemberId(v ?? '')}
               >
                 <SelectTrigger id="dispatch-member" className="w-full">
                   <SelectValue placeholder="Select a member…" />
