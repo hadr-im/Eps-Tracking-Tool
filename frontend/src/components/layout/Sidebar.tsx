@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BadgeCheck,
+  Hourglass,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -25,10 +26,11 @@ const PERSONAL_NAV = [
 ];
 
 const TEAM_NAV = [
-  { to: '/team/crm',          icon: Users,         label: 'Team CRM'       },
-  { to: '/team/dashboard',    icon: Users2,         label: 'Team Dashboard' },
-  { to: '/team/approved-eps', icon: BadgeCheck,     label: 'Approved EPs'   },
-  { to: '/dispatch',          icon: ArrowRightLeft, label: 'Dispatch'       },
+  { to: '/team/crm',           icon: Users,         label: 'Team CRM'        },
+  { to: '/team/dashboard',     icon: Users2,         label: 'Team Dashboard'  },
+  { to: '/team/approved-eps',  icon: BadgeCheck,     label: 'Approved EPs'    },
+  { to: '/team/under-process', icon: Hourglass,      label: 'Under Process'   },
+  { to: '/dispatch',           icon: ArrowRightLeft, label: 'Dispatch'        },
 ];
 
 const BOTTOM_NAV = [
