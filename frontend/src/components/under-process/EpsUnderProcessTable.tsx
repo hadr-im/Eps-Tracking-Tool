@@ -17,9 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Skeleton }        from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
 import { DateCell }        from '@/components/crm/cells/DateCell';
+import { TransitionCell }  from '@/components/crm/cells/TransitionCell';
 import type { Ep, EpStatus } from '@/types/ep';
 
 // ── Column groups ─────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: 'Actions',
     headerClass: 'bg-slate-500 text-white border-slate-500',
-    columnIds: ['comments'],
+    columnIds: ['transition', 'comments'],
   },
 ];
 
@@ -67,6 +68,8 @@ interface EpsUnderProcessTableProps {
   isLoading: boolean;
   onCommentClick?: (ep: Ep) => void;
   commentCounts?: Record<string, number>;
+  onTransition?: (epId: string, targetProduct: string) => void;
+  pendingId?: string | null;
 }
 
 // Sticky offsets
@@ -136,6 +139,8 @@ function buildColumns(
   memberMap: Record<string, string>,
   onCommentClick?: (ep: Ep) => void,
   commentCounts: Record<string, number> = {},
+  onTransition?: (epId: string, targetProduct: string) => void,
+  pendingId?: string | null,
 ): ColumnDef<Ep, any>[] {
   return [
 
@@ -322,6 +327,24 @@ function buildColumns(
       meta: { minWidth: 120 },
     }),
 
+    // Transition
+    col.display({
+      id: 'transition',
+      header: 'Transition',
+      cell: (info) => {
+        if (!onTransition) return <span className="text-muted-foreground text-xs">—</span>;
+        return (
+          <TransitionCell
+            epId={info.row.original.id}
+            currentProduct={info.row.original.product}
+            isPending={pendingId === info.row.original.id}
+            onTransition={onTransition}
+          />
+        );
+      },
+      meta: { minWidth: 100 },
+    }),
+
     // Comments
     ...(onCommentClick
       ? [
@@ -372,13 +395,15 @@ export function EpsUnderProcessTable({
   isLoading,
   onCommentClick,
   commentCounts = {},
+  onTransition,
+  pendingId,
 }: EpsUnderProcessTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const columns = useMemo(
-    () => buildColumns(memberMap, onCommentClick, commentCounts),
+    () => buildColumns(memberMap, onCommentClick, commentCounts, onTransition, pendingId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [memberMap, onCommentClick, commentCounts],
+    [memberMap, onCommentClick, commentCounts, onTransition, pendingId],
   );
 
   const table = useReactTable({

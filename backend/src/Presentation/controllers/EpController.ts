@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getApprovedEpsWithDetailUseCase, getRealisedEpsUseCase, epManagementUseCase } from '../../Infrastructure/container';
+import { getApprovedEpsWithDetailUseCase, getRealisedEpsUseCase, epManagementUseCase, transitionEpUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
@@ -71,12 +71,15 @@ export class EpController {
       const caller = req.user!;
       const filters = parseFilters(req.query);
 
-      if (caller.role === UserRole.MEMBER) {
-        const eps = await epManagementUseCase.getMyEps(caller, filters);
+      // If memberId is explicitly passed, it's a Team CRM view request
+      const memberId = typeof req.query['memberId'] === 'string' ? req.query['memberId'] : undefined;
+
+      if (memberId && caller.role !== UserRole.MEMBER) {
+        const eps = await epManagementUseCase.getTeamEps(caller, memberId, filters);
         res.status(200).json({ data: eps, count: eps.length });
       } else {
-        const memberId = typeof req.query['memberId'] === 'string' ? req.query['memberId'] : undefined;
-        const eps = await epManagementUseCase.getTeamEps(caller, memberId, filters);
+        // Otherwise (MEMBER, or TL/VP looking at their own "My CRM" tab) -> return own EPs
+        const eps = await epManagementUseCase.getMyEps(caller, filters);
         res.status(200).json({ data: eps, count: eps.length });
       }
     } catch (err) {
@@ -212,6 +215,30 @@ export class EpController {
       const requestedDepartmentId = req.query['departmentId'] as string | undefined;
       const eps = await getRealisedEpsUseCase.execute(caller, requestedDepartmentId, {});
       res.status(200).json({ data: eps, count: eps.length });
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
+  /*
+    POST /eps/:id/transition
+    MEMBER (own EPs) / TL (dept EPs) / VP (any EP)
+  */
+  static async transitionEp(req: Request, res: Response): Promise<void> {
+    try {
+      const epId = typeof req.params['id'] === 'string' ? req.params['id'] : '';
+      if (!epId) throw new AppError('EP ID is required', 400);
+      
+      const targetProduct = req.body['targetProduct'];
+      if (!targetProduct) throw new AppError('targetProduct is required', 400);
+
+      const data = await transitionEpUseCase.execute({
+        epId,
+        targetProduct: targetProduct as Product,
+        caller: req.user!,
+      });
+
+      res.status(200).json({ data });
     } catch (err) {
       handleError(res, err);
     }

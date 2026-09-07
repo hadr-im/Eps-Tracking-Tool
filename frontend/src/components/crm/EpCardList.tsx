@@ -11,6 +11,7 @@ interface EpCardListProps {
   onCheckboxUpdate: (id: string, field: 'contacted' | 'interested', value: boolean) => void;
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
+  onTransition?:    (id: string, targetProduct: string) => void;
 }
 
 export function EpCardList({
@@ -20,6 +21,7 @@ export function EpCardList({
   onCheckboxUpdate,
   onPhaseUpdate,
   onTextUpdate,
+  onTransition,
 }: EpCardListProps) {
   if (isLoading) {
     return (
@@ -71,6 +73,7 @@ export function EpCardList({
           onCheckboxUpdate={onCheckboxUpdate}
           onPhaseUpdate={onPhaseUpdate}
           onTextUpdate={onTextUpdate}
+          onTransition={onTransition}
         />
       ))}
     </div>

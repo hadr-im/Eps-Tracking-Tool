@@ -1,6 +1,7 @@
 import { EpRepository } from '../repositories/EpRepository';
 import { CommentRepository } from '../repositories/CommentRepository';
 import { EpManagementUseCase } from '../../Application/use-cases/ep/EpManagementUseCase';
+import { TransitionEpUseCase } from '../../Application/use-cases/ep/TransitionEpUseCase';
 
 /*
   Factory that constructs and wires all EP Management dependencies
@@ -17,5 +18,9 @@ export class EpManagementFactory {
 
   makeEpManagementUseCase(): EpManagementUseCase {
     return new EpManagementUseCase(this.epRepository, this.commentRepository);
+  }
+
+  makeTransitionEpUseCase(): TransitionEpUseCase {
+    return new TransitionEpUseCase(this.epRepository);
   }
 }

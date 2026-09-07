@@ -2,12 +2,12 @@
 // - Filters bar (debounced search + selects, synced to URL)
 // - "Leads Processed" badge
 // - Desktop: TanStack Table with sticky columns
-// - Mobile: expandable cards
 // All inline edits call PATCH /eps/:id via useUpdateEp
 
 import { useState, useMemo, useCallback } from 'react';
-import { useUpdateEp }  from '@/hooks/useUpdateEp';
-import { useEps }       from '@/hooks/useEps';
+import { useUpdateEp }    from '@/hooks/useUpdateEp';
+import { useTransitionEp } from '@/hooks/useTransitionEp';
+import { useEps }         from '@/hooks/useEps';
 import { CrmFilters }   from '@/components/crm/CrmFilters';
 import { EpTable }      from '@/components/crm/EpTable';
 import { EpCardList }   from '@/components/crm/EpCardList';
@@ -23,9 +23,11 @@ export default function MyCrmPage() {
 
   // Mutations 
   const { mutate, isPending, variables } = useUpdateEp();
+  const { mutate: transitionMutate, isPending: isTransitionPending, variables: transitionVariables } = useTransitionEp();
 
   // Track which EP ID is currently being mutated (for per-row pending state)
-  const pendingId = isPending && variables ? variables.id : null;
+  const pendingId = (isPending && variables ? variables.id : null) || 
+                    (isTransitionPending && transitionVariables ? transitionVariables.id : null);
 
   // Leads processed stats 
   const contactedCount = useMemo(() => eps.filter((ep) => ep.contacted).length, [eps]);
@@ -51,6 +53,13 @@ export default function MyCrmPage() {
       mutate({ id, payload: { [field]: value } });
     },
     [mutate],
+  );
+
+  const handleTransition = useCallback(
+    (id: string, targetProduct: string) => {
+      transitionMutate({ id, targetProduct });
+    },
+    [transitionMutate],
   );
 
   // Render 
@@ -95,6 +104,7 @@ export default function MyCrmPage() {
           onCheckboxUpdate={handleCheckboxUpdate}
           onPhaseUpdate={handlePhaseUpdate}
           onTextUpdate={handleTextUpdate}
+          onTransition={handleTransition}
         />
       </div>
 

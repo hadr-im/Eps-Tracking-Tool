@@ -5,7 +5,7 @@ import type {
   Product as PrismaProduct,
 } from '@prisma/client';
 
-import { IEpRepository, EpStatusSnapshot, EpWithDetail } from '../../Domain/abstracts/IEpRepository';
+import { IEpRepository, EpStatusSnapshot, EpWithDetail, TransitionInput } from '../../Domain/abstracts/IEpRepository';
 import { Ep } from '../../Domain/entities/Ep';
 import { ApprovedDetail } from '../../Domain/entities/ApprovedDetail';
 import { StatusHistory } from '../../Domain/entities/StatusHistory';
@@ -120,6 +120,45 @@ export class EpRepository implements IEpRepository {
       data: updatePayload,
     });
     return this.toEpEntity(row);
+  }
+
+  /**
+   Atomically transitions an EP to a new product/department.
+  Uses a Prisma interactive transaction:
+      1. Updates ep.product, ep.departmentId, ep.ownerId = null
+      2. Creates a TransitionHistory row
+    If either write fails, both are rolled back.
+   */
+  async transitionEp(epId: string, input: TransitionInput): Promise<Ep> {
+    const updatedRow = await this.db.$transaction(async (tx) => {
+      // 1. Move the EP to the target product + department, unassign it
+      const ep = await tx.ep.update({
+        where: { id: epId },
+        data: {
+          product:      input.targetProduct      as unknown as PrismaProduct,
+          departmentId: input.targetDepartmentId,
+          ownerId:      null,
+          assignedAt:   null,
+        },
+      });
+
+      // 2. Record the transition history
+      await tx.transitionHistory.create({
+        data: {
+          epId,
+          triggeredById:  input.triggeredById,
+          fromProduct:    input.fromProduct    as unknown as any,
+          toProduct:      input.targetProduct  as unknown as any,
+          fromDepartment: input.fromDepartmentId,
+          toDepartment:   input.targetDepartmentId,
+          note:           input.note ?? null,
+        },
+      });
+
+      return ep;
+    });
+
+    return this.toEpEntity(updatedRow);
   }
 
   async findByDepartmentFiltered(

@@ -117,8 +117,50 @@ router.get(
 router.patch(
   '/eps/:id',
   authMiddleware,
-  roleMiddleware(UserRole.MEMBER),
+  // Any authenticated role can reach this endpoint
+  // The use-case enforces that only the EP's assigned owner (ep.ownerId === caller.id) may edit
   EpController.updateEp,
+);
+
+/**
+ * @openapi
+ * /eps/{id}/transition:
+ *   post:
+ *     tags: [EPs]
+ *     summary: Transition EP to a new product department
+ *     description: |
+ *       Moves the EP to the specified product department and unassigns them.
+ *       - **MEMBER**: only for EPs assigned to them.
+ *       - **TEAM_LEADER**: only for EPs within their department.
+ *       - **VP**: can transition any EP.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [targetProduct]
+ *             properties:
+ *               targetProduct: { type: string, enum: [GV, GTA, GTE] }
+ *     responses:
+ *       200:
+ *         description: Transitioned EP
+ *       400:
+ *         description: Invalid target product or same product
+ *       403:
+ *         description: Not the assigned member, or caller is TL/VP
+ *       404:
+ *         description: EP not found
+ */
+router.post(
+  '/eps/:id/transition',
+  authMiddleware,
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP),
+  EpController.transitionEp,
 );
 
 /**

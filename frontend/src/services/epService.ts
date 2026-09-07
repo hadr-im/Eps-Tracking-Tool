@@ -27,3 +27,11 @@ export async function patchEp(id: string, payload: EpUpdatePayload): Promise<Ep>
   const { data } = await apiClient.patch<{ data: Ep }>(`/eps/${id}`, payload);
   return data.data;
 }
+
+// POST /eps/:id/transition
+// Move an EP to a new product department
+
+export async function transitionEp(id: string, targetProduct: string): Promise<Ep> {
+  const { data } = await apiClient.post<{ data: Ep }>(`/eps/${id}/transition`, { targetProduct });
+  return data.data;
+}

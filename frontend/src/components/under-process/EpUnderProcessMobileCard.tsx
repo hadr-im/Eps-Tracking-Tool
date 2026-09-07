@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Plus, Minus, MessageSquare } from 'lucide-react';
+import { TransitionCell } from '@/components/crm/cells/TransitionCell';
+import { cn } from '@/lib/utils';
 import type { Ep } from '@/types/ep';
 
 interface EpUnderProcessMobileCardProps {
@@ -7,6 +9,8 @@ interface EpUnderProcessMobileCardProps {
   memberName: string | null;
   canComment: boolean;
   onCommentClick: (ep: Ep) => void;
+  onTransition?: (epId: string, targetProduct: string) => void;
+  isPending?: boolean;
 }
 
 function label(v: string | null, transform: (s: string) => string) {
@@ -18,6 +22,8 @@ export function EpUnderProcessMobileCard({
   memberName,
   canComment,
   onCommentClick,
+  onTransition,
+  isPending = false,
 }: EpUnderProcessMobileCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -29,20 +35,24 @@ export function EpUnderProcessMobileCard({
   );
 
   return (
-    <li className="rounded-xl border bg-card shadow-sm overflow-hidden">
+    <li className="rounded-xl border bg-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-start gap-3 p-4">
-        <div className="flex-1 min-w-0">
-          {/* Name + phase badge */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">{ep.fullName}</span>
+      <div className="px-4 py-3">
+        {/* Top row: Name & Phase */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            <span className="font-semibold text-sm truncate">{ep.fullName}</span>
+          </div>
+          <div className="shrink-0">
             <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 text-[10px] font-medium">
               Looking for Opportunities
             </span>
           </div>
+        </div>
 
-          {/* Key fields */}
-          <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
+        {/* Bottom row: Subtitle & Actions */}
+        <div className="flex items-end justify-between gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground flex-1">
             {memberName && (
               <span>Member: <span className="text-foreground font-medium">{memberName}</span></span>
             )}
@@ -54,36 +64,59 @@ export function EpUnderProcessMobileCard({
             )}
           </div>
 
-          {/* Notes preview */}
-          {ep.notes && (
-            <p className={`mt-1.5 text-[11px] text-muted-foreground ${!expanded ? 'line-clamp-2' : ''}`}>
-              {ep.notes}
-            </p>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {canComment && (
+              <button
+                type="button"
+                onClick={() => onCommentClick(ep)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
+                aria-label={`Comments for ${ep.fullName}`}
+              >
+                <MessageSquare size={16} strokeWidth={1.6} />
+              </button>
+            )}
+            {(ep.notes || onTransition) && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
+                aria-label={expanded ? 'Collapse details' : 'Expand details'}
+              >
+                {expanded ? <Minus size={18} /> : <Plus size={18} />}
+              </button>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          {canComment && (
-            <button
-              type="button"
-              onClick={() => onCommentClick(ep)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-accent"
-              aria-label={`Comments for ${ep.fullName}`}
-            >
-              <MessageSquare size={16} strokeWidth={1.6} />
-            </button>
-          )}
-          {ep.notes && ep.notes.length > 80 && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-accent"
-              aria-label={expanded ? 'Collapse notes' : 'Expand notes'}
-            >
-              {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
-          )}
+      {/* Expanded Details */}
+      <div
+        className={cn(
+          'grid transition-all duration-300 ease-in-out',
+          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t px-4 py-3 bg-muted/10">
+            {ep.notes && (
+              <div className="mb-3">
+                <span className="text-xs font-medium text-foreground/70 block mb-1">Notes</span>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{ep.notes}</p>
+              </div>
+            )}
+            
+            {onTransition && (
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <span className="text-[11px] text-muted-foreground">Transition</span>
+                <TransitionCell
+                  epId={ep.id}
+                  currentProduct={ep.product}
+                  isPending={isPending}
+                  onTransition={onTransition}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </li>

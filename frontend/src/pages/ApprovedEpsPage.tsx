@@ -29,7 +29,7 @@ export default function ApprovedEpsPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Approved EPs</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Department-wide operational tracker — all EPs who signed the contract
+              Department-wide operational tracker
             </p>
           </div>
 

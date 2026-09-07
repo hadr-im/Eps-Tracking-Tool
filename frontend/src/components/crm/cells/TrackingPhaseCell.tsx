@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -35,7 +36,7 @@ export function TrackingPhaseCell({ id, value, isPending, onUpdate }: TrackingPh
     >
       <SelectTrigger
         id={`phase-${id}`}
-        className="h-7 min-w-36 max-w-36 text-xs border-dashed"
+        className="h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent"
         aria-label="Tracking phase"
       >
         <SelectValue placeholder="set phase" />

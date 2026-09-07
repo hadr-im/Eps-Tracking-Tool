@@ -3,6 +3,7 @@ import { Search, Eye, X } from 'lucide-react';
 import { useAuth }                   from '@/hooks/useAuth';
 import { useEpsUnderProcess }        from '@/hooks/useEpsUnderProcess';
 import { useDepartmentMembers }      from '@/hooks/useDepartmentMembers';
+import { useTransitionEp }           from '@/hooks/useTransitionEp';
 import { CommentPanel }              from '@/components/team/CommentPanel';
 import { EpsUnderProcessTable }      from '@/components/under-process/EpsUnderProcessTable';
 import { EpUnderProcessMobileCard }  from '@/components/under-process/EpUnderProcessMobileCard';
@@ -19,6 +20,9 @@ export default function EpsUnderProcessPage() {
 
   const { data: eps = [],     isLoading: epsLoading }     = useEpsUnderProcess();
   const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
+  const { mutate: transitionMutate, isPending: transitionPending, variables: transitionVariables } = useTransitionEp();
+
+  const pendingId = transitionPending && transitionVariables ? transitionVariables.id : null;
 
   // Build ownerId → fullName map from the already-cached members list
   const memberMap = useMemo(
@@ -38,6 +42,10 @@ export default function EpsUnderProcessPage() {
   }, [eps, search]);
 
   const handleCommentClick = useCallback((ep: Ep) => setOpenEp(ep), []);
+  const handleTransition = useCallback((id: string, targetProduct: string) => {
+    transitionMutate({ id, targetProduct });
+  }, [transitionMutate]);
+
   const isLoading = epsLoading || membersLoading;
 
   return (
@@ -99,6 +107,8 @@ export default function EpsUnderProcessPage() {
           memberMap={memberMap}
           isLoading={isLoading}
           onCommentClick={canComment ? handleCommentClick : undefined}
+          onTransition={handleTransition}
+          pendingId={pendingId}
         />
       </div>
 
@@ -119,6 +129,8 @@ export default function EpsUnderProcessPage() {
                 memberName={ep.ownerId ? (memberMap[ep.ownerId] ?? null) : null}
                 canComment={canComment}
                 onCommentClick={handleCommentClick}
+                onTransition={handleTransition}
+                isPending={pendingId === ep.id}
               />
             ))}
           </ul>

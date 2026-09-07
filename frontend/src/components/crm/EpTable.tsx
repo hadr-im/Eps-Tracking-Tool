@@ -26,6 +26,9 @@ import { CheckboxCell }        from './cells/CheckboxCell';
 import { TrackingPhaseCell }   from './cells/TrackingPhaseCell';
 import { EditableTextCell }    from './cells/EditableTextCell';
 import { DateCell }            from './cells/DateCell';
+import { TransitionCell }      from './cells/TransitionCell';
+import { DurationCell }        from './cells/DurationCell';
+import { AvailabilityCell }    from './cells/AvailabilityCell';
 import type { Ep, TrackingPhase } from '@/types/ep';
 
 // Column group metadata 
@@ -68,6 +71,8 @@ interface EpTableProps {
   onCheckboxUpdate: (id: string, field: 'contacted' | 'interested', value: boolean) => void;
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
+  // Transition mutation handler
+  onTransition?:    (id: string, targetProduct: string) => void;
   // When true: all inputs are disabled/hidden + table is read-only (TL/VP oversight view) 
   readOnly?: boolean;
   // When provided: a Comments column is added with a click handler per row
@@ -81,7 +86,7 @@ interface EpTableProps {
 const col = createColumnHelper<Ep>();
 
 function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef<Ep, any>[] {
-  const { pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly = false, onCommentClick, commentCounts = {} } = props;
+  const { pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, onTransition, readOnly = false, onCommentClick, commentCounts = {} } = props;
 
   return [
     // Frozen left columns 
@@ -303,28 +308,62 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('duration', {
       id: 'duration',
       header: 'Duration',
-      cell: (info) => (
-        <span className="text-xs capitalize">{info.getValue()?.toLowerCase() ?? <span className="text-muted-foreground">—</span>}</span>
-      ),
-      meta: { minWidth: 80 },
+      cell: (info) => {
+        if (readOnly) {
+          const v = info.getValue();
+          if (!v) return <span className="text-muted-foreground text-xs">—</span>;
+          return <span className="text-xs">{v.charAt(0) + v.slice(1).toLowerCase()}</span>;
+        }
+        return (
+          <DurationCell
+            id={info.row.original.id}
+            value={info.getValue()}
+            isPending={pendingId === info.row.original.id}
+            onUpdate={onTextUpdate}
+          />
+        );
+      },
+      enableSorting: true,
+      meta: { minWidth: 120 },
     }),
     col.accessor('availability', {
       id: 'availability',
       header: 'Availability',
       cell: (info) => {
-        const v = info.getValue();
-        if (!v) return <span className="text-muted-foreground text-xs">—</span>;
-        const label = v.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-        return <span className="text-xs whitespace-nowrap">{label}</span>;
+        if (readOnly) {
+          const v = info.getValue();
+          if (!v) return <span className="text-muted-foreground text-xs">—</span>;
+          const label = v.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+          return <span className="text-xs whitespace-nowrap">{label}</span>;
+        }
+        return (
+          <AvailabilityCell
+            id={info.row.original.id}
+            value={info.getValue()}
+            isPending={pendingId === info.row.original.id}
+            onUpdate={onTextUpdate}
+          />
+        );
       },
-      meta: { minWidth: 120 },
+      enableSorting: true,
+      meta: { minWidth: 150 },
     }),
 
     // Transition 
     col.display({
       id: 'transition',
       header: 'Transition',
-      cell: () => <span className="text-muted-foreground text-xs">—</span>,
+      cell: (info) => {
+        if (!onTransition) return <span className="text-muted-foreground text-xs">—</span>;
+        return (
+          <TransitionCell
+            epId={info.row.original.id}
+            currentProduct={info.row.original.product}
+            isPending={pendingId === info.row.original.id}
+            onTransition={onTransition}
+          />
+        );
+      },
       meta: { minWidth: 100 },
     }),
 
@@ -380,6 +419,7 @@ export function EpTable({
   onCheckboxUpdate,
   onPhaseUpdate,
   onTextUpdate,
+  onTransition,
   readOnly = false,
   onCommentClick,
   commentCounts = {},
@@ -387,9 +427,9 @@ export function EpTable({
   // Memoize so TanStack Table never sees new column objects unless handlers change
   // (avoids unnecessary re-renders and internal state resets)
   const columns = useMemo(
-    () => buildColumns({ pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly, onCommentClick, commentCounts }),
+    () => buildColumns({ pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, onTransition, readOnly, onCommentClick, commentCounts }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, readOnly, onCommentClick, commentCounts],
+    [pendingId, onCheckboxUpdate, onPhaseUpdate, onTextUpdate, onTransition, readOnly, onCommentClick, commentCounts],
   );
 
   const table = useReactTable({

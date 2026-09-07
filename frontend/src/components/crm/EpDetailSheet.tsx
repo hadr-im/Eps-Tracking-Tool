@@ -10,6 +10,8 @@ import { TrackingPhaseCell } from './cells/TrackingPhaseCell';
 import { EditableTextCell }  from './cells/EditableTextCell';
 import { CheckboxCell }      from './cells/CheckboxCell';
 import { DateCell }          from './cells/DateCell';
+import { DurationCell }      from './cells/DurationCell';
+import { AvailabilityCell }  from './cells/AvailabilityCell';
 import type { Ep, TrackingPhase } from '@/types/ep';
 
 interface EpDetailSheetProps {
@@ -134,10 +136,10 @@ export function EpDetailSheet({
           {/* Interests */}
           <Section label="Interests" color="bg-emerald-500 text-white" />
           <Row label="Duration">
-            <span className="capitalize">{ep.duration?.toLowerCase() ?? <span className="text-muted-foreground">—</span>}</span>
+            <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
           </Row>
           <Row label="Availability">
-            <span>{availability ?? <span className="text-muted-foreground">—</span>}</span>
+            <AvailabilityCell id={ep.id} value={ep.availability} isPending={isPending} onUpdate={onTextUpdate} />
           </Row>
         </div>
       </SheetContent>

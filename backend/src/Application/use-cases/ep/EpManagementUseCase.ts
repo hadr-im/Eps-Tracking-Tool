@@ -103,15 +103,11 @@ export class EpManagementUseCase {
     caller: EpManagementCaller,
     data: EpUpdateData,
   ): Promise<EpDto> {
-    // Rule: TL and VP are read-only on individual EP CRM fields
-    if (caller.role !== UserRole.MEMBER) {
-      throw new AppError('Team Leaders and VPs are read-only on EP fields', 403);
-    }
-
     const ep = await this.epRepo.findById(epId);
     if (!ep) throw new AppError('EP not found', 404);
 
-    // Rule: member may only edit their own assigned EPs
+    // Rule: any role can edit an EP assigned to them
+    // TL/VP remain read-only on EPs assigned to other members
     if (ep.ownerId !== caller.id) {
       throw new AppError('You can only edit EPs assigned to you', 403);
     }

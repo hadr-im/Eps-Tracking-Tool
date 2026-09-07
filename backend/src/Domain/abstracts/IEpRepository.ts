@@ -2,6 +2,7 @@ import { Ep } from '../entities/Ep';
 import { ApprovedDetail } from '../entities/ApprovedDetail';
 import { StatusHistory } from '../entities/StatusHistory';
 import { EpStatus } from '../enums/EpStatus';
+import { Product } from '../enums/Product';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
 import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
 
@@ -19,6 +20,16 @@ export interface EpWithDetail {
   approvedDetail: ApprovedDetail | null;
   // Display name of the assigned member (owner) if joined 
   memberName?: string | null;
+}
+
+// Data required to execute a product transition in a single atomic operation 
+export interface TransitionInput {
+  triggeredById: string;
+  fromProduct: Product;
+  fromDepartmentId: string;
+  targetProduct: Product;
+  targetDepartmentId: string;
+  note?: string;
 }
 
 export interface IEpRepository {
@@ -52,6 +63,13 @@ export interface IEpRepository {
 
   // Partial update (only the fields present in data are written)
   updateEp(epId: string, data: EpUpdateData): Promise<Ep>;
+
+  /**
+   Atomically moves an EP to a new product/department and records a TransitionHistory row
+   Uses a Prisma interactive transaction,  if either write fails, both roll back
+   The EP is set to ownerId = null (unassigned) in the target department
+   */
+  transitionEp(epId: string, input: TransitionInput): Promise<Ep>;
 
   // Single writes 
 

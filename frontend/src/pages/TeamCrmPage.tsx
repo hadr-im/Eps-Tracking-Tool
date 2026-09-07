@@ -5,16 +5,20 @@
 // - Read-only banner is always visible
 
 import { useState, useCallback } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Plus, Minus, MessageSquare } from 'lucide-react';
 import { useAuth }               from '@/hooks/useAuth';
 import { useDepartmentMembers }  from '@/hooks/useDepartmentMembers';
 import { useTeamEps }            from '@/hooks/useTeamEps';
+import { useTransitionEp }       from '@/hooks/useTransitionEp';
 import { MemberPicker }          from '@/components/team/MemberPicker';
 import { CommentPanel }          from '@/components/team/CommentPanel';
 import { EpTable }               from '@/components/crm/EpTable';
+import { TransitionCell }        from '@/components/crm/cells/TransitionCell';
+import { StatusBadgeCell }       from '@/components/crm/cells/StatusBadgeCell';
+import { cn }                    from '@/lib/utils';
 import type { Ep }               from '@/types/ep';
 
-// No-op callbacks: EpTable requires these even in readOnly mode (the cells are rendered as plain text, but the prop contract still exists)
+// No-op callbacks
 const noop = () => {};
 const noopCheckbox = () => {};
 const noopPhase = () => {};
@@ -29,10 +33,15 @@ export default function TeamCrmPage() {
 
   const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
   const { data: eps = [], isLoading: epsLoading } = useTeamEps(selectedMemberId);
+  const { mutate: transitionMutate, isPending: transitionPending, variables: transitionVariables } = useTransitionEp();
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
+  const pendingId = transitionPending && transitionVariables ? transitionVariables.id : null;
 
   const handleCommentClick = useCallback((ep: Ep) => setOpenEp(ep), []);
+  const handleTransition = useCallback((id: string, targetProduct: string) => {
+    transitionMutate({ id, targetProduct });
+  }, [transitionMutate]);
 
   return (
     <div className="flex flex-col h-full">
@@ -86,11 +95,12 @@ export default function TeamCrmPage() {
           <EpTable
             eps={eps}
             isLoading={epsLoading}
-            pendingId={null}
+            pendingId={pendingId}
             readOnly
             onCheckboxUpdate={noopCheckbox}
             onPhaseUpdate={noopPhase}
             onTextUpdate={noop}
+            onTransition={handleTransition}
             onCommentClick={canComment ? handleCommentClick : undefined}
           />
         </div>
@@ -106,29 +116,14 @@ export default function TeamCrmPage() {
           ) : (
             <ul className="space-y-3">
               {eps.map((ep) => (
-                <li
+                <TeamCrmMobileCard
                   key={ep.id}
-                  className="rounded-xl border bg-card p-4 space-y-2 text-sm"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold">{ep.fullName}</span>
-                    {canComment && (
-                      <button
-                        type="button"
-                        onClick={() => setOpenEp(ep)}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="View comments"
-                      >
-                        💬
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground space-y-0.5">
-                    <p>Status: <span className="text-foreground">{ep.statusOnExpa}</span></p>
-                    <p>Phase: <span className="text-foreground">{ep.trackingPhase?.replace(/_/g, ' ') ?? '—'}</span></p>
-                    <p>Contacted: <span className="text-foreground">{ep.contacted ? 'Yes' : 'No'}</span></p>
-                  </div>
-                </li>
+                  ep={ep}
+                  canComment={canComment}
+                  onCommentClick={handleCommentClick}
+                  onTransition={handleTransition}
+                  isPending={pendingId === ep.id}
+                />
               ))}
             </ul>
           )}
@@ -142,5 +137,89 @@ export default function TeamCrmPage() {
         onClose={() => setOpenEp(null)}
       />
     </div>
+  );
+}
+
+function TeamCrmMobileCard({
+  ep,
+  canComment,
+  onCommentClick,
+  onTransition,
+  isPending,
+}: {
+  ep: Ep;
+  canComment: boolean;
+  onCommentClick: (ep: Ep) => void;
+  onTransition: (epId: string, targetProduct: string) => void;
+  isPending: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <li className="rounded-xl border bg-card overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            <span className="font-semibold text-sm truncate">{ep.fullName}</span>
+          </div>
+          <div className="shrink-0">
+            <StatusBadgeCell status={ep.statusOnExpa} />
+          </div>
+        </div>
+
+        <div className="flex items-end justify-between gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground flex-1">
+            <span>ID: <span className="text-foreground font-medium">{ep.id}</span></span>
+            <span>Product: <span className="text-foreground font-medium">{ep.product}</span></span>
+            <span>Phase: <span className="text-foreground font-medium">{ep.trackingPhase?.replace(/_/g, ' ') ?? '—'}</span></span>
+            <span>Contacted: <span className="text-foreground font-medium">{ep.contacted ? 'Yes' : 'No'}</span></span>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {canComment && (
+              <button
+                type="button"
+                onClick={() => onCommentClick(ep)}
+                className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
+                aria-label={`Comments for ${ep.fullName}`}
+              >
+                <MessageSquare size={16} strokeWidth={1.6} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
+              aria-label={expanded ? 'Collapse details' : 'Expand details'}
+            >
+              {expanded ? <Minus size={18} /> : <Plus size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Details */}
+      <div
+        className={cn(
+          'grid transition-all duration-300 ease-in-out',
+          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t px-4 py-3 bg-muted/10">
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-muted-foreground">Transition</span>
+              <TransitionCell
+                epId={ep.id}
+                currentProduct={ep.product}
+                isPending={isPending}
+                onTransition={onTransition}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }
