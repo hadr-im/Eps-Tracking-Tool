@@ -10,7 +10,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
-import { SendHorizonal } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -148,8 +148,8 @@ function buildColumns(canDispatch: boolean, onDispatch: (lead: Lead) => void): C
                   onClick={() => onDispatch(info.row.original)}
                   aria-label={`Dispatch ${info.row.original.fullName}`}
                 >
-                  <SendHorizonal size={13} />
                   Dispatch
+                  <ChevronRight size={13} />
                 </Button>
               </div>
             ),

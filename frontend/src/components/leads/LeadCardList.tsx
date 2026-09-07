@@ -1,6 +1,6 @@
 // Each card shows core EP info + an optional Dispatch button
 
-import { SendHorizonal } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button }   from '@/components/ui/button';
 import { Badge }    from '@/components/ui/badge';
@@ -108,8 +108,8 @@ export function LeadCardList({ leads, isLoading, canDispatch, onDispatch }: Lead
               className="w-full gap-1.5 text-xs"
               onClick={() => onDispatch(lead)}
             >
-              <SendHorizonal size={13} />
               Dispatch to Member
+              <ChevronRight size={13} />
             </Button>
           )}
         </li>

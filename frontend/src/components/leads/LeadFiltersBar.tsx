@@ -83,11 +83,13 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
       {/* Product */}
       <Select value={product ?? ''} onValueChange={(v) => setParam('product', v || null)}>
         <SelectTrigger id="filter-product" className="h-8 w-auto min-w-28 text-xs">
-          <SelectValue placeholder="Product" />
+          <SelectValue placeholder="Product">
+            {(v) => (v || 'Product')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {PRODUCTS.map((p) => (
-            <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+            <SelectItem key={p} value={p} label={p} className="text-xs">{p}</SelectItem>
           ))}
         </SelectContent>
       </Select>

@@ -74,20 +74,10 @@ export default function TeamDashboardPage() {
             className="flex items-center gap-1.5"
           >
             <X size={13} />
-            My Stats
+            Stats
           </Button>
         )}
       </div>
-
-      {/* "Viewing" banner when a member is selected */}
-      {selectedMember && (
-        <div className="shrink-0 mx-4 md:mx-6 mt-4 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-950">
-          <UserCircle2 size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            Viewing: <span className="font-bold">{selectedMember.fullName}</span>
-          </span>
-        </div>
-      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto px-4 md:px-6 py-6 space-y-6">

@@ -77,7 +77,7 @@ export default function TeamCrmPage() {
         />
         {selectedMember && (
           <span className="text-sm text-muted-foreground">
-            — {eps.length} EP{eps.length !== 1 ? 's' : ''} assigned
+             {eps.length} EP{eps.length !== 1 ? 's' : ''} assigned
           </span>
         )}
       </div>

@@ -33,11 +33,13 @@ export function MemberPicker({
   return (
     <Select value={selectedId ?? ''} onValueChange={onSelect}>
       <SelectTrigger id="member-picker" className="w-52">
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>
+          {(val) => (val ? members.find((m) => m.id === val)?.fullName ?? val : placeholder)}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {members.map((m) => (
-          <SelectItem key={m.id} value={m.id}>
+          <SelectItem key={m.id} value={m.id} label={m.fullName}>
             {m.fullName}
           </SelectItem>
         ))}

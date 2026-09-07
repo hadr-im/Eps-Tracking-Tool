@@ -114,32 +114,6 @@ export default function GlobalDashboardPage() {
           />
         </div>
 
-        {/* Focused member banner */}
-        {focusedMember && (
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950">
-            <UserCircle2 size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
-            <span className="flex-1 text-sm font-medium text-blue-700 dark:text-blue-300">
-              Viewing stats for <span className="font-bold">{focusedMember.fullName}</span>
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs border-blue-300 hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900"
-              onClick={handleViewFullDashboard}
-            >
-              Open Full Dashboard
-            </Button>
-            <button
-              type="button"
-              onClick={() => setFocusMemberId(null)}
-              className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 p-1 rounded transition-colors"
-              aria-label="Close member view"
-            >
-              <X size={15} />
-            </button>
-          </div>
-        )}
-
         {/* Pipeline funnel + conversion rates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <StatusFunnelChart data={data?.statusFunnel} isLoading={isLoading} />

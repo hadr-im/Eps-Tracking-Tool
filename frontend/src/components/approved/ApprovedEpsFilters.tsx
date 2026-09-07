@@ -72,12 +72,14 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
           className="h-8 w-32 text-xs"
           aria-label="Filter by product"
         >
-          <SelectValue placeholder="Product" />
+          <SelectValue placeholder="Product">
+            {(v) => (v === 'all' || !v ? 'All products' : v)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All products</SelectItem>
+          <SelectItem value="all" label="All products">All products</SelectItem>
           {PRODUCTS.map((p) => (
-            <SelectItem key={p} value={p}>{p}</SelectItem>
+            <SelectItem key={p} value={p} label={p}>{p}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -92,12 +94,14 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
           className="h-8 w-36 text-xs"
           aria-label="Filter by status"
         >
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder="Status">
+            {(v) => (v === 'all' || !v ? 'All statuses' : APPROVED_STATUSES.find((s) => s.value === v)?.label ?? v)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="all" label="All statuses">All statuses</SelectItem>
           {APPROVED_STATUSES.map((s) => (
-            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            <SelectItem key={s.value} value={s.value} label={s.label}>{s.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>

@@ -104,11 +104,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         onValueChange={(v) => setParam('trackingPhase', v || null)}
       >
         <SelectTrigger id="filter-phase" className="h-8 w-auto min-w-44 text-xs">
-          <SelectValue placeholder="Phase" />
+          <SelectValue placeholder="Phase">
+            {(v) => (v ? TRACKING_PHASE_LABELS[v as TrackingPhase] ?? v : 'Phase')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {TRACKING_PHASES.map(([value, label]) => (
-            <SelectItem key={value} value={value} className="text-xs">
+            <SelectItem key={value} value={value} label={label} className="text-xs">
               {label}
             </SelectItem>
           ))}
@@ -121,11 +123,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         onValueChange={(v) => setParam('contacted', v || null)}
       >
         <SelectTrigger id="filter-contacted" className="h-8 w-auto min-w-32 text-xs">
-          <SelectValue placeholder="Contacted" />
+          <SelectValue placeholder="Contacted">
+            {(v) => (v === 'true' ? 'Contacted' : v === 'false' ? 'Not Contacted' : 'Contacted')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true"  className="text-xs">Contacted</SelectItem>
-          <SelectItem value="false" className="text-xs">Not Contacted</SelectItem>
+          <SelectItem value="true" label="Contacted" className="text-xs">Contacted</SelectItem>
+          <SelectItem value="false" label="Not Contacted" className="text-xs">Not Contacted</SelectItem>
         </SelectContent>
       </Select>
 
@@ -135,11 +139,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         onValueChange={(v) => setParam('interested', v || null)}
       >
         <SelectTrigger id="filter-interested" className="h-8 w-auto min-w-32 text-xs">
-          <SelectValue placeholder="Interested" />
+          <SelectValue placeholder="Interested">
+            {(v) => (v === 'true' ? 'Interested' : v === 'false' ? 'Not Interested' : 'Interested')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true"  className="text-xs">Interested</SelectItem>
-          <SelectItem value="false" className="text-xs">Not Interested</SelectItem>
+          <SelectItem value="true" label="Interested" className="text-xs">Interested</SelectItem>
+          <SelectItem value="false" label="Not Interested" className="text-xs">Not Interested</SelectItem>
         </SelectContent>
       </Select>
 
@@ -149,11 +155,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         onValueChange={(v) => setParam('duration', v || null)}
       >
         <SelectTrigger id="filter-duration" className="h-8 w-auto min-w-28 text-xs">
-          <SelectValue placeholder="Duration" />
+          <SelectValue placeholder="Duration">
+            {(v) => (v ? DURATIONS.find((d) => d.value === v)?.label ?? v : 'Duration')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {DURATIONS.map(({ value, label }) => (
-            <SelectItem key={value} value={value} className="text-xs">
+            <SelectItem key={value} value={value} label={label} className="text-xs">
               {label}
             </SelectItem>
           ))}
