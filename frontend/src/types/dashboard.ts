@@ -13,19 +13,20 @@ export interface PhaseCount {
   count: number;
 }
 
+// Per member stats row returned by getMemberBreakdown 
 export interface MemberBreakdown {
   memberId: string;
-  memberName: string;
+  fullName: string;
   totalAssigned: number;
-  totalContacted: number;
-  totalApproved: number;
-  totalRealised: number;
+  contactedCount: number;
+  approvedCount: number;
+  realisedCount: number;
 }
 
 export interface ConversionRates {
-  contactedRate: number;  
-  interestedRate: number; 
-  approvalRate: number;   
+  contactedRate: number;
+  interestedRate: number;
+  approvalRate: number;
 }
 
 export interface DashboardSummary {
@@ -35,6 +36,21 @@ export interface DashboardSummary {
   totalRealised: number;
 }
 
+// One data-point on the approval trend chart 
+export interface StatusChangeTrend {
+  // ISO date string 
+  date: string;
+  status: string;
+  count: number;
+}
+
+// Product-to-product transition count 
+export interface TransitionStat {
+  fromProduct: string;
+  toProduct: string;
+  count: number;
+}
+
 export interface MemberDashboardDto {
   statusFunnel: StatusCount[];
   phaseBreakdown: PhaseCount[];
@@ -42,7 +58,18 @@ export interface MemberDashboardDto {
   summary: DashboardSummary;
 }
 
-// API envelope
+// Shape returned by GET /dashboard/department (VP only) 
+export interface VpDashboardDto extends MemberDashboardDto {
+  memberLeaderboard: MemberBreakdown[];
+  trends: StatusChangeTrend[];
+  transitionStats: TransitionStat[];
+}
+
+// API envelopes
 export interface DashboardApiResponse {
   data: MemberDashboardDto;
+}
+
+export interface VpDashboardApiResponse {
+  data: VpDashboardDto;
 }

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   BadgeCheck,
   Hourglass,
+  LayoutDashboard,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -146,6 +147,16 @@ export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: Sidebar
               {TEAM_NAV.map((item) => (
                 <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
               ))}
+              {/* VP-only items */}
+              {user?.role === 'VP' && (
+                <NavItem
+                  to="/global-dashboard"
+                  icon={LayoutDashboard}
+                  label="Global Dashboard"
+                  collapsed={collapsed}
+                  onClick={onNavClick}
+                />
+              )}
             </>
           )}
 

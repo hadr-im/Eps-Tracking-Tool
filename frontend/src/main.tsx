@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import { AuthProvider }       from './context/AuthContext.tsx'
 import { ProtectedRoute }     from './components/auth/ProtectedRoute.tsx'
+import { RoleRoute }          from './components/auth/RoleRoute.tsx'
 import { AppLayout }          from './layouts/AppLayout.tsx'
 
 // Pages: authenticated
@@ -16,6 +17,7 @@ import TeamDashboardPage      from './pages/TeamDashboardPage.tsx'
 import LeadsPage              from './pages/LeadsPage.tsx'
 import ApprovedEpsPage        from './pages/ApprovedEpsPage.tsx'
 import EpsUnderProcessPage    from './pages/EpsUnderProcessPage.tsx'
+import GlobalDashboardPage    from './pages/GlobalDashboardPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -40,13 +42,24 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<AppLayout />}>
                 {/* Redirect root to CRM */}
                 <Route index element={<Navigate to="/crm" replace />} />
-                <Route path="/crm"            element={<MyCrmPage />} />
-                <Route path="/dashboard"      element={<MyDashboardPage />} />
-                <Route path="/team/crm"       element={<TeamCrmPage />} />
-                <Route path="/team/dashboard" element={<TeamDashboardPage />} />
-                <Route path="/dispatch"          element={<LeadsPage />} />
-                <Route path="/team/approved-eps"  element={<ApprovedEpsPage />} />
-                <Route path="/team/under-process" element={<EpsUnderProcessPage />} />
+
+                {/* All-roles routes */}
+                <Route path="/crm"       element={<MyCrmPage />} />
+                <Route path="/dashboard" element={<MyDashboardPage />} />
+
+                {/* TL + VP routes */}
+                <Route element={<RoleRoute allowed={['TEAM_LEADER', 'VP']} />}>
+                  <Route path="/team/crm"           element={<TeamCrmPage />} />
+                  <Route path="/team/dashboard"     element={<TeamDashboardPage />} />
+                  <Route path="/dispatch"           element={<LeadsPage />} />
+                  <Route path="/team/approved-eps"  element={<ApprovedEpsPage />} />
+                  <Route path="/team/under-process" element={<EpsUnderProcessPage />} />
+                </Route>
+
+                {/* VP-only routes */}
+                <Route element={<RoleRoute allowed={['VP']} />}>
+                  <Route path="/global-dashboard" element={<GlobalDashboardPage />} />
+                </Route>
                 <Route path="/settings"  element={<div className="p-8 text-muted-foreground">Settings — coming soon</div>} />
               </Route>
             </Route>
