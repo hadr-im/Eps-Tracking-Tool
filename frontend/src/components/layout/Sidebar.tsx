@@ -5,7 +5,7 @@ import {
   Users,
   Users2,
   ArrowRightLeft,
-  Settings,
+  UserCircle2,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -35,7 +35,7 @@ const TEAM_NAV = [
 ];
 
 const BOTTOM_NAV = [
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/settings', icon: UserCircle2, label: 'Profile' },
 ];
 
 // NavItem 

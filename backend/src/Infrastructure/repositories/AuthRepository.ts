@@ -48,6 +48,7 @@ export class AuthRepository implements IAuthRepository {
       departmentId: user.departmentId,
       isDispatcher: user.isDispatcher,
       isDisabled: user.isDisabled,
+      avatarUrl: user.avatarUrl,
       updatedAt: user.updatedAt,
     };
 
@@ -150,6 +151,7 @@ export class AuthRepository implements IAuthRepository {
       row.isDisabled,
       row.createdAt,
       row.updatedAt,
+      row.avatarUrl,
     );
   }
 

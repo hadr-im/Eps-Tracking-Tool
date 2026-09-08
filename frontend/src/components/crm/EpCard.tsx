@@ -1,8 +1,8 @@
-// Mobile card for a single EP 
+// Mobile card for a single EP
 
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { Pencil, MessageSquare, ChevronRight, Plus, Minus } from 'lucide-react';
+import { MessageSquare, ChevronRight, Plus, Minus } from 'lucide-react';
 import { StatusBadgeCell }   from './cells/StatusBadgeCell';
 import { TrackingPhaseCell } from './cells/TrackingPhaseCell';
 import { DateCell }          from './cells/DateCell';
@@ -22,6 +22,15 @@ interface EpCardProps {
   onTransition?:    (id: string, targetProduct: string) => void;
 }
 
+function getInitials(fullName: string) {
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
 export function EpCard({
   ep,
   isPending,
@@ -35,34 +44,34 @@ export function EpCard({
 
   return (
     <>
-      <div className="rounded-xl border bg-card overflow-hidden">
-        {/* Section 1: Identity (Always visible) */}
-        <div className="px-4 py-3">
-          {/* Top row: Name & Status */}
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-sm truncate flex-1">{ep.fullName}</p>
-            <div className="shrink-0">
-              <StatusBadgeCell status={ep.statusOnExpa} />
-            </div>
+      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden transition-colors">
+        {/* Header row: avatar, name, status, expand toggle */}
+        <div className="flex items-start gap-3 px-4 py-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+            {getInitials(ep.fullName)}
           </div>
-          
-          {/* Bottom row: Subtitle & Plus button */}
-          <div className="flex items-end justify-between gap-2 mt-1">
-            <p className="text-[11px] text-muted-foreground flex-1">
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">{ep.fullName}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               EP ID {ep.id} · {ep.product}
             </p>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <StatusBadgeCell status={ep.statusOnExpa} />
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="shrink-0 p-1 text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label={expanded ? 'Collapse details' : 'Expand details'}
             >
-              {expanded ? <Minus size={18} /> : <Plus size={18} />}
+              {expanded ? <Minus size={16} /> : <Plus size={16} />}
             </button>
           </div>
         </div>
 
-        {/* Section 2: Expanded Details */}
+        {/* Expanded details */}
         <div
           className={cn(
             'grid transition-all duration-300 ease-in-out',
@@ -70,22 +79,27 @@ export function EpCard({
           )}
         >
           <div className="overflow-hidden">
-            <div className="px-4 pb-3 pt-1 border-t space-y-3 bg-muted/10">
-              
-              {/* Tracking Phase */}
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-xs font-medium text-foreground/70 w-16 shrink-0">Phase</span>
-                <TrackingPhaseCell
-                  id={ep.id}
-                  value={ep.trackingPhase}
-                  isPending={isPending}
-                  onUpdate={onPhaseUpdate}
-                />
+            <div className="border-t border-border/70 bg-muted/20 px-4 py-4 space-y-4">
+             {/* Phase & Duration */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Phase</span>
+                  <TrackingPhaseCell
+                    id={ep.id}
+                    value={ep.trackingPhase}
+                    isPending={isPending}
+                    onUpdate={onPhaseUpdate}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Duration</span>
+                  <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
+                </div>
               </div>
 
               {/* Checkboxes */}
-              <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <label className="flex cursor-pointer select-none items-center gap-1.5">
                   <Checkbox
                     checked={ep.contacted}
                     disabled={isPending}
@@ -95,7 +109,7 @@ export function EpCard({
                   <span className="text-xs font-medium">Contacted</span>
                 </label>
 
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <label className="flex cursor-pointer select-none items-center gap-1.5">
                   <Checkbox
                     checked={ep.interested}
                     disabled={isPending}
@@ -106,50 +120,28 @@ export function EpCard({
                 </label>
 
                 {ep.contacted && ep.contactedAt && (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    (on <DateCell value={ep.contactedAt} />)
+                  <span className="text-[10px] text-muted-foreground">
+                    on <DateCell value={ep.contactedAt} />
                   </span>
                 )}
               </div>
 
-              {/* Editable Fields (Source, Duration) */}
-              <div className="grid grid-cols-[4rem_1fr] gap-x-2 gap-y-2 items-center">
-                <span className="text-xs font-medium text-foreground/70">Source</span>
-                <div className="flex">
-                  <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
-                </div>
-                
-                <span className="text-xs font-medium text-foreground/70">Duration</span>
-                <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
+              {/* Source */}
+              <div className="flex items-center gap-3">
+                <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Source</span>
+                <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
               </div>
 
               {/* Notes */}
-              <div className="pt-1">
-                <span className="text-xs font-medium text-foreground/70 block mb-1">Notes</span>
+              <div className="flex items-center gap-3">
+                <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Notes</span>
                 <EditableTextCell id={ep.id} field="notes" value={ep.notes} isPending={isPending} multiline placeholder="Add a note..." onUpdate={onTextUpdate} />
               </div>
 
-              {/* Footer Actions (Comments & Open) */}
-              <div className="pt-3 mt-1 border-t border-border/50 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <MessageSquare size={13} />
-                  <span>0 comments</span>
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setSheetOpen(true)}
-                  className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors bg-primary/10 px-2 py-1 rounded"
-                >
-                  Open Details
-                  <ChevronRight size={13} />
-                </button>
-              </div>
-              
-              {/* Transition (if applicable) */}
+              {/* Transition */}
               {onTransition && (
-                <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Transition</span>
+                <div className="flex items-center gap-3 border-t border-border/60 pt-3">
+                  <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">Transition</span>
                   <TransitionCell
                     epId={ep.id}
                     currentProduct={ep.product}
@@ -158,12 +150,28 @@ export function EpCard({
                   />
                 </div>
               )}
+
+              {/* Footer actions */}
+              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MessageSquare size={13} />
+                  0 comments
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSheetOpen(true)}
+                  className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                >
+                  Open Details
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Full detail sheet */}
       <EpDetailSheet
         ep={ep}
         open={sheetOpen}

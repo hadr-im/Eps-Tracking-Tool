@@ -104,7 +104,7 @@ function LinkCell({ href, label }: { href: string | null; label?: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline truncate max-w-25"
       title={href}
     >
       {label ?? 'Link'}
@@ -296,7 +296,7 @@ function buildColumns(
       id: 'notes',
       header: 'Notes',
       cell: (info) => (
-        <span className="text-xs max-w-[200px] block whitespace-pre-wrap text-left">
+        <span className="text-xs max-w-50 block whitespace-pre-wrap text-left">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
         </span>
       ),

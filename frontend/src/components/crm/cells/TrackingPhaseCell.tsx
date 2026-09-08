@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -39,7 +38,9 @@ export function TrackingPhaseCell({ id, value, isPending, onUpdate }: TrackingPh
         className="h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent"
         aria-label="Tracking phase"
       >
-        <SelectValue placeholder="set phase" />
+        <SelectValue placeholder="set phase" className="justify-center">
+          {(v) => (v ? PHASES.find((p) => p.value === v)?.label ?? v : 'set phase')}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {PHASES.map((p) => (

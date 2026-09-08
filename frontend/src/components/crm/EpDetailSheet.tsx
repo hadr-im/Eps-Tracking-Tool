@@ -70,6 +70,7 @@ export function EpDetailSheet({
               <SheetTitle className="text-base font-semibold truncate">{ep.fullName}</SheetTitle>
               <SheetDescription className="text-xs mt-0.5">
                 EP ID {ep.id} · {ep.product}
+                {availability && ` · ${availability}`}
               </SheetDescription>
             </div>
             <StatusBadgeCell status={ep.statusOnExpa} />

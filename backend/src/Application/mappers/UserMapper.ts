@@ -15,6 +15,7 @@ export interface UserResponse {
   departmentId: string | null;
   isDispatcher: boolean;
   isDisabled: boolean;
+  avatarUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +78,7 @@ export class UserMapper {
       departmentId: user.departmentId,
       isDispatcher: user.isDispatcher,
       isDisabled: user.isDisabled,
+      avatarUrl: user.avatarUrl ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

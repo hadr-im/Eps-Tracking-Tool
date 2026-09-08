@@ -39,6 +39,8 @@ export interface AuthContextValue {
     Does NOT make any API call (the caller is responsible for that)
    */
   login(tokens: AuthTokens): void;
+  // Merge a partial user update into the stored user (after profile edit)
+  updateUser(patch: Partial<AuthUser>): void;
   // Revoke the refresh token server-side, clear local state, and redirect to /login
   logout(): Promise<void>;
 }
@@ -139,6 +141,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(`${TOKEN_KEY}_user`, JSON.stringify(tokens.user));
   }, []);
 
+  const updateUser = useCallback((patch: Partial<AuthUser>): void => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      localStorage.setItem(`${TOKEN_KEY}_user`, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       // Revoke the refresh token server side (backend reads it from the httpOnly cookie)
@@ -162,9 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!accessToken && !!user,
       isLoading,
       login,
+      updateUser,
       logout,
     }),
-    [user, accessToken, isLoading, login, logout],
+    [user, accessToken, isLoading, login, updateUser, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

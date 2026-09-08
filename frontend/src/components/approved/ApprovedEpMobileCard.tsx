@@ -115,7 +115,7 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
               <Row label="Completed"    value={d ? <DateCell value={d.completedDate} /> : null} />
               <Row
                 label="Project Fees"
-                value={d?.projectFees != null ? `${d.projectFees.toLocaleString()} €` : null}
+                value={d?.projectFees != null ? `${d.projectFees.toLocaleString()} ` : null}
               />
               <Row label="Created"      value={<DateCell value={ep.createdAtExpa} />} />
             </div>

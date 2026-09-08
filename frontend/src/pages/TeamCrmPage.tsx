@@ -57,7 +57,7 @@ export default function TeamCrmPage() {
           </div>
 
           {/* Read-only badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-[var(--sidebar-primary)] px-3 py-1 text-xs font-semibold text-[var(--sidebar-primary-foreground)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-sidebar-primary px-3 py-1 text-xs font-semibold text-sidebar-primary-foreground">
             <Eye size={12} />
             Read-only
           </span>

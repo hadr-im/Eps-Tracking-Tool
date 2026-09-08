@@ -32,7 +32,9 @@ export function DurationCell({ id, value, isPending, onUpdate }: DurationCellPro
         className="h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent"
         aria-label="Duration"
       >
-        <SelectValue placeholder="set duration" />
+        <SelectValue placeholder="set duration" className="justify-center">
+          {(v) => (v ? DURATIONS.find((d) => d.value === v)?.label ?? v : 'set duration')}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {DURATIONS.map((p) => (

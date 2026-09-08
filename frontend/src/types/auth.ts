@@ -6,6 +6,9 @@
 // Mirrors backend/src/Domain/enums/UserRole.ts 
 export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP';
 
+// Mirrors backend/src/Domain/enums/AuthProvider.ts
+export type AuthProvider = 'LOCAL' | 'GOOGLE';
+
 // The user object stored in AuthContext.
  // Only auth-essential fields 
 
@@ -14,8 +17,10 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  provider: AuthProvider;
   departmentId: string | null;
   isDispatcher: boolean;
+  avatarUrl: string | null;
 }
 
 // Shape returned by the backend on POST /auth/login and GET /auth/google/callback 

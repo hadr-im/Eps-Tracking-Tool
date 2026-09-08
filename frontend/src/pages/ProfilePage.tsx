@@ -1,0 +1,375 @@
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, CheckCircle2, AlertCircle, KeyRound, User, Info } from 'lucide-react';
+
+import { useAuth } from '@/hooks/useAuth';
+import { useMyProfile } from '@/hooks/useMyProfile';
+import { useUpdateProfile } from '@/hooks/useUpdateProfile';
+import { useChangePassword } from '@/hooks/useChangePassword';
+import {
+  profileSchema,
+  changePasswordSchema,
+  type ProfileFormValues,
+  type ChangePasswordFormValues,
+} from '@/schemas/profileSchema';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Field, PasswordInput } from '@/components/auth/AuthFormFields';
+
+// helpers 
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  MEMBER: 'Member',
+  TEAM_LEADER: 'Team Leader',
+  VP: 'VP',
+};
+
+// Edit Profile Section 
+
+function EditProfileForm() {
+  const { user } = useAuth();
+  const { data: profile, isLoading } = useMyProfile();
+  const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
+  const [success, setSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { fullName: '', avatarUrl: '' },
+  });
+
+  // Pre-fill once profile loads
+  useEffect(() => {
+    if (profile) {
+      reset({
+        fullName: profile.fullName,
+        avatarUrl: profile.avatarUrl ?? '',
+      });
+    }
+  }, [profile, reset]);
+
+  const avatarUrlValue = watch('avatarUrl');
+  const displayName = watch('fullName') || user?.fullName || '';
+
+  async function onSubmit(values: ProfileFormValues) {
+    setServerError(null);
+    setSuccess(false);
+    try {
+      await updateProfile({
+        fullName: values.fullName,
+        avatarUrl: values.avatarUrl || undefined,
+      });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Failed to update profile. Please try again.';
+      setServerError(msg);
+    }
+  }
+
+  return (
+    <section aria-labelledby="edit-profile-heading">
+      <div className="flex items-center gap-2 mb-4">
+        <User size={16} className="text-muted-foreground" />
+        <h2 id="edit-profile-heading" className="text-sm font-semibold">
+          Edit Profile
+        </h2>
+      </div>
+
+      {/* Avatar preview */}
+      <div className="flex items-center gap-4 mb-6">
+        {isLoading ? (
+          <Skeleton className="h-16 w-16 rounded-full" />
+        ) : (
+          <Avatar className="h-16 w-16 text-base">
+            <AvatarImage src={avatarUrlValue || profile?.avatarUrl || ''} alt={displayName} />
+            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-semibold">
+              {getInitials(displayName)}
+            </AvatarFallback>
+          </Avatar>
+        )}
+        <div>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-4 w-32 mb-1" />
+              <Skeleton className="h-3 w-24" />
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-sm">{profile?.fullName}</p>
+              <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
+                </Badge>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        {/* Read-only email */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="profile-email">Email</Label>
+          <Input
+            id="profile-email"
+            type="email"
+            value={profile?.email ?? ''}
+            disabled
+            className="bg-muted/50 text-muted-foreground cursor-not-allowed"
+          />
+          <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
+        </div>
+
+        <Field id="profile-fullName" label="Full Name" error={errors.fullName?.message}>
+          <Input
+            id="profile-fullName"
+            type="text"
+            placeholder="Your full name"
+            autoComplete="name"
+            aria-invalid={!!errors.fullName}
+            {...register('fullName')}
+          />
+        </Field>
+
+        <Field id="profile-avatarUrl" label="Avatar URL" error={errors.avatarUrl?.message}>
+          <Input
+            id="profile-avatarUrl"
+            type="url"
+            placeholder="https://github.com/shadcn.png"
+            aria-invalid={!!errors.avatarUrl}
+            {...register('avatarUrl')}
+          />
+          <p className="text-xs text-muted-foreground">
+            Paste any publicly accessible image URL.
+          </p>
+        </Field>
+
+        {serverError && (
+          <div className="flex items-center gap-2 text-sm text-destructive" role="alert">
+            <AlertCircle size={14} className="shrink-0" />
+            {serverError}
+          </div>
+        )}
+
+        {success && (
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400" role="status">
+            <CheckCircle2 size={14} className="shrink-0" />
+            Profile updated successfully!
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <Button
+            id="profile-save-btn"
+            type="submit"
+            size="sm"
+            disabled={isPending || !isDirty}
+          >
+            {isPending ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Saving…
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// Change Password Section 
+
+function ChangePasswordForm() {
+  const { mutateAsync: changePassword, isPending } = useChangePassword();
+  const [success, setSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+
+  async function onSubmit(values: ChangePasswordFormValues) {
+    setServerError(null);
+    setSuccess(false);
+    try {
+      await changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      });
+      setSuccess(true);
+      reset();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Failed to change password. Please try again.';
+      setServerError(msg);
+    }
+  }
+
+  return (
+    <section aria-labelledby="change-password-heading">
+      <div className="flex items-center gap-2 mb-4">
+        <KeyRound size={16} className="text-muted-foreground" />
+        <h2 id="change-password-heading" className="text-sm font-semibold">
+          Change Password
+        </h2>
+      </div>
+
+      {success && (
+        <div className="mb-4 flex items-center gap-2 rounded-full border bg-muted px-4 py-2 text-sm text-foreground" role="status">
+          <CheckCircle2 size={14} className="shrink-0 text-green-600 dark:text-green-400" />
+          Password changed! Other sessions have been logged out.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <Field
+          id="current-password"
+          label="Current Password"
+          error={errors.currentPassword?.message}
+        >
+          <PasswordInput
+            id="current-password"
+            placeholder="Your current password"
+            autoComplete="current-password"
+            aria-invalid={!!errors.currentPassword}
+            {...register('currentPassword')}
+          />
+        </Field>
+
+        <Field id="new-password" label="New Password" error={errors.newPassword?.message}>
+          <PasswordInput
+            id="new-password"
+            placeholder="At least 8 characters"
+            autoComplete="new-password"
+            aria-invalid={!!errors.newPassword}
+            {...register('newPassword')}
+          />
+        </Field>
+
+        <Field
+          id="confirm-password"
+          label="Confirm New Password"
+          error={errors.confirmPassword?.message}
+        >
+          <PasswordInput
+            id="confirm-password"
+            placeholder="Repeat new password"
+            autoComplete="new-password"
+            aria-invalid={!!errors.confirmPassword}
+            {...register('confirmPassword')}
+          />
+        </Field>
+
+        {serverError && (
+          <div className="flex items-center gap-2 text-sm text-destructive" role="alert">
+            <AlertCircle size={14} className="shrink-0" />
+            {serverError}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <Button id="change-password-btn" type="submit" size="sm" variant="outline" disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Updating…
+              </>
+            ) : (
+              'Update Password'
+            )}
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// Page 
+
+export default function ProfilePage() {
+  const { user } = useAuth();
+  const isGoogle = user?.provider === 'GOOGLE';
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Page header */}
+      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 border-b bg-card">
+        <h1 className="text-xl font-bold tracking-tight">My Profile</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage your account information and security settings
+        </p>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-auto px-4 md:px-6 py-6">
+        <div className="max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
+
+          {/* Edit Profile */}
+          <div className="rounded-xl border bg-card p-6">
+            <EditProfileForm />
+          </div>
+
+          {/* Change Password / Google note */}
+          <div className="rounded-xl border bg-card p-6">
+            {isGoogle ? (
+              <div className="flex items-start gap-3">
+                <Info size={16} className="shrink-0 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold mb-1">Signed in with Google</p>
+                  <p className="text-sm text-muted-foreground">
+                    Your account uses Google Sign-In. To set a password, use{' '}
+                    <a
+                      href="/forgot-password"
+                      className="underline underline-offset-4 hover:text-foreground transition-colors"
+                    >
+                      Forgot Password
+                    </a>{' '}
+                    from the login page.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ChangePasswordForm />
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

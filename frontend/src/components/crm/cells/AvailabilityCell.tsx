@@ -33,7 +33,9 @@ export function AvailabilityCell({ id, value, isPending, onUpdate }: Availabilit
         className="h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent"
         aria-label="Availability"
       >
-        <SelectValue placeholder="set availability" />
+        <SelectValue placeholder="set availability" className="justify-center">
+          {(v) => (v ? AVAILABILITIES.find((a) => a.value === v)?.label ?? v : 'set availability')}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {AVAILABILITIES.map((p) => (

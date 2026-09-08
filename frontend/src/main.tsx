@@ -18,6 +18,7 @@ import LeadsPage              from './pages/LeadsPage.tsx'
 import ApprovedEpsPage        from './pages/ApprovedEpsPage.tsx'
 import EpsUnderProcessPage    from './pages/EpsUnderProcessPage.tsx'
 import GlobalDashboardPage    from './pages/GlobalDashboardPage.tsx'
+import ProfilePage            from './pages/ProfilePage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -60,7 +61,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route element={<RoleRoute allowed={['VP']} />}>
                   <Route path="/global-dashboard" element={<GlobalDashboardPage />} />
                 </Route>
-                <Route path="/settings"  element={<div className="p-8 text-muted-foreground">Settings — coming soon</div>} />
+                <Route path="/settings"  element={<ProfilePage />} />
               </Route>
             </Route>
 

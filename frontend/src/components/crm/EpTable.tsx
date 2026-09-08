@@ -287,7 +287,7 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'notes',
       header: 'Notes',
       cell: (info) => readOnly ? (
-        <span className="text-xs max-w-[200px] block whitespace-pre-wrap">
+        <span className="text-xs max-w-50 block whitespace-pre-wrap">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
         </span>
       ) : (

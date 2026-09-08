@@ -8,6 +8,8 @@ import { CommentPanel }              from '@/components/team/CommentPanel';
 import { EpsUnderProcessTable }      from '@/components/under-process/EpsUnderProcessTable';
 import { EpUnderProcessMobileCard }  from '@/components/under-process/EpUnderProcessMobileCard';
 import { Input }                     from '@/components/ui/input';
+import { Button }                    from '@/components/ui/button';
+import { cn }                        from '@/lib/utils';
 import type { Ep }                   from '@/types/ep';
 
 export default function EpsUnderProcessPage() {
@@ -60,7 +62,7 @@ export default function EpsUnderProcessPage() {
               EPs currently looking for an opportunity match
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-[var(--sidebar-primary)] px-3 py-1 text-xs font-semibold text-[var(--sidebar-primary-foreground)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-sidebar-primary px-3 py-1 text-xs font-semibold text-sidebar-primary-foreground">
             <Eye size={12} />
             Read-only
           </span>
@@ -84,17 +86,24 @@ export default function EpsUnderProcessPage() {
             aria-label="Search EPs under process"
           />
         </div>
-        {search && (
-          <button
-            type="button"
+        <div
+          className={cn(
+            "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
+            search ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setSearch('')}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Clear search"
+            title="Clear search"
+            tabIndex={search ? 0 : -1}
           >
-            <X size={12} />
-            Clear
-          </button>
-        )}
+            <X size={16} />
+          </Button>
+        </div>
         <span className="ml-auto text-xs text-muted-foreground shrink-0">
           {filtered.length} EP{filtered.length !== 1 ? 's' : ''}
         </span>

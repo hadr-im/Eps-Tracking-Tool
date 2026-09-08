@@ -80,7 +80,7 @@ export default function MyCrmPage() {
             <Badge
               id="leads-processed-badge"
               variant="outline"
-              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] border-transparent"
+              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground border-transparent"
             >
               {contactedCount}/{eps.length} Leads Contacted
             </Badge>

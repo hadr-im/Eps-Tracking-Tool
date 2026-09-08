@@ -7,9 +7,15 @@ import {
   createColumnHelper,
   type ColumnDef,
   type SortingState,
-} from '@tanstack/react-table';
-import { useState, useMemo } from 'react';
-import { MessageSquare, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+} from "@tanstack/react-table";
+import { useState, useMemo } from "react";
+import {
+  MessageSquare,
+  ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,12 +23,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Skeleton }        from '@/components/ui/skeleton';
-import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
-import { DateCell }        from '@/components/crm/cells/DateCell';
-import type { ApprovedEp } from '@/types/approvedEp';
-import type { EpStatus }   from '@/types/ep';
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadgeCell } from "@/components/crm/cells/StatusBadgeCell";
+import { DateCell } from "@/components/crm/cells/DateCell";
+import type { ApprovedEp } from "@/types/approvedEp";
+import type { EpStatus } from "@/types/ep";
 
 // Column group metadata
 
@@ -34,34 +40,34 @@ interface ColumnGroup {
 
 const COLUMN_GROUPS: ColumnGroup[] = [
   {
-    label: 'Identity',
-    headerClass: 'bg-blue-500 text-white border-blue-500',
-    columnIds: ['statusOnExpa', 'createdAtExpa', 'id', 'phone'],
+    label: "Identity",
+    headerClass: "bg-blue-500 text-white border-blue-500",
+    columnIds: ["statusOnExpa", "createdAtExpa", "id", "phone"],
   },
   {
-    label: 'Opportunity',
-    headerClass: 'bg-violet-500 text-white border-violet-500',
-    columnIds: ['appId', 'opportunityTitle', 'product', 'duration'],
+    label: "Opportunity",
+    headerClass: "bg-violet-500 text-white border-violet-500",
+    columnIds: ["appId", "opportunityTitle", "product", "duration"],
   },
   {
-    label: 'Hosting',
-    headerClass: 'bg-amber-500 text-white border-amber-500',
-    columnIds: ['hostingMC', 'hostingLC'],
+    label: "Hosting",
+    headerClass: "bg-amber-500 text-white border-amber-500",
+    columnIds: ["hostingMC", "hostingLC"],
   },
   {
-    label: 'Timeline',
-    headerClass: 'bg-emerald-500 text-white border-emerald-500',
-    columnIds: ['approvalDate', 'reaDate', 'finishedDate', 'completedDate'],
+    label: "Timeline",
+    headerClass: "bg-emerald-500 text-white border-emerald-500",
+    columnIds: ["approvalDate", "reaDate", "finishedDate", "completedDate"],
   },
   {
-    label: 'Financials & Docs',
-    headerClass: 'bg-rose-500 text-white border-rose-500',
-    columnIds: ['projectFees', 'contractLink', 'auditFolder'],
+    label: "Financials & Docs",
+    headerClass: "bg-rose-500 text-white border-rose-500",
+    columnIds: ["projectFees", "contractLink", "auditFolder"],
   },
   {
-    label: 'Actions',
-    headerClass: 'bg-slate-500 text-white border-slate-500',
-    columnIds: ['comments'],
+    label: "Actions",
+    headerClass: "bg-slate-500 text-white border-slate-500",
+    columnIds: ["comments"],
   },
 ];
 
@@ -75,20 +81,26 @@ interface ApprovedEpsTableProps {
 }
 
 const STICKY_OFFSET: Record<string, number> = {
-  fullName:   0,
+  fullName: 0,
   memberName: 180,
 };
 
 // Helpers
 
-function ExternalLinkCell({ href, label }: { href: string | null; label?: string }) {
+function ExternalLinkCell({
+  href,
+  label,
+}: {
+  href: string | null;
+  label?: string;
+}) {
   if (!href) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline truncate max-w-[120px]"
+      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline truncate max-w-30"
       title={href}
     >
       {label ?? href}
@@ -97,9 +109,16 @@ function ExternalLinkCell({ href, label }: { href: string | null; label?: string
   );
 }
 
-function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
-  if (!isSorted) return <ArrowUpDown size={11} className="text-muted-foreground/50 ml-1 shrink-0" />;
-  if (isSorted === 'asc') return <ArrowUp size={11} className="ml-1 shrink-0" />;
+function SortIcon({ isSorted }: { isSorted: false | "asc" | "desc" }) {
+  if (!isSorted)
+    return (
+      <ArrowUpDown
+        size={11}
+        className="text-muted-foreground/50 ml-1 shrink-0"
+      />
+    );
+  if (isSorted === "asc")
+    return <ArrowUp size={11} className="ml-1 shrink-0" />;
   return <ArrowDown size={11} className="ml-1 shrink-0" />;
 }
 
@@ -112,20 +131,22 @@ function buildColumns(
   commentCounts: Record<string, number> = {},
 ): ColumnDef<ApprovedEp, any>[] {
   return [
-    // EP Name 
-    col.accessor('fullName', {
-      id: 'fullName',
+    // EP Name
+    col.accessor("fullName", {
+      id: "fullName",
       header: () => <div className="text-center w-full">EP Name</div>,
       cell: (info) => (
-        <span className="font-medium text-sm whitespace-nowrap">{info.getValue()}</span>
+        <span className="font-medium text-sm whitespace-nowrap">
+          {info.getValue()}
+        </span>
       ),
       enableSorting: true,
-      meta: { sticky: 'left', stickyOffset: 0, minWidth: 180 },
+      meta: { sticky: "left", stickyOffset: 0, minWidth: 180 },
     }),
 
-    // Member Name 
-    col.accessor('memberName', {
-      id: 'memberName',
+    // Member Name
+    col.accessor("memberName", {
+      id: "memberName",
       header: () => <div className="text-center w-full">Member</div>,
       cell: (info) => (
         <span className="text-xs whitespace-nowrap">
@@ -133,12 +154,12 @@ function buildColumns(
         </span>
       ),
       enableSorting: true,
-      meta: { sticky: 'left', stickyOffset: 180, minWidth: 140 },
+      meta: { sticky: "left", stickyOffset: 180, minWidth: 140 },
     }),
 
-    // Identity 
-    col.accessor('statusOnExpa', {
-      id: 'statusOnExpa',
+    // Identity
+    col.accessor("statusOnExpa", {
+      id: "statusOnExpa",
       header: () => <div className="text-center w-full">Status</div>,
       cell: (info) => (
         <div className="flex justify-center">
@@ -148,25 +169,27 @@ function buildColumns(
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
-    col.accessor('createdAtExpa', {
-      id: 'createdAtExpa',
-      header: 'Created',
+    col.accessor("createdAtExpa", {
+      id: "createdAtExpa",
+      header: "Created",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
       meta: { minWidth: 100 },
     }),
-    col.accessor('id', {
-      id: 'id',
-      header: 'EP ID',
+    col.accessor("id", {
+      id: "id",
+      header: "EP ID",
       cell: (info) => (
-        <span className="font-mono text-xs text-muted-foreground">{info.getValue()}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {info.getValue()}
+        </span>
       ),
       enableSorting: false,
       meta: { minWidth: 90 },
     }),
-    col.accessor('phone', {
-      id: 'phone',
-      header: 'Phone',
+    col.accessor("phone", {
+      id: "phone",
+      header: "Phone",
       cell: (info) => (
         <span className="text-xs whitespace-nowrap">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
@@ -176,10 +199,10 @@ function buildColumns(
       meta: { minWidth: 120 },
     }),
 
-    // Opportunity 
+    // Opportunity
     col.accessor((row) => row.approvedDetail?.expaAppId ?? null, {
-      id: 'appId',
-      header: 'APP ID',
+      id: "appId",
+      header: "APP ID",
       cell: (info) => (
         <span className="font-mono text-xs text-muted-foreground">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
@@ -189,19 +212,19 @@ function buildColumns(
       meta: { minWidth: 90 },
     }),
     col.accessor((row) => row.approvedDetail?.opportunityTitle ?? null, {
-      id: 'opportunityTitle',
-      header: 'Opportunity',
+      id: "opportunityTitle",
+      header: "Opportunity",
       cell: (info) => (
-        <span className="text-xs truncate max-w-[180px] block">
+        <span className="text-xs truncate max-w-45 block">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
         </span>
       ),
       enableSorting: true,
       meta: { minWidth: 200 },
     }),
-    col.accessor('product', {
-      id: 'product',
-      header: 'Product',
+    col.accessor("product", {
+      id: "product",
+      header: "Product",
       cell: (info) => (
         <span className="text-xs font-medium">{info.getValue()}</span>
       ),
@@ -209,10 +232,10 @@ function buildColumns(
       meta: { minWidth: 80 },
     }),
 
-    // Hosting 
+    // Hosting
     col.accessor((row) => row.approvedDetail?.hostingMC ?? null, {
-      id: 'hostingMC',
-      header: 'Hosting MC',
+      id: "hostingMC",
+      header: "Hosting MC",
       cell: (info) => (
         <span className="text-xs whitespace-nowrap">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
@@ -222,8 +245,8 @@ function buildColumns(
       meta: { minWidth: 120 },
     }),
     col.accessor((row) => row.approvedDetail?.hostingLC ?? null, {
-      id: 'hostingLC',
-      header: 'Hosting LC',
+      id: "hostingLC",
+      header: "Hosting LC",
       cell: (info) => (
         <span className="text-xs whitespace-nowrap">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
@@ -233,51 +256,54 @@ function buildColumns(
       meta: { minWidth: 120 },
     }),
 
-    // Timeline 
+    // Timeline
     col.accessor((row) => row.approvedDetail?.approvalDate ?? null, {
-      id: 'approvalDate',
-      header: 'Approval Date',
+      id: "approvalDate",
+      header: "Approval Date",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
       meta: { minWidth: 120 },
     }),
     col.accessor((row) => row.approvedDetail?.realizedDate ?? null, {
-      id: 'reaDate',
-      header: 'REA Date',
+      id: "reaDate",
+      header: "REA Date",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
     col.accessor((row) => row.approvedDetail?.finishedDate ?? null, {
-      id: 'finishedDate',
-      header: 'Finish Date',
+      id: "finishedDate",
+      header: "Finish Date",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
     col.accessor((row) => row.approvedDetail?.completedDate ?? null, {
-      id: 'completedDate',
-      header: 'Completed',
+      id: "completedDate",
+      header: "Completed",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
 
-    // Financials & Docs 
+    // Financials & Docs
     col.accessor((row) => row.approvedDetail?.projectFees ?? null, {
-      id: 'projectFees',
-      header: 'Project Fees',
+      id: "projectFees",
+      header: "Project Fees",
       cell: (info) => {
         const v = info.getValue() as number | null;
-        if (v == null) return <span className="text-muted-foreground text-xs">—</span>;
-        return <span className="text-xs tabular-nums">{v.toLocaleString()} €</span>;
+        if (v == null)
+          return <span className="text-muted-foreground text-xs">—</span>;
+        return (
+          <span className="text-xs tabular-nums">{v.toLocaleString()}</span>
+        );
       },
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
     col.accessor((row) => row.approvedDetail?.contractLink ?? null, {
-      id: 'contractLink',
-      header: 'Contract',
+      id: "contractLink",
+      header: "Contract",
       cell: (info) => (
         <ExternalLinkCell href={info.getValue()} label="Contract" />
       ),
@@ -285,20 +311,18 @@ function buildColumns(
       meta: { minWidth: 110 },
     }),
     col.accessor((row) => row.approvedDetail?.auditFolder ?? null, {
-      id: 'auditFolder',
-      header: 'Audit Folder',
-      cell: (info) => (
-        <ExternalLinkCell href={info.getValue()} label="Audit" />
-      ),
+      id: "auditFolder",
+      header: "Audit Folder",
+      cell: (info) => <ExternalLinkCell href={info.getValue()} label="Audit" />,
       enableSorting: false,
       meta: { minWidth: 110 },
     }),
 
-    // Comments 
+    // Comments
     ...(onCommentClick
       ? [
           col.display({
-            id: 'comments',
+            id: "comments",
             header: () => <div className="text-center w-full">Comments</div>,
             cell: (info) => {
               const ep = info.row.original;
@@ -313,7 +337,7 @@ function buildColumns(
                   <MessageSquare size={15} strokeWidth={1.6} />
                   {count > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
-                      {count > 9 ? '9+' : count}
+                      {count > 9 ? "9+" : count}
                     </span>
                   )}
                 </button>
@@ -362,7 +386,7 @@ export function ApprovedEpsTable({
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const allIds    = table.getAllLeafColumns().map((c) => c.id);
+  const allIds = table.getAllLeafColumns().map((c) => c.id);
   const groupSpans = buildGroupSpans(allIds);
 
   return (
@@ -393,28 +417,41 @@ export function ApprovedEpsTable({
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id} className="bg-muted/40">
             {headerGroup.headers.map((header) => {
-              const meta     = header.column.columnDef.meta ?? {};
-              const isSticky = meta.sticky === 'left';
-              const canSort  = header.column.getCanSort();
-              const sorted   = header.column.getIsSorted();
+              const meta = header.column.columnDef.meta ?? {};
+              const isSticky = meta.sticky === "left";
+              const canSort = header.column.getCanSort();
+              const sorted = header.column.getIsSorted();
 
               return (
                 <TableHead
                   key={header.id}
                   style={{
                     minWidth: meta.minWidth ?? 90,
-                    width:    meta.minWidth ?? 90,
+                    width: meta.minWidth ?? 90,
                     ...(isSticky
-                      ? { position: 'sticky', left: STICKY_OFFSET[header.id] ?? 0, zIndex: 20 }
+                      ? {
+                          position: "sticky",
+                          left: STICKY_OFFSET[header.id] ?? 0,
+                          zIndex: 20,
+                        }
                       : {}),
                   }}
                   className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r last:border-r-0 ${
-                    isSticky ? 'bg-background shadow-[1px_0_0_0_var(--border)]' : 'bg-muted/40'
-                  } ${canSort ? 'cursor-pointer select-none' : ''}`}
-                  onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    isSticky
+                      ? "bg-background shadow-[1px_0_0_0_var(--border)]"
+                      : "bg-muted/40"
+                  } ${canSort ? "cursor-pointer select-none" : ""}`}
+                  onClick={
+                    canSort
+                      ? header.column.getToggleSortingHandler()
+                      : undefined
+                  }
                 >
                   <div className="inline-flex items-center justify-center gap-0.5">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
                     {canSort && <SortIcon isSorted={sorted} />}
                   </div>
                 </TableHead>
@@ -445,18 +482,18 @@ export function ApprovedEpsTable({
               className="hover:bg-muted/30 transition-colors group"
             >
               {row.getVisibleCells().map((cell) => {
-                const meta     = cell.column.columnDef.meta ?? {};
-                const isSticky = meta.sticky === 'left';
+                const meta = cell.column.columnDef.meta ?? {};
+                const isSticky = meta.sticky === "left";
 
                 return (
                   <TableCell
                     key={cell.id}
                     style={{
                       minWidth: meta.minWidth ?? 90,
-                      width:    meta.minWidth ?? 90,
+                      width: meta.minWidth ?? 90,
                       ...(isSticky
                         ? {
-                            position: 'sticky',
+                            position: "sticky",
                             left: STICKY_OFFSET[cell.column.id] ?? 0,
                             zIndex: 10,
                           }
@@ -464,12 +501,15 @@ export function ApprovedEpsTable({
                     }}
                     className={`border-r last:border-r-0 py-2 text-center align-middle ${
                       isSticky
-                        ? 'bg-background group-hover:bg-muted transition-colors shadow-[1px_0_0_0_var(--border)]'
-                        : ''
+                        ? "bg-background group-hover:bg-muted transition-colors shadow-[1px_0_0_0_var(--border)]"
+                        : ""
                     }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </div>
                   </TableCell>
                 );

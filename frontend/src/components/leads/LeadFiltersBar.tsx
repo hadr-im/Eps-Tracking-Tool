@@ -4,9 +4,16 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -15,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { LeadFilters } from '@/types/lead';
+import { cn } from '@/lib/utils';
 
 const PRODUCTS = ['GV', 'GTA', 'GTE'] as const;
 
@@ -65,8 +73,52 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
     setParams({});
   }
 
+  const filtersList = (
+    <>
+      {/* Product */}
+      <Select value={product ?? ''} onValueChange={(v) => setParam('product', v || null)}>
+        <SelectTrigger 
+          id="filter-product" 
+          className={cn(
+            "h-8 w-auto min-w-28 text-xs transition-all duration-300 ease-in-out",
+            product && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
+        >
+          <SelectValue placeholder="Product">
+            {(v) => (v || 'Product')}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {PRODUCTS.map((p) => (
+            <SelectItem key={p} value={p} label={p} className="text-xs">{p}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Clear */}
+      <div
+        className={cn(
+          "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
+          hasActiveFilters ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
+        )}
+      >
+        <Button
+          id="leads-clear-filters"
+          variant="ghost"
+          size="icon"
+          onClick={clearFilters}
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          title="Clear filters"
+          tabIndex={hasActiveFilters ? 0 : -1}
+        >
+          <X size={16} />
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card">
       {/* Search */}
       <div className="relative flex-1 min-w-44">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -80,33 +132,33 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
         />
       </div>
 
-      {/* Product */}
-      <Select value={product ?? ''} onValueChange={(v) => setParam('product', v || null)}>
-        <SelectTrigger id="filter-product" className="h-8 w-auto min-w-28 text-xs">
-          <SelectValue placeholder="Product">
-            {(v) => (v || 'Product')}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {PRODUCTS.map((p) => (
-            <SelectItem key={p} value={p} label={p} className="text-xs">{p}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Desktop Filters */}
+      <div className="hidden md:flex flex-wrap items-center gap-2">
+        {filtersList}
+      </div>
 
-      {/* Clear */}
-      {hasActiveFilters && (
-        <Button
-          id="leads-clear-filters"
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <X size={12} />
-          Clear
-        </Button>
-      )}
+      {/* Mobile Filters Button */}
+      <div className="flex md:hidden">
+        <Sheet>
+          <SheetTrigger 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative" })} 
+            aria-label="Open filters"
+          >
+            <SlidersHorizontal size={16} />
+            {hasActiveFilters && (
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-sidebar-primary" />
+            )}
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl p-5">
+            <SheetHeader className="mb-4 p-0 text-left">
+              <SheetTitle className="text-sm font-semibold">Filters</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              {filtersList}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }

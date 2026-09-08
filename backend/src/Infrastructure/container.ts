@@ -8,6 +8,8 @@ import { BcryptService } from './services/BcryptService';
 import { JwtService } from './jwt/JwtService';
 import { MailService } from './services/MailService';
 import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
+import { UpdateProfileUseCase } from '../Application/use-cases/user/UpdateProfileUseCase';
+import { ChangePasswordUseCase } from '../Application/use-cases/user/ChangePasswordUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
 import { EpManagementFactory } from './factories/EpManagementFactory';
@@ -25,6 +27,10 @@ export const authUseCase = new AuthUseCase(
   jwtService,
   mailService,
 );
+
+// User profile
+export const updateProfileUseCase = new UpdateProfileUseCase(authRepository);
+export const changePasswordUseCase = new ChangePasswordUseCase(authRepository, bcryptService);
 
 const expaFactory = new ExpaFactory();
 

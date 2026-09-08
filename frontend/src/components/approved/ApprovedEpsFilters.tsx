@@ -1,7 +1,14 @@
 import { useId } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input }  from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -9,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import type { ApprovedEpFilters } from '@/types/approvedEp';
 import type { EpStatus } from '@/types/ep';
 
@@ -42,26 +50,8 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
     onChange({});
   }
 
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-
-      {/* Search */}
-      <div className="relative">
-        <Search
-          size={14}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-        />
-        <Input
-          id={searchId}
-          type="search"
-          placeholder="Search EP name or ID…"
-          value={filters.search ?? ''}
-          onChange={(e) => update({ search: e.target.value || undefined })}
-          className="pl-8 h-8 w-52 text-xs"
-          aria-label="Search approved EPs"
-        />
-      </div>
-
+  const filtersList = (
+    <>
       {/* Product */}
       <Select
         value={filters.product ?? 'all'}
@@ -69,7 +59,10 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
       >
         <SelectTrigger
           id={productId}
-          className="h-8 w-32 text-xs"
+          className={cn(
+            "h-8 w-32 text-xs transition-all duration-300 ease-in-out",
+            filters.product && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
           aria-label="Filter by product"
         >
           <SelectValue placeholder="Product">
@@ -91,7 +84,10 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
       >
         <SelectTrigger
           id={statusId}
-          className="h-8 w-36 text-xs"
+          className={cn(
+            "h-8 w-36 text-xs transition-all duration-300 ease-in-out",
+            filters.status && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
           aria-label="Filter by status"
         >
           <SelectValue placeholder="Status">
@@ -107,18 +103,74 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
       </Select>
 
       {/* Clear all */}
-      {hasActiveFilters && (
+      <div
+        className={cn(
+          "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
+          hasActiveFilters ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
+        )}
+      >
         <Button
           variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
           onClick={clearAll}
           aria-label="Clear all filters"
+          title="Clear all filters"
+          tabIndex={hasActiveFilters ? 0 : -1}
         >
-          <X size={12} />
-          Clear
+          <X size={16} />
         </Button>
-      )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+
+      {/* Search */}
+      <div className="relative">
+        <Search
+          size={14}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+        />
+        <Input
+          id={searchId}
+          type="search"
+          placeholder="Search EP name or ID…"
+          value={filters.search ?? ''}
+          onChange={(e) => update({ search: e.target.value || undefined })}
+          className="pl-8 h-8 w-52 text-xs"
+          aria-label="Search approved EPs"
+        />
+      </div>
+
+      {/* Desktop Filters */}
+      <div className="hidden md:flex items-center gap-2 flex-wrap">
+        {filtersList}
+      </div>
+
+      {/* Mobile Filters Button */}
+      <div className="flex md:hidden">
+        <Sheet>
+          <SheetTrigger 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative" })} 
+            aria-label="Open filters"
+          >
+            <SlidersHorizontal size={16} />
+            {hasActiveFilters && (
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-sidebar-primary" />
+            )}
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl p-5">
+            <SheetHeader className="mb-4 p-0 text-left">
+              <SheetTitle className="text-sm font-semibold">Filters</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              {filtersList}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
 
       {/* Result count */}
       <span className="ml-auto text-xs text-muted-foreground shrink-0">

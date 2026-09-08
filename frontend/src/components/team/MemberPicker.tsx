@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import type { DepartmentMember } from '@/services/departmentService';
 
 interface MemberPickerProps {
@@ -31,8 +32,14 @@ export function MemberPicker({
   }
 
   return (
-    <Select value={selectedId ?? ''} onValueChange={onSelect}>
-      <SelectTrigger id="member-picker" className="w-52">
+    <Select value={selectedId ?? ''} onValueChange={(val) => val && onSelect(val)}>
+      <SelectTrigger 
+        id="member-picker" 
+        className={cn(
+          "w-52 transition-all duration-300 ease-in-out",
+          selectedId && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+        )}
+      >
         <SelectValue placeholder={placeholder}>
           {(val) => (val ? members.find((m) => m.id === val)?.fullName ?? val : placeholder)}
         </SelectValue>

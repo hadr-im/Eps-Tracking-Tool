@@ -55,7 +55,7 @@ export function TransitionCell({
     <>
       <Select
         value={selectedTarget ?? ''}
-        onValueChange={handleSelect}
+        onValueChange={(val) => val && handleSelect(val)}
         disabled={isPending}
       >
         <SelectTrigger
@@ -64,7 +64,9 @@ export function TransitionCell({
           }`}
           aria-label="Transition EP"
         >
-          <SelectValue placeholder="Move to…" />
+          <SelectValue placeholder="Move to…" className="justify-center">
+            {(v) => (v ? `To ${v}` : 'Move to…')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {availableTargets.map((p) => (

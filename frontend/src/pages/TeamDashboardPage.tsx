@@ -5,7 +5,7 @@
 // - "My Stats" button to reset back to self-view
 
 import { useState } from 'react';
-import { UserCircle2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAuth }              from '@/hooks/useAuth';
 import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useMyDashboard }       from '@/hooks/useMyDashboard';
@@ -14,6 +14,7 @@ import { SummaryCards }         from '@/components/dashboard/SummaryCards';
 import { StatusFunnelChart }    from '@/components/dashboard/StatusFunnelChart';
 import { PhaseBreakdownChart }  from '@/components/dashboard/PhaseBreakdownChart';
 import { ConversionRates }      from '@/components/dashboard/ConversionRates';
+import { cn }                    from '@/lib/utils';
 import { Button }               from '@/components/ui/button';
 import { AlertCircle }          from 'lucide-react';
 
@@ -26,8 +27,6 @@ export default function TeamDashboardPage() {
 
   const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
   const { data, isLoading, isError } = useMyDashboard({ memberId: selectedMemberId ?? undefined });
-
-  const selectedMember = members.find((m) => m.id === selectedMemberId);
 
   function handleSelectMember(id: string) {
     setSelectedMemberId(id === selectedMemberId ? null : id);
@@ -66,17 +65,24 @@ export default function TeamDashboardPage() {
         />
 
         {/* "My Stats" reset button (only shown when a member is selected) */}
-        {selectedMemberId && (
+        <div
+          className={cn(
+            "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
+            selectedMemberId ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
+          )}
+        >
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
             onClick={handleResetToSelf}
-            className="flex items-center gap-1.5"
+            aria-label="Clear selection"
+            title="Clear selection"
+            tabIndex={selectedMemberId ? 0 : -1}
           >
-            <X size={13} />
-            Stats
+            <X size={16} />
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Scrollable content */}

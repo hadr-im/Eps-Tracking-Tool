@@ -4,9 +4,17 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -14,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { TRACKING_PHASE_LABELS } from '@/components/crm/cells/TrackingPhaseCell';
 import type { EpFilters, TrackingPhase, Duration } from '@/types/ep';
 
@@ -83,27 +92,20 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
     setParams({});
   }
 
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
-      {/* Search */}
-      <div className="relative flex-1 min-w-45">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          id="crm-search"
-          type="text"
-          placeholder="Search by name…"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="h-8 pl-8 text-xs"
-        />
-      </div>
-
+  const filtersList = (
+    <>
       {/* Tracking Phase */}
       <Select
         value={trackingPhase ?? ''}
         onValueChange={(v) => setParam('trackingPhase', v || null)}
       >
-        <SelectTrigger id="filter-phase" className="h-8 w-auto min-w-44 text-xs">
+        <SelectTrigger 
+          id="filter-phase" 
+          className={cn(
+            "h-8 w-auto min-w-44 text-xs transition-all duration-300 ease-in-out",
+            trackingPhase && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
+        >
           <SelectValue placeholder="Phase">
             {(v) => (v ? TRACKING_PHASE_LABELS[v as TrackingPhase] ?? v : 'Phase')}
           </SelectValue>
@@ -122,7 +124,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         value={contacted ?? ''}
         onValueChange={(v) => setParam('contacted', v || null)}
       >
-        <SelectTrigger id="filter-contacted" className="h-8 w-auto min-w-32 text-xs">
+        <SelectTrigger 
+          id="filter-contacted" 
+          className={cn(
+            "h-8 w-auto min-w-32 text-xs transition-all duration-300 ease-in-out",
+            contacted && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
+        >
           <SelectValue placeholder="Contacted">
             {(v) => (v === 'true' ? 'Contacted' : v === 'false' ? 'Not Contacted' : 'Contacted')}
           </SelectValue>
@@ -138,7 +146,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         value={interested ?? ''}
         onValueChange={(v) => setParam('interested', v || null)}
       >
-        <SelectTrigger id="filter-interested" className="h-8 w-auto min-w-32 text-xs">
+        <SelectTrigger 
+          id="filter-interested" 
+          className={cn(
+            "h-8 w-auto min-w-32 text-xs transition-all duration-300 ease-in-out",
+            interested && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
+        >
           <SelectValue placeholder="Interested">
             {(v) => (v === 'true' ? 'Interested' : v === 'false' ? 'Not Interested' : 'Interested')}
           </SelectValue>
@@ -154,7 +168,13 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
         value={duration ?? ''}
         onValueChange={(v) => setParam('duration', v || null)}
       >
-        <SelectTrigger id="filter-duration" className="h-8 w-auto min-w-28 text-xs">
+        <SelectTrigger 
+          id="filter-duration" 
+          className={cn(
+            "h-8 w-auto min-w-28 text-xs transition-all duration-300 ease-in-out",
+            duration && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          )}
+        >
           <SelectValue placeholder="Duration">
             {(v) => (v ? DURATIONS.find((d) => d.value === v)?.label ?? v : 'Duration')}
           </SelectValue>
@@ -169,18 +189,70 @@ export function CrmFilters({ onFiltersChange }: CrmFiltersProps) {
       </Select>
 
       {/* Clear */}
-      {hasActiveFilters && (
+      <div
+        className={cn(
+          "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
+          hasActiveFilters ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
+        )}
+      >
         <Button
           id="clear-filters"
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={clearFilters}
-          className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          title="Clear filters"
+          tabIndex={hasActiveFilters ? 0 : -1}
         >
-          <X size={12} />
-          Clear
+          <X size={16} />
         </Button>
-      )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card">
+      {/* Search */}
+      <div className="relative flex-1 min-w-45">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          id="crm-search"
+          type="text"
+          placeholder="Search by name…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="h-8 pl-8 text-xs"
+        />
+      </div>
+
+      {/* Desktop Filters */}
+      <div className="hidden md:flex flex-wrap items-center gap-2">
+        {filtersList}
+      </div>
+
+      {/* Mobile Filters Button */}
+      <div className="flex md:hidden">
+        <Sheet>
+          <SheetTrigger 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative" })} 
+            aria-label="Open filters"
+          >
+            <SlidersHorizontal size={16} />
+            {hasActiveFilters && (
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-sidebar-primary" />
+            )}
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl p-5">
+            <SheetHeader className="mb-4 p-0 text-left">
+              <SheetTitle className="text-sm font-semibold">Filters</SheetTitle>
+              <SheetDescription className="sr-only">Filter CRM EPs</SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              {filtersList}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }

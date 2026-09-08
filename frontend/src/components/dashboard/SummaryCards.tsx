@@ -32,8 +32,8 @@ export function SummaryCards({ summary, isLoading }: SummaryCardsProps) {
             <CardContent className="p-5 flex items-center gap-4">
               <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2">
+                <Skeleton className="h-8 w-12" />
                 <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-7 w-10" />
               </div>
             </CardContent>
           </Card>
@@ -53,8 +53,8 @@ export function SummaryCards({ summary, isLoading }: SummaryCardsProps) {
             <CardContent className="p-5 flex items-center gap-4">
               <Icon size={28} className="shrink-0 text-muted-foreground/40" strokeWidth={1.5} />
               <div>
+                <p className="text-3xl font-bold">{stat.value}</p>
                 <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
               </div>
             </CardContent>
           </Card>

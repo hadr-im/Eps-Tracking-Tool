@@ -117,7 +117,7 @@ export function CommentPanel({ ep, canComment, onClose }: CommentPanelProps) {
             className="shrink-0 border-t px-5 py-4 flex gap-2 items-end"
           >
             <textarea
-              className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-0 focus:ring-1 focus:ring-ring min-h-[64px] max-h-[120px]"
+              className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-0 focus:ring-1 focus:ring-ring min-h-16 max-h-30"
               placeholder="Add a comment…"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

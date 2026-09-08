@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarBody } from '@/components/layout/Sidebar';
 
@@ -29,16 +28,12 @@ export function AppLayout() {
 
       {/* Mobile sidebar (Sheet overlay) */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger asChild>
-          <Button
-            id="mobile-menu-btn"
-            variant="ghost"
-            size="icon"
-            className="fixed left-3 top-3 z-40 md:hidden h-9 w-9 rounded-lg border bg-card shadow-sm"
-            aria-label="Open navigation"
-          >
-            <Menu size={18} />
-          </Button>
+        <SheetTrigger
+          id="mobile-menu-btn"
+          className="fixed left-3 top-3 z-40 md:hidden h-9 w-9 flex items-center justify-center rounded-lg border bg-card  hover:bg-accent hover:text-accent-foreground"
+          aria-label="Open navigation"
+        >
+          <Menu size={18} />
         </SheetTrigger>
         <SheetContent side="left" className="w-55 p-0 border-r">
           <SidebarBody
@@ -49,9 +44,9 @@ export function AppLayout() {
       </Sheet>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
         {/* Top padding on mobile to clear the hamburger button */}
-        <div className="h-full pt-14 md:pt-0">
+        <div className="h-full pt-10 md:pt-0">
           <Outlet />
         </div>
       </main>

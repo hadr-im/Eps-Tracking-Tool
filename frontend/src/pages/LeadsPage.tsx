@@ -48,7 +48,7 @@ export default function LeadsPage() {
             <Badge
               id="leads-count-badge"
               variant="outline"
-              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] border-transparent"
+              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground border-transparent"
             >
               <span className="text-base font-bold">{leads.length}</span>
               <span>Lead{leads.length !== 1 ? 's' : ''}</span>

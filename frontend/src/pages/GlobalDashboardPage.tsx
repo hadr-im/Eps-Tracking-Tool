@@ -8,8 +8,7 @@
 //   - Inline member dashboard slide-in when a leaderboard bar is clicked
 
 import { useState } from 'react';
-import { LayoutDashboard, UserCircle2, X, AlertCircle } from 'lucide-react';
-import { useNavigate }            from 'react-router-dom';
+import { LayoutDashboard, AlertCircle } from 'lucide-react';
 import { useDepartmentDashboard } from '@/hooks/useDepartmentDashboard';
 import { SummaryCards }           from '@/components/dashboard/SummaryCards';
 import { StatusFunnelChart }      from '@/components/dashboard/StatusFunnelChart';
@@ -18,7 +17,6 @@ import { PhaseBreakdownChart }    from '@/components/dashboard/PhaseBreakdownCha
 import { LeaderboardChart }       from '@/components/dashboard/LeaderboardChart';
 import { TrendsChart }            from '@/components/dashboard/TrendsChart';
 import { TransitionStats }        from '@/components/dashboard/TransitionStats';
-import { Button }                 from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -34,25 +32,12 @@ const MONTH_OPTIONS = [
 ];
 
 export default function GlobalDashboardPage() {
-  const navigate = useNavigate();
   const [months, setMonths]               = useState(6);
-  const [focusMemberId, setFocusMemberId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useDepartmentDashboard(months);
 
-  // Resolve focused member's name from leaderboard data
-  const focusedMember = focusMemberId
-    ? data?.memberLeaderboard.find((m) => m.memberId === focusMemberId)
-    : null;
+ 
 
-  function handleMemberClick(memberId: string) {
-    setFocusMemberId((prev) => (prev === memberId ? null : memberId));
-  }
-
-  function handleViewFullDashboard() {
-    if (!focusMemberId) return;
-    navigate(`/team/dashboard?memberId=${focusMemberId}`);
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -62,7 +47,7 @@ export default function GlobalDashboardPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <LayoutDashboard size={20} className="text-[var(--sidebar-primary)]" />
+              <LayoutDashboard size={20} className="text-sidebar-primary" />
               Global Dashboard
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -106,7 +91,6 @@ export default function GlobalDashboardPage() {
           <LeaderboardChart
             data={data?.memberLeaderboard}
             isLoading={isLoading}
-            onMemberClick={handleMemberClick}
           />
           <TrendsChart
             data={data?.trends}

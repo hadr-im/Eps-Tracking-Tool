@@ -22,5 +22,6 @@ export class User {
     public isDisabled: boolean,
     public readonly createdAt: Date,
     public updatedAt: Date,
+    public avatarUrl: string | null = null,
   ) {}
 }
