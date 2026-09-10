@@ -328,9 +328,10 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 border-b bg-card">
-        <h1 className="text-xl font-bold tracking-tight">My Profile</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
+      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 border-b bg-card">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Account</p>
+        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        <p className="text-sm text-muted-foreground">
           Manage your account information and security settings
         </p>
       </div>

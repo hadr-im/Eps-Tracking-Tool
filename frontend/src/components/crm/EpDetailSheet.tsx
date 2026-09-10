@@ -5,6 +5,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import { ChevronDown, User, FileSpreadsheet , Star } from 'lucide-react';
 import { StatusBadgeCell }   from './cells/StatusBadgeCell';
 import { TrackingPhaseCell } from './cells/TrackingPhaseCell';
 import { EditableTextCell }  from './cells/EditableTextCell';
@@ -24,28 +25,41 @@ interface EpDetailSheetProps {
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
 }
 
-// Small labeled row 
+function SectionCard({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <div className="border border-border/70 rounded-2xl bg-card overflow-hidden mt-4 first:mt-0 min-w-0">
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-2.5 text-sm font-bold text-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground">
+            <Icon size={16} />
+          </span>
+          {title}
+        </div>
+        <ChevronDown size={16} className="text-muted-foreground" />
+      </div>
+      <div className="px-4 pb-5 space-y-3 min-w-0">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[7rem_1fr] gap-2 items-start py-2 border-b last:border-b-0">
-      <span className="text-xs font-medium text-muted-foreground pt-0.5 shrink-0">{label}</span>
-      <div className="text-xs min-w-0">{children}</div>
+    <div className="grid grid-cols-[6rem_1fr] gap-2 items-center min-w-0">
+      <span className="text-xs font-semibold text-muted-foreground shrink-0">{label}</span>
+      <div className="text-xs min-w-0 overflow-hidden">{children}</div>
     </div>
   );
 }
 
-// Section divider 
-
-function Section({ label, color }: { label: string; color: string }) {
+function ReadOnlyField({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`-mx-6 px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest ${color} mt-4 first:mt-0`}>
-      {label}
+    <div className="px-3 py-2 rounded-xl border border-border bg-transparent text-xs min-h-9 flex items-center min-w-0 overflow-hidden">
+      <div className="truncate min-w-0 w-full">{children}</div>
     </div>
   );
 }
-
-// Component 
 
 export function EpDetailSheet({
   ep,
@@ -62,13 +76,13 @@ export function EpDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-hidden">
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col overflow-hidden bg-card p-0 border-l">
         {/* Header */}
-        <SheetHeader className="pb-3 border-b">
+        <SheetHeader className="px-6 py-5 border-b bg-card">
           <div className="flex items-start gap-2 pr-8">
-            <div className="flex-1 min-w-0">
-              <SheetTitle className="text-base font-semibold truncate">{ep.fullName}</SheetTitle>
-              <SheetDescription className="text-xs mt-0.5">
+            <div className="flex-1 min-w-0 text-left">
+              <SheetTitle className="text-lg font-bold truncate">{ep.fullName}</SheetTitle>
+              <SheetDescription className="text-xs mt-1">
                 EP ID {ep.id} · {ep.product}
                 {availability && ` · ${availability}`}
               </SheetDescription>
@@ -78,70 +92,80 @@ export function EpDetailSheet({
         </SheetHeader>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 min-w-0">
 
           {/* General Info */}
-          <Section label="General Info" color="bg-blue-500 text-white" />
-          <Row label="Email">
-            {ep.email
-              ? <a href={`mailto:${ep.email}`} className="text-blue-600 hover:underline break-all">{ep.email}</a>
-              : <span className="text-muted-foreground">—</span>}
-          </Row>
-          <Row label="Phone">
-            <span>{ep.phone ?? <span className="text-muted-foreground">—</span>}</span>
-          </Row>
-          <Row label="University">
-            <span>{ep.university ?? <span className="text-muted-foreground">—</span>}</span>
-          </Row>
-          <Row label="Field of Study">
-            <span>{ep.fieldOfStudy ?? <span className="text-muted-foreground">—</span>}</span>
-          </Row>
-          <Row label="Year">
-            <span>{ep.yearOfStudy ?? <span className="text-muted-foreground">—</span>}</span>
-          </Row>
-          <Row label="Created on EXPA">
-            <DateCell value={ep.createdAtExpa} />
-          </Row>
+          <SectionCard title="General Information" icon={User}>
+            <Row label="Email">
+              <ReadOnlyField>
+                {ep.email ? <a href={`mailto:${ep.email}`} className="text-blue-600 hover:underline break-all">{ep.email}</a> : <span className="text-muted-foreground">—</span>}
+              </ReadOnlyField>
+            </Row>
+            <Row label="Phone">
+              <ReadOnlyField>{ep.phone ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+            </Row>
+            <Row label="University">
+              <ReadOnlyField>{ep.university ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+            </Row>
+            <Row label="Field of Study">
+              <ReadOnlyField>{ep.fieldOfStudy ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+            </Row>
+            <Row label="Year">
+              <ReadOnlyField>{ep.yearOfStudy ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+            </Row>
+            <Row label="Created on">
+              <ReadOnlyField><DateCell value={ep.createdAtExpa} /></ReadOnlyField>
+            </Row>
+          </SectionCard>
 
           {/* CRM */}
-          <Section label="CRM" color="bg-amber-500 text-white" />
-          <Row label="Phase">
-            <TrackingPhaseCell id={ep.id} value={ep.trackingPhase} isPending={isPending} onUpdate={onPhaseUpdate} />
-          </Row>
-          <Row label="Contacted">
-            <div className="flex items-center gap-2">
-              <CheckboxCell id={ep.id} field="contacted" value={ep.contacted} isPending={isPending} onUpdate={onCheckboxUpdate} />
-              {ep.contactedAt && (
-                <span className="text-muted-foreground"><DateCell value={ep.contactedAt} withTime /></span>
-              )}
-            </div>
-          </Row>
-          <Row label="Interested">
-            <CheckboxCell id={ep.id} field="interested" value={ep.interested} isPending={isPending} onUpdate={onCheckboxUpdate} />
-          </Row>
-          <Row label="Assigned At">
-            <DateCell value={ep.assignedAt} />
-          </Row>
-          <Row label="Source">
-            <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
-          </Row>
-          <Row label="CV Link">
-            {ep.cvLink
-              ? <a href={ep.cvLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{ep.cvLink}</a>
-              : <EditableTextCell id={ep.id} field="cvLink" value={null} isPending={isPending} onUpdate={onTextUpdate} />}
-          </Row>
-          <Row label="Notes">
-            <EditableTextCell id={ep.id} field="notes" value={ep.notes} isPending={isPending} multiline placeholder="Add note…" onUpdate={onTextUpdate} />
-          </Row>
+          <SectionCard title="CRM" icon={FileSpreadsheet}>
+            <Row label="Phase">
+              <TrackingPhaseCell id={ep.id} value={ep.trackingPhase} isPending={isPending} onUpdate={onPhaseUpdate} />
+            </Row>
+            <Row label="Contacted">
+              <ReadOnlyField>
+                <div className="flex items-center gap-2">
+                  <CheckboxCell id={ep.id} field="contacted" value={ep.contacted} isPending={isPending} onUpdate={onCheckboxUpdate} />
+                  {ep.contactedAt && (
+                    <span className="text-muted-foreground ml-auto"><DateCell value={ep.contactedAt} /></span>
+                  )}
+                </div>
+              </ReadOnlyField>
+            </Row>
+            <Row label="Interested">
+              <ReadOnlyField>
+                <CheckboxCell id={ep.id} field="interested" value={ep.interested} isPending={isPending} onUpdate={onCheckboxUpdate} />
+              </ReadOnlyField>
+            </Row>
+            <Row label="Assigned At">
+              <ReadOnlyField><DateCell value={ep.assignedAt} /></ReadOnlyField>
+            </Row>
+            <Row label="Source">
+              <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
+            </Row>
+            <Row label="CV Link">
+              <ReadOnlyField>
+                {ep.cvLink
+                  ? <a href={ep.cvLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{ep.cvLink}</a>
+                  : <EditableTextCell id={ep.id} field="cvLink" value={null} isPending={isPending} onUpdate={onTextUpdate} />}
+              </ReadOnlyField>
+            </Row>
+            <Row label="Notes">
+              <EditableTextCell id={ep.id} field="notes" value={ep.notes} isPending={isPending} multiline placeholder="Add note…" onUpdate={onTextUpdate} />
+            </Row>
+          </SectionCard>
 
           {/* Interests */}
-          <Section label="Interests" color="bg-emerald-500 text-white" />
-          <Row label="Duration">
-            <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
-          </Row>
-          <Row label="Availability">
-            <AvailabilityCell id={ep.id} value={ep.availability} isPending={isPending} onUpdate={onTextUpdate} />
-          </Row>
+          <SectionCard title="Interests" icon={Star}>
+            <Row label="Duration">
+              <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
+            </Row>
+            <Row label="Availability">
+              <AvailabilityCell id={ep.id} value={ep.availability} isPending={isPending} onUpdate={onTextUpdate} />
+            </Row>
+          </SectionCard>
+
         </div>
       </SheetContent>
     </Sheet>

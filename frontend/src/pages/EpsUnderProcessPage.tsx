@@ -54,11 +54,12 @@ export default function EpsUnderProcessPage() {
     <div className="flex flex-col h-full">
 
       {/* Page header */}
-      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 border-b bg-card">
+      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">EPs Under Process</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Under Process</p>
+            <h1 className="text-3xl font-bold tracking-tight">EPs Pipeline</h1>
+            <p className="text-sm text-muted-foreground">
               EPs currently looking for an opportunity match
             </p>
           </div>
@@ -82,7 +83,7 @@ export default function EpsUnderProcessPage() {
             placeholder="Search EP name or ID…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 w-52 text-xs"
+            className="pl-8 h-8 w-52 text-xs border-0"
             aria-label="Search EPs under process"
           />
         </div>
@@ -127,7 +128,7 @@ export default function EpsUnderProcessPage() {
           <div className="text-sm text-muted-foreground text-center py-10">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-10">
-            {search ? 'No EPs match your search.' : 'No EPs are currently looking for opportunities. 🎉'}
+            {search ? 'No EPs match your search.' : 'No EPs are currently looking for opportunities.'}
           </div>
         ) : (
           <ul className="space-y-3">

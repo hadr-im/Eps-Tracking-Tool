@@ -29,7 +29,7 @@ export function DurationCell({ id, value, isPending, onUpdate }: DurationCellPro
     >
       <SelectTrigger
         id={`duration-${id}`}
-        className="h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent"
+        className="h-8 w-full min-w-fit px-3 py-1 text-xs border border-border bg-transparent rounded-full"
         aria-label="Duration"
       >
         <SelectValue placeholder="set duration" className="justify-center">

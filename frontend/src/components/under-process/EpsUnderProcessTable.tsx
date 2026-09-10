@@ -530,7 +530,7 @@ export function EpsUnderProcessTable({
               colSpan={columns.length}
               className="h-40 text-center text-muted-foreground text-sm"
             >
-              No EPs are currently looking for opportunities. 🎉
+              No EPs are currently looking for opportunities.
             </TableCell>
           </TableRow>
         )}

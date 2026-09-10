@@ -62,34 +62,44 @@ export default function MyCrmPage() {
     [transitionMutate],
   );
 
+  const leadsBadge = !isLoading ? (
+    <Badge
+      id="leads-processed-badge"
+      variant="outline"
+      className="text-xs font-semibold px-4 py-1.5 gap-2 bg-muted text-sidebar-primary border-transparent rounded-full shrink-0 w-fit"
+    >
+      <div className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
+      {contactedCount}/{eps.length} Leads Contacted
+    </Badge>
+  ) : null;
+
   // Render 
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 border-b bg-card">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">My CRM</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Manage and track your assigned EPs
-            </p>
-          </div>
+      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">My CRM</p>
 
-          {/* Leads Processed badge */}
-          {!isLoading && (
-            <Badge
-              id="leads-processed-badge"
-              variant="outline"
-              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground border-transparent"
-            >
-              {contactedCount}/{eps.length} Leads Contacted
-            </Badge>
-          )}
+        <h1 className="text-3xl font-bold tracking-tight">My Assigned EPs</h1>
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Manage and track your assigned EPs
+          </p>
+
+          {/* Desktop badge, vertically centered with the subtitle */}
+          <div className="hidden md:block">
+            {leadsBadge}
+          </div>
+        </div>
+
+        {/* Mobile badge */}
+        <div className="block md:hidden mt-2">
+          {leadsBadge}
         </div>
       </div>
-
       {/* Filters */}
-      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
+      <div className="shrink-0 px-4 md:px-6 py-3 bg-background border-b border-border/60">
         <CrmFilters onFiltersChange={setFilters} />
       </div>
 

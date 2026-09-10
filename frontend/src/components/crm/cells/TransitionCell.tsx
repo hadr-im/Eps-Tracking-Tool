@@ -59,13 +59,13 @@ export function TransitionCell({
         disabled={isPending}
       >
         <SelectTrigger
-          className={`h-7 w-full min-w-fit px-2 py-1 text-xs border-dashed bg-transparent transition-colors ${
+          className={`h-8 w-full min-w-fit px-3 py-1 text-xs border border-border bg-transparent rounded-full ${
             isPending ? 'opacity-50' : 'hover:border-violet-300'
           }`}
           aria-label="Transition EP"
         >
-          <SelectValue placeholder="Move to…" className="justify-center">
-            {(v) => (v ? `To ${v}` : 'Move to…')}
+          <SelectValue placeholder="move to" className="justify-center">
+            {(v) => (v ? `To ${v}` : 'move to')}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

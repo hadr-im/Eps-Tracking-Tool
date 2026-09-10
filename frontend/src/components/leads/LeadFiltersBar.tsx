@@ -128,7 +128,7 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
           placeholder="Search by name…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="h-8 pl-8 text-xs"
+          className="h-8 pl-8 text-xs border-0"
         />
       </div>
 

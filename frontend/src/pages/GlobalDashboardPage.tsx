@@ -8,7 +8,7 @@
 //   - Inline member dashboard slide-in when a leaderboard bar is clicked
 
 import { useState } from 'react';
-import { LayoutDashboard, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useDepartmentDashboard } from '@/hooks/useDepartmentDashboard';
 import { SummaryCards }           from '@/components/dashboard/SummaryCards';
 import { StatusFunnelChart }      from '@/components/dashboard/StatusFunnelChart';
@@ -43,14 +43,12 @@ export default function GlobalDashboardPage() {
     <div className="flex flex-col h-full">
 
       {/* Page header */}
-      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 border-b bg-card">
+      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <LayoutDashboard size={20} className="text-sidebar-primary" />
-              Global Dashboard
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dashboard</p>
+            <h1 className="text-3xl font-bold tracking-tight">Global Overview</h1>
+            <p className="text-sm text-muted-foreground">
               Department-wide performance
             </p>
           </div>

@@ -10,7 +10,7 @@ import { TransitionCell }    from './cells/TransitionCell';
 import { DurationCell }      from './cells/DurationCell';
 import { EditableTextCell }  from './cells/EditableTextCell';
 import { EpDetailSheet }     from './EpDetailSheet';
-import { Checkbox }          from '@/components/ui/checkbox';
+
 import type { Ep, TrackingPhase } from '@/types/ep';
 
 interface EpCardProps {
@@ -79,11 +79,11 @@ export function EpCard({
           )}
         >
           <div className="overflow-hidden">
-            <div className="border-t border-border/70 bg-muted/20 px-4 py-4 space-y-4">
+            <div className="border-t border-border/50 bg-card px-4 py-4 space-y-4">
              {/* Phase & Duration */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Phase</span>
+                  <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">Phase</span>
                   <TrackingPhaseCell
                     id={ep.id}
                     value={ep.trackingPhase}
@@ -92,55 +92,63 @@ export function EpCard({
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Duration</span>
+                  <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">Duration</span>
                   <DurationCell id={ep.id} value={ep.duration} isPending={isPending} onUpdate={onTextUpdate} />
                 </div>
               </div>
 
               {/* Checkboxes */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <label className="flex cursor-pointer select-none items-center gap-1.5">
-                  <Checkbox
-                    checked={ep.contacted}
-                    disabled={isPending}
-                    onCheckedChange={(v) => onCheckboxUpdate(ep.id, 'contacted', Boolean(v))}
-                    className={isPending ? 'opacity-50' : ''}
-                  />
-                  <span className="text-xs font-medium">Contacted</span>
-                </label>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onCheckboxUpdate(ep.id, 'contacted', !ep.contacted)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    ep.contacted ? "border-sidebar-primary bg-sidebar-primary/5 text-sidebar-primary" : "border-border bg-transparent text-muted-foreground hover:bg-muted/50",
+                    isPending && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <div className={cn("h-1.5 w-1.5 rounded-full", ep.contacted ? "bg-sidebar-primary" : "bg-muted-foreground")} />
+                  Contacted
+                </button>
 
-                <label className="flex cursor-pointer select-none items-center gap-1.5">
-                  <Checkbox
-                    checked={ep.interested}
-                    disabled={isPending}
-                    onCheckedChange={(v) => onCheckboxUpdate(ep.id, 'interested', Boolean(v))}
-                    className={isPending ? 'opacity-50' : ''}
-                  />
-                  <span className="text-xs font-medium">Interested</span>
-                </label>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onCheckboxUpdate(ep.id, 'interested', !ep.interested)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    ep.interested ? "border-sidebar-primary bg-sidebar-primary/5 text-sidebar-primary" : "border-border bg-transparent text-muted-foreground hover:bg-muted/50",
+                    isPending && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <div className={cn("h-1.5 w-1.5 rounded-full", ep.interested ? "bg-sidebar-primary" : "bg-muted-foreground")} />
+                  Interested
+                </button>
 
                 {ep.contacted && ep.contactedAt && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground ml-2">
                     on <DateCell value={ep.contactedAt} />
                   </span>
                 )}
               </div>
 
               {/* Source */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 pt-2">
                 <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Source</span>
                 <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
               </div>
 
               {/* Notes */}
-              <div className="flex items-center gap-3">
-                <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground">Notes</span>
+              <div className="flex items-start gap-3">
+                <span className="w-14 shrink-0 text-xs font-medium text-muted-foreground mt-1">Notes</span>
                 <EditableTextCell id={ep.id} field="notes" value={ep.notes} isPending={isPending} multiline placeholder="Add a note..." onUpdate={onTextUpdate} />
               </div>
 
               {/* Transition */}
               {onTransition && (
-                <div className="flex items-center gap-3 border-t border-border/60 pt-3">
+                <div className="flex items-center gap-3 border-t border-border/50 pt-3 mt-2">
                   <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">Transition</span>
                   <TransitionCell
                     epId={ep.id}
@@ -152,7 +160,7 @@ export function EpCard({
               )}
 
               {/* Footer actions */}
-              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+              <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <MessageSquare size={13} />
                   0 comments
@@ -161,10 +169,10 @@ export function EpCard({
                 <button
                   type="button"
                   onClick={() => setSheetOpen(true)}
-                  className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted"
                 >
                   Open Details
-                  <ChevronRight size={13} />
+                  <ChevronRight size={14} className="stroke-[2.5]" />
                 </button>
               </div>
             </div>

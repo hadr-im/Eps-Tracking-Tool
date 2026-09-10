@@ -139,7 +139,7 @@ export function ApprovedEpsFilters({ filters, onChange, totalCount }: ApprovedEp
           placeholder="Search EP name or ID…"
           value={filters.search ?? ''}
           onChange={(e) => update({ search: e.target.value || undefined })}
-          className="pl-8 h-8 w-52 text-xs"
+          className="pl-8 h-8 w-52 text-xs border-0"
           aria-label="Search approved EPs"
         />
       </div>

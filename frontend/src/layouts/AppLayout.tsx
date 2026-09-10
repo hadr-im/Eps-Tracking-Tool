@@ -30,12 +30,12 @@ export function AppLayout() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger
           id="mobile-menu-btn"
-          className="fixed left-3 top-3 z-40 md:hidden h-9 w-9 flex items-center justify-center rounded-lg border bg-card  hover:bg-accent hover:text-accent-foreground"
+          className="fixed right-4 top-4 z-40 md:hidden h-9 w-9 flex items-center justify-center rounded-xl bg-secondary border-0 hover:bg-secondary/80 text-secondary-foreground"
           aria-label="Open navigation"
         >
           <Menu size={18} />
         </SheetTrigger>
-        <SheetContent side="left" className="w-55 p-0 border-r">
+        <SheetContent side="right" className="w-55 p-0 border-l">
           <SidebarBody
             collapsed={false}
             onNavClick={() => setSheetOpen(false)}
@@ -45,8 +45,7 @@ export function AppLayout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
-        {/* Top padding on mobile to clear the hamburger button */}
-        <div className="h-full pt-10 md:pt-0">
+        <div className="h-full">
           <Outlet />
         </div>
       </main>

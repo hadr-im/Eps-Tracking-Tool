@@ -10,7 +10,7 @@ interface CheckboxCellProps {
 
 export function CheckboxCell({ id, field, value, isPending, onUpdate }: CheckboxCellProps) {
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center">
       <Checkbox
         id={`${field}-${id}`}
         checked={value}
