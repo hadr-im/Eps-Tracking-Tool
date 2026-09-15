@@ -3,6 +3,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { transitionEp } from '../services/epService';
+import { toast } from 'sonner';
 
 export function useTransitionEp() {
   const queryClient = useQueryClient();
@@ -10,9 +11,13 @@ export function useTransitionEp() {
   return useMutation({
     mutationFn: ({ id, targetProduct }: { id: string; targetProduct: string }) =>
       transitionEp(id, targetProduct),
-    onSuccess: () => {
-      // Refresh the EP list (the transitioned EP will no longer be returned as it's unassigned/moved)
+    onSuccess: (_data, { targetProduct }) => {
       queryClient.invalidateQueries({ queryKey: ['eps'] });
+      toast.success(`EP transitioned to ${targetProduct}`);
+    },
+    onError: () => {
+      toast.error('Transition failed — please try again');
     },
   });
 }
+

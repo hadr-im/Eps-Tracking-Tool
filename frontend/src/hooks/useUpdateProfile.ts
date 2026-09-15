@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService, type UpdateProfilePayload } from '@/services/userService';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 // Mutation to PATCH /users/me
 // On success: syncs the updated name/avatar into AuthContext (sidebar reflects immediately)
@@ -18,6 +19,11 @@ export function useUpdateProfile() {
       });
       // Invalidate profile cache so next open is fresh
       void queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      toast.success('Profile updated');
+    },
+    onError: () => {
+      toast.error('Failed to update profile');
     },
   });
 }
+

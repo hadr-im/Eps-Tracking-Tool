@@ -4,15 +4,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { dispatchLeads } from '../services/leadService';
 import type { DispatchPayload } from '../types/lead';
+import { toast } from 'sonner';
 
 export function useDispatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: DispatchPayload) => dispatchLeads(payload),
-    onSuccess: () => {
-      // Invalidate all ['leads', *] so the pool refreshes and dispatched rows vanish
+    onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      const count = payload.epIds.length;
+      toast.success(`${count} lead${count !== 1 ? 's' : ''} dispatched successfully`);
+    },
+    onError: () => {
+      toast.error('Dispatch failed, please try again');
     },
   });
 }
+

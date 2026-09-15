@@ -4,6 +4,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { postComment } from '../services/commentService';
 import type { AddCommentPayload } from '../types/comment';
+import { toast } from 'sonner';
 
 interface AddCommentArgs {
   epId: string;
@@ -16,8 +17,12 @@ export function useAddComment() {
   return useMutation({
     mutationFn: ({ epId, payload }: AddCommentArgs) => postComment(epId, payload),
     onSuccess: (_data, { epId }) => {
-      // Refresh only the comments for this specific EP
       queryClient.invalidateQueries({ queryKey: ['comments', epId] });
+      toast.success('Comment added');
+    },
+    onError: () => {
+      toast.error('Failed to post comment');
     },
   });
 }
+
