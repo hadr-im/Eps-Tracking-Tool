@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 
 import { resetPasswordSchema, type ResetPasswordFormValues } from '@/schemas/resetPasswordSchema'
 import { apiClient } from '@/services/apiClient'
+import { getFriendlyError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields'
 
@@ -47,10 +48,10 @@ export default function ResetPasswordPage() {
       // Redirect to login (pass a flag so the login page can show a success toast/message)
       navigate('/login?passwordReset=true', { replace: true })
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Something went wrong. Please try again.'
-      setServerError(message)
+      setServerError(getFriendlyError(err, {
+        400: 'This code has expired or is invalid. Please request a new one.',
+        404: 'No account found. Please start over.',
+      }, 'Couldn\'t reset your password. Please try again.'))
     }
   }
 

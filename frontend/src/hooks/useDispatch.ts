@@ -17,7 +17,7 @@ export function useDispatch() {
       toast.success(`${count} lead${count !== 1 ? 's' : ''} dispatched successfully`);
     },
     onError: () => {
-      toast.error('Dispatch failed, please try again');
+      toast.error('Couldn\'t assign this lead. Please try again.');
     },
   });
 }

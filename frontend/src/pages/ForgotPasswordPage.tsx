@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import { z } from 'zod'
 
 import { apiClient } from '@/services/apiClient'
+import { getFriendlyError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field } from '@/components/auth/AuthFormFields'
@@ -51,10 +52,11 @@ export default function ForgotPasswordPage() {
       // Forward user to OTP verification page with email in query params
       navigate(`/verify-otp?email=${encodeURIComponent(email)}`, { replace: true })
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Failed to send OTP. Please try again.'
-      setServerError(message)
+      setServerError(getFriendlyError(err, {
+        400: 'Please provide a valid email address.',
+        404: 'No account found with that email address.',
+        429: 'Please wait a moment before requesting another code.',
+      }, 'Couldn\'t send the code. Please try again.'))
     } finally {
       setIsSending(false)
     }

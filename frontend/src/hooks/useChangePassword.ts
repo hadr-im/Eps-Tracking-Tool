@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { userService, type ChangePasswordPayload } from '@/services/userService';
+import { getFriendlyError } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // Mutation to POST /users/me/change-password
@@ -10,10 +11,13 @@ export function useChangePassword() {
       toast.success('Password changed successfully');
     },
     onError: (err: unknown) => {
-      const msg =
-        err instanceof Error ? err.message : 'Failed to change password';
-      toast.error(msg);
+      toast.error(getFriendlyError(err, {
+        400: 'The current password you entered is incorrect.',
+        401: 'The current password you entered is incorrect.',
+        422: 'Your new password doesn\'t meet the requirements.',
+      }, 'Couldn\'t update your password. Please try again.'));
     },
   });
 }
+
 

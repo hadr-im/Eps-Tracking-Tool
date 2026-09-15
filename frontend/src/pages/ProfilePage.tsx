@@ -13,6 +13,7 @@ import {
   type ProfileFormValues,
   type ChangePasswordFormValues,
 } from '@/schemas/profileSchema';
+import { getFriendlyError } from '@/lib/utils';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -84,10 +85,9 @@ function EditProfileForm() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Failed to update profile. Please try again.';
-      setServerError(msg);
+      setServerError(getFriendlyError(err, {
+        400: 'Please check your details and try again.',
+      }, 'Couldn\'t save your profile. Please try again.'));
     }
   }
 
@@ -233,10 +233,11 @@ function ChangePasswordForm() {
       setSuccess(true);
       reset();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Failed to change password. Please try again.';
-      setServerError(msg);
+      setServerError(getFriendlyError(err, {
+        400: 'The current password you entered is incorrect.',
+        401: 'The current password you entered is incorrect.',
+        422: 'Your new password doesn\'t meet the requirements.',
+      }, 'Couldn\'t update your password. Please try again.'));
     }
   }
 

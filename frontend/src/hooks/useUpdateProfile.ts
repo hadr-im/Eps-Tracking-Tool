@@ -22,7 +22,7 @@ export function useUpdateProfile() {
       toast.success('Profile updated');
     },
     onError: () => {
-      toast.error('Failed to update profile');
+      toast.error('Couldn\'t save your profile. Please try again.');
     },
   });
 }

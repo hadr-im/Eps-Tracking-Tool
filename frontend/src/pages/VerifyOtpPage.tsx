@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 
 import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/schemas/forgotPasswordSchema'
 import { apiClient } from '@/services/apiClient'
+import { getFriendlyError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -78,10 +79,10 @@ export default function VerifyOtpPage() {
         `/reset-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(values.otp)}`,
       )
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Invalid OTP. Please try again.'
-      setServerError(message)
+      setServerError(getFriendlyError(err, {
+        400: 'Invalid OTP code. Please check and try again.',
+        429: 'Too many attempts. Please wait a moment.',
+      }, 'Couldn\'t verify your code. Please try again.'))
     }
   }
 

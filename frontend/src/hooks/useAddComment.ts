@@ -21,7 +21,7 @@ export function useAddComment() {
       toast.success('Comment added');
     },
     onError: () => {
-      toast.error('Failed to post comment');
+      toast.error('Couldn\'t post your comment. Please try again.');
     },
   });
 }

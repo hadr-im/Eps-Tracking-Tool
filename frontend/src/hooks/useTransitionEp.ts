@@ -16,7 +16,7 @@ export function useTransitionEp() {
       toast.success(`EP transitioned to ${targetProduct}`);
     },
     onError: () => {
-      toast.error('Transition failed — please try again');
+      toast.error('Couldn\'t move this EP. Please try again.');
     },
   });
 }

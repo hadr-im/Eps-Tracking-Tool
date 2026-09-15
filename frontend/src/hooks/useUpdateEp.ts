@@ -49,7 +49,9 @@ export function useUpdateEp() {
     },
     onError: (_err, { payload }) => {
       const isToasted = TOASTED_FIELDS.some((f) => f in payload);
-      toast.error(isToasted ? 'Failed to save changes' : 'Failed to save');
+      toast.error(isToasted
+        ? 'We couldn\'t save that change. Please try again.'
+        : 'We couldn\'t save your notes. Please try again.');
     },
   });
 }

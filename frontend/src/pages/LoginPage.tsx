@@ -7,6 +7,7 @@ import { Loader2, CheckCircle2 } from 'lucide-react'
 import { loginSchema, type LoginFormValues } from '@/schemas/loginSchema'
 import { useAuth } from '@/hooks/useAuth'
 import { apiClient } from '@/services/apiClient'
+import { getFriendlyError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields'
@@ -39,10 +40,11 @@ export default function LoginPage() {
       login(data)
       navigate('/', { replace: true })
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Something went wrong. Please try again.'
-      setServerError(message)
+      setServerError(getFriendlyError(err, {
+        401: 'Incorrect email or password.',
+        403: 'Your account is not yet approved. Please contact your team leader.',
+        429: 'Too many attempts. Please wait a moment and try again.',
+      }, 'Something went wrong. Please try again.'))
     }
   }
 

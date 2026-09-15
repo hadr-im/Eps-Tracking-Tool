@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { signupSchema, type SignupFormValues } from '@/schemas/signupSchema'
 import { useAuth } from '@/hooks/useAuth'
 import { apiClient } from '@/services/apiClient'
+import { getFriendlyError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields'
@@ -45,10 +46,10 @@ export default function SignupPage() {
       login(data)
       navigate('/', { replace: true })
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? 'Something went wrong. Please try again.'
-      setServerError(message)
+      setServerError(getFriendlyError(err, {
+        400: 'Please check your details and try again.',
+        409: 'An account with this email already exists.',
+      }, 'Couldn\'t create your account. Please try again.'))
     }
   }
 
