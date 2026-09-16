@@ -31,7 +31,10 @@ export default function TeamCrmPage() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [openEp, setOpenEp] = useState<Ep | null>(null);
 
-  const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
+  const { data: allMembers = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
+
+  // Only show MEMBER-role users — exclude TL and VP accounts
+  const members = allMembers.filter((m) => m.role === 'MEMBER');
   const { data: eps = [], isLoading: epsLoading } = useTeamEps(selectedMemberId);
   const { mutate: transitionMutate, isPending: transitionPending, variables: transitionVariables } = useTransitionEp();
 

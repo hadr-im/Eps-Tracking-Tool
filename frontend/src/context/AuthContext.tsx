@@ -17,6 +17,7 @@ import {
   apiClient,
 } from '../services/apiClient';
 import type { AuthTokens, AuthUser } from '../types/auth';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 // Constants
@@ -51,6 +52,7 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -67,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
-  }, []);
+    queryClient.clear(); // Ensure previous user's data is wiped from cache
+  }, [queryClient]);
 
   // Register apiClient callbacks on mount (runs once)
   // These give the axios interceptor access to the current token and a way to

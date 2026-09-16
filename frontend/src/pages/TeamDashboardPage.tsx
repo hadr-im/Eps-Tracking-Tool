@@ -25,7 +25,10 @@ export default function TeamDashboardPage() {
   // null = viewing self, string = viewing a specific member
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
-  const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
+  const { data: allMembers = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
+
+  // Only show MEMBER-role users — exclude the TL themselves and any VP accounts
+  const members = allMembers.filter((m) => m.role === 'MEMBER');
   const { data, isLoading, isError } = useMyDashboard({ memberId: selectedMemberId ?? undefined });
 
   function handleSelectMember(id: string) {

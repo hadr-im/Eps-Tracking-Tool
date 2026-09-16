@@ -48,7 +48,7 @@ const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: 'CRM',
     headerClass: 'bg-amber-500 text-white border-amber-500',
-    columnIds: ['source', 'cvLink', 'assignedAt', 'contactedAt', 'contacted', 'interested', 'trackingPhase', 'notes'],
+    columnIds: ['source', 'cvLink', 'assignedAt', 'contactedAt', 'contacted', 'interested', 'trackingPhase', 'notes', 'comments'],
   },
   {
     label: 'Interests',

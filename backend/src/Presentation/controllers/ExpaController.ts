@@ -28,6 +28,7 @@ function parseFilters(query: Request['query']): EpFilters {
 
   if (typeof query['university'] === 'string')   filters.university  = query['university'];
   if (typeof query['fieldOfStudy'] === 'string') filters.fieldOfStudy = query['fieldOfStudy'];
+  if (typeof query['search'] === 'string')       filters.search      = query['search'];
   if (typeof query['hostingMC'] === 'string')    filters.hostingMC   = query['hostingMC'];
   if (typeof query['hostingLC'] === 'string')    filters.hostingLC   = query['hostingLC'];
   if (typeof query['createdFrom'] === 'string')  filters.createdFrom = query['createdFrom'];

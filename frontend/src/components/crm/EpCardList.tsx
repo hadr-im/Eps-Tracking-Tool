@@ -12,6 +12,7 @@ interface EpCardListProps {
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
   onTransition?:    (id: string, targetProduct: string) => void;
+  onCommentClick?:  (ep: Ep) => void;
 }
 
 export function EpCardList({
@@ -22,6 +23,7 @@ export function EpCardList({
   onPhaseUpdate,
   onTextUpdate,
   onTransition,
+  onCommentClick,
 }: EpCardListProps) {
   if (isLoading) {
     return (
@@ -74,6 +76,7 @@ export function EpCardList({
           onPhaseUpdate={onPhaseUpdate}
           onTextUpdate={onTextUpdate}
           onTransition={onTransition}
+          onCommentClick={onCommentClick}
         />
       ))}
     </div>

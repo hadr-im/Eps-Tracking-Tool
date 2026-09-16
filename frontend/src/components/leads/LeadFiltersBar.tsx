@@ -46,7 +46,7 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
         if (searchInput) next.set('search', searchInput);
         else next.delete('search');
         return next;
-      });
+      }, { replace: true });
     }, 300);
     return () => clearTimeout(timer);
   }, [searchInput, setParams]);
@@ -63,20 +63,20 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
       if (value) next.set(key, value);
       else next.delete(key);
       return next;
-    });
+    }, { replace: true });
   }
 
   const hasActiveFilters = !!(search || product);
 
   function clearFilters() {
     setSearchInput('');
-    setParams({});
+    setParams({}, { replace: true });
   }
 
   const filtersList = (
     <>
       {/* Product */}
-      <Select value={product ?? ''} onValueChange={(v) => setParam('product', v || null)}>
+      <Select value={product ?? 'all'} onValueChange={(v) => setParam('product', v === 'all' ? null : v)}>
         <SelectTrigger 
           id="filter-product" 
           className={cn(
@@ -84,13 +84,12 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
             product && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
           )}
         >
-          <SelectValue placeholder="Product">
-            {(v) => (v || 'Product')}
-          </SelectValue>
+          <SelectValue placeholder="Product" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all" className="text-xs">All Products</SelectItem>
           {PRODUCTS.map((p) => (
-            <SelectItem key={p} value={p} label={p} className="text-xs">{p}</SelectItem>
+            <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
           ))}
         </SelectContent>
       </Select>

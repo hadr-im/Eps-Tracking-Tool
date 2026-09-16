@@ -11,12 +11,38 @@ export function useTransitionEp() {
   return useMutation({
     mutationFn: ({ id, targetProduct }: { id: string; targetProduct: string }) =>
       transitionEp(id, targetProduct),
+    
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['eps'] });
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['eps'] });
+
+      // Optimistically remove the EP from the list
+      queryClient.setQueriesData({ queryKey: ['eps'] }, (oldData: any) => {
+        if (!oldData) return oldData;
+        if (Array.isArray(oldData)) {
+          return oldData.filter((ep: any) => ep.id !== id);
+        }
+        return oldData;
+      });
+
+      return { previousQueries };
+    },
+
     onSuccess: (_data, { targetProduct }) => {
-      queryClient.invalidateQueries({ queryKey: ['eps'] });
       toast.success(`EP transitioned to ${targetProduct}`);
     },
-    onError: () => {
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, oldData]) => {
+          queryClient.setQueryData(queryKey, oldData);
+        });
+      }
       toast.error('Couldn\'t move this EP. Please try again.');
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['eps'] });
     },
   });
 }

@@ -11,12 +11,16 @@ import { useEps }         from '@/hooks/useEps';
 import { CrmFilters }   from '@/components/crm/CrmFilters';
 import { EpTable }      from '@/components/crm/EpTable';
 import { EpCardList }   from '@/components/crm/EpCardList';
+import { CommentPanel } from '@/components/team/CommentPanel';
 import { Badge }        from '@/components/ui/badge';
 import type { EpFilters, TrackingPhase } from '@/types/ep';
 
 export default function MyCrmPage() {
   // Filters (set by CrmFilters, consumed by useEps) 
   const [filters, setFilters] = useState<EpFilters>({});
+
+  // Comment panel state
+  const [openEp, setOpenEp] = useState<any | null>(null);
 
   // Data fetching 
   const { data: eps = [], isLoading } = useEps(filters);
@@ -115,6 +119,7 @@ export default function MyCrmPage() {
           onPhaseUpdate={handlePhaseUpdate}
           onTextUpdate={handleTextUpdate}
           onTransition={handleTransition}
+          onCommentClick={(ep) => setOpenEp(ep)}
         />
       </div>
 
@@ -127,8 +132,16 @@ export default function MyCrmPage() {
           onCheckboxUpdate={handleCheckboxUpdate}
           onPhaseUpdate={handlePhaseUpdate}
           onTextUpdate={handleTextUpdate}
+          onCommentClick={(ep) => setOpenEp(ep)}
         />
       </div>
+
+      {/* Comment side panel */}
+      <CommentPanel
+        ep={openEp}
+        canComment={false} // Members can only view comments, not add them
+        onClose={() => setOpenEp(null)}
+      />
     </div>
   );
 }

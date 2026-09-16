@@ -20,6 +20,7 @@ interface EpCardProps {
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
   onTransition?:    (id: string, targetProduct: string) => void;
+  onCommentClick?:  (ep: Ep) => void;
 }
 
 function getInitials(fullName: string) {
@@ -38,6 +39,7 @@ export function EpCard({
   onPhaseUpdate,
   onTextUpdate,
   onTransition,
+  onCommentClick,
 }: EpCardProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -161,10 +163,18 @@ export function EpCard({
 
               {/* Footer actions */}
               <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <MessageSquare size={13} />
-                  0 comments
-                </span>
+                {onCommentClick ? (
+                  <button
+                    type="button"
+                    onClick={() => onCommentClick(ep)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare size={14} />
+                    View Comments
+                  </button>
+                ) : (
+                  <div />
+                )}
 
                 <button
                   type="button"
