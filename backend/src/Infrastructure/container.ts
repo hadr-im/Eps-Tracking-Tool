@@ -52,6 +52,7 @@ export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
 const epManagementFactory = new EpManagementFactory();
 export const epManagementUseCase = epManagementFactory.makeEpManagementUseCase();
 export const transitionEpUseCase = epManagementFactory.makeTransitionEpUseCase();
+export const getTransitionsUseCase = epManagementFactory.makeGetTransitionsUseCase();
 
 const dashboardFactory = new DashboardFactory();
 export const dashboardUseCase = dashboardFactory.makeDashboardUseCase();

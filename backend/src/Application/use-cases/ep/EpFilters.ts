@@ -35,4 +35,6 @@ export interface EpFilters {
   hostingMC?: string;
   // Filter by hosting LC (for approved+ EPs)
   hostingLC?: string;
+  // If true, returns only EPs that have no owner assigned
+  unassignedOnly?: boolean;
 }

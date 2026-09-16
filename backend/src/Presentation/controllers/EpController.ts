@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getApprovedEpsWithDetailUseCase, getRealisedEpsUseCase, epManagementUseCase, transitionEpUseCase, userManagementUseCase } from '../../Infrastructure/container';
+import { getApprovedEpsWithDetailUseCase, getRealisedEpsUseCase, epManagementUseCase, transitionEpUseCase, userManagementUseCase, getTransitionsUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
@@ -61,47 +61,25 @@ function parseFilters(query: Request['query']): EpFilters {
 
 export class EpController {
 
-  /*
-    GET /eps
-    - MEMBER: returns only their own assigned EPs
-    - TL with ?memberId=: returns that specific member's EPs (Team CRM view)
-    - TL without memberId: returns EPs belonging to all of that TL's assigned members
-    - VP with ?memberId=: returns that specific member's EPs
-    - VP without memberId: returns all department EPs
-  */
   static async getEps(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
       const filters = parseFilters(req.query);
-
-      // MEMBER: always return only own EPs
-      if (caller.role === UserRole.MEMBER) {
-        const eps = await epManagementUseCase.getMyEps(caller, filters);
-        res.status(200).json({ data: eps, count: eps.length });
-        return;
-      }
 
       // TL / VP: optional memberId to drill into one member
       const memberId = typeof req.query['memberId'] === 'string' ? req.query['memberId'] : undefined;
 
       if (memberId) {
         // Specific member requested, works for both TL and VP
+        // (The use case validates that the caller has permission to view this member)
         const eps = await epManagementUseCase.getTeamEps(caller, memberId, filters);
         res.status(200).json({ data: eps, count: eps.length });
         return;
       }
 
-      if (caller.role === UserRole.TEAM_LEADER) {
-        // TL without memberId: scope to their assigned members' EPs
-        const members = await userManagementUseCase.getMembersByTeamLeader(caller.id);
-        const ownerIds = members.map((m) => m.id);
-        const eps = await epManagementUseCase.getTeamEps(caller, undefined, filters, ownerIds);
-        res.status(200).json({ data: eps, count: eps.length });
-        return;
-      }
-
-      // VP without memberId: full department view
-      const eps = await epManagementUseCase.getTeamEps(caller, undefined, filters);
+      // No memberId provided: the caller wants to see their OWN assigned EPs
+      // (This applies to MEMBER, TEAM_LEADER, and VP roles alike since anyone can have EPs)
+      const eps = await epManagementUseCase.getMyEps(caller, filters);
       res.status(200).json({ data: eps, count: eps.length });
     } catch (err) {
       handleError(res, err);
@@ -253,13 +231,30 @@ export class EpController {
       const targetProduct = req.body['targetProduct'];
       if (!targetProduct) throw new AppError('targetProduct is required', 400);
 
+      const note = req.body['note'];
+
       const data = await transitionEpUseCase.execute({
         epId,
         targetProduct: targetProduct as Product,
         caller: req.user!,
+        note: note ? String(note) : undefined,
       });
 
       res.status(200).json({ data });
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
+  /*
+    GET /eps/transitions
+    TL/VP (all transitions inbound or outbound for their department)
+  */
+  static async getTransitions(req: Request, res: Response): Promise<void> {
+    try {
+      const caller = req.user!;
+      const data = await getTransitionsUseCase.execute(caller);
+      res.status(200).json({ data, count: data.length });
     } catch (err) {
       handleError(res, err);
     }

@@ -9,11 +9,9 @@ import { Eye, Plus, Minus, MessageSquare } from 'lucide-react';
 import { useAuth }               from '@/hooks/useAuth';
 import { useDepartmentMembers }  from '@/hooks/useDepartmentMembers';
 import { useTeamEps }            from '@/hooks/useTeamEps';
-import { useTransitionEp }       from '@/hooks/useTransitionEp';
 import { MemberPicker }          from '@/components/team/MemberPicker';
 import { CommentPanel }          from '@/components/team/CommentPanel';
 import { EpTable }               from '@/components/crm/EpTable';
-import { TransitionCell }        from '@/components/crm/cells/TransitionCell';
 import { StatusBadgeCell }       from '@/components/crm/cells/StatusBadgeCell';
 import { cn }                    from '@/lib/utils';
 import type { Ep }               from '@/types/ep';
@@ -36,15 +34,10 @@ export default function TeamCrmPage() {
   // Only show MEMBER-role users — exclude TL and VP accounts
   const members = allMembers.filter((m) => m.role === 'MEMBER');
   const { data: eps = [], isLoading: epsLoading } = useTeamEps(selectedMemberId);
-  const { mutate: transitionMutate, isPending: transitionPending, variables: transitionVariables } = useTransitionEp();
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
-  const pendingId = transitionPending && transitionVariables ? transitionVariables.id : null;
 
   const handleCommentClick = useCallback((ep: Ep) => setOpenEp(ep), []);
-  const handleTransition = useCallback((id: string, targetProduct: string) => {
-    transitionMutate({ id, targetProduct });
-  }, [transitionMutate]);
 
   return (
     <div className="flex flex-col h-full">
@@ -99,12 +92,12 @@ export default function TeamCrmPage() {
           <EpTable
             eps={eps}
             isLoading={epsLoading}
-            pendingId={pendingId}
+            pendingId={null}
             readOnly
             onCheckboxUpdate={noopCheckbox}
             onPhaseUpdate={noopPhase}
             onTextUpdate={noop}
-            onTransition={handleTransition}
+            onTransition={undefined}
             onCommentClick={canComment ? handleCommentClick : undefined}
           />
         </div>
@@ -125,8 +118,6 @@ export default function TeamCrmPage() {
                   ep={ep}
                   canComment={canComment}
                   onCommentClick={handleCommentClick}
-                  onTransition={handleTransition}
-                  isPending={pendingId === ep.id}
                 />
               ))}
             </ul>
@@ -148,14 +139,10 @@ function TeamCrmMobileCard({
   ep,
   canComment,
   onCommentClick,
-  onTransition,
-  isPending,
 }: {
   ep: Ep;
   canComment: boolean;
   onCommentClick: (ep: Ep) => void;
-  onTransition: (epId: string, targetProduct: string) => void;
-  isPending: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -214,12 +201,7 @@ function TeamCrmMobileCard({
           <div className="border-t px-4 py-3 bg-muted/10">
             <div className="flex items-center justify-between pt-1">
               <span className="text-[11px] text-muted-foreground">Transition</span>
-              <TransitionCell
-                epId={ep.id}
-                currentProduct={ep.product}
-                isPending={isPending}
-                onTransition={onTransition}
-              />
+              <span className="text-muted-foreground text-xs">—</span>
             </div>
           </div>
         </div>

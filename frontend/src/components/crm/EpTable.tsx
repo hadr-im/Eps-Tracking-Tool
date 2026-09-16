@@ -72,7 +72,7 @@ interface EpTableProps {
   onPhaseUpdate:    (id: string, phase: TrackingPhase | null) => void;
   onTextUpdate:     (id: string, field: string, value: string | null) => void;
   // Transition mutation handler
-  onTransition?:    (id: string, targetProduct: string) => void;
+  onTransition?:    (id: string, targetProduct: string, note?: string) => void;
   // When true: all inputs are disabled/hidden + table is read-only (TL/VP oversight view) 
   readOnly?: boolean;
   // When provided: a Comments column is added with a click handler per row

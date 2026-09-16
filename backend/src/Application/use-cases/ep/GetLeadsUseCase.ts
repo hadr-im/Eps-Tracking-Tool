@@ -38,6 +38,7 @@ export class GetLeadsUseCase {
     const mergedFilters: EpFilters = {
       ...filters,
       status: leadStatuses,
+      unassignedOnly: true,
     };
 
     const rows = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);

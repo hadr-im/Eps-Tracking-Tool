@@ -54,12 +54,18 @@ export class DispatchRepository implements IDispatchRepository {
    Assigns EPs to a member in a single updateMany call
    assignedAt is stamped by the server here (never accepted from the client)
    */
-  async assignEpsToMember(epIds: string[], memberId: string): Promise<Ep[]> {
+  async assignEpsToMember(epIds: string[], memberId: string, dispatcherId: string): Promise<Ep[]> {
     const assignedAt = new Date();
 
-    await this.db.ep.updateMany({
-      where: { id: { in: epIds }, ownerId: null },
-      data: { ownerId: memberId, assignedAt },
+    await this.db.$transaction(async (tx) => {
+      // 1. Assign the EPs to the member
+      await tx.ep.updateMany({
+        where: { id: { in: epIds }, ownerId: null },
+        data: {
+          ownerId: memberId,
+          assignedAt,
+        },
+      });
     });
 
     // Return the freshly updated rows as domain entities

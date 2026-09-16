@@ -1,7 +1,5 @@
-// Modal for assigning a lead EP to a department member
+// Modal for assigning one or more lead EPs to a department member
 // Visible only when the caller is a dispatcher TL (user.isDispatcher = true)
-// Shows a member dropdown populated from the department roster
-// On confirm: calls POST /dispatch, closes modal, dispatched row disappears
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -13,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Button }   from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -26,14 +24,16 @@ import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import type { Lead }            from '@/types/lead';
 
 interface DispatchDialogProps {
-  lead: Lead | null;           // null = dialog closed
+  open: boolean;
+  leads: Lead[];
   departmentId: string | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
 export function DispatchDialog({
-  lead,
+  open,
+  leads,
   departmentId,
   onClose,
   onSuccess,
@@ -44,10 +44,13 @@ export function DispatchDialog({
   const { mutate: dispatch, isPending } = useDispatch();
 
   function handleConfirm() {
-    if (!lead || !selectedMemberId) return;
+    if (leads.length === 0 || !selectedMemberId) return;
 
     dispatch(
-      { epIds: [lead.id], memberId: selectedMemberId },
+      { 
+        epIds: leads.map((l) => l.id), 
+        memberId: selectedMemberId,
+      },
       {
         onSuccess: () => {
           setSelectedMemberId('');
@@ -58,8 +61,8 @@ export function DispatchDialog({
     );
   }
 
-  function handleOpenChange(open: boolean) {
-    if (!open) {
+  function handleOpenChange(isOpen: boolean) {
+    if (!isOpen) {
       setSelectedMemberId('');
       onClose();
     }
@@ -68,32 +71,25 @@ export function DispatchDialog({
   // Filter to members only (exclude TLs from the member dropdown)
   const memberOptions = members.filter((m) => m.role === 'MEMBER');
 
+  const leadCount = leads.length;
+
   return (
-    <Dialog open={!!lead} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-base">Dispatch Lead</DialogTitle>
+          <DialogTitle className="text-base">
+            Dispatch {leadCount} Lead{leadCount !== 1 ? 's' : ''}
+          </DialogTitle>
           <DialogDescription className="text-sm">
-            Assign{' '}
-            <span className="font-semibold text-foreground">{lead?.fullName}</span>{' '}
-            to a team member.
+            Assign {leadCount === 1 ? 'this lead' : 'these leads'} to a team member.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-2 space-y-3">
-          {/* EP summary */}
-          <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-xs space-y-1 text-muted-foreground">
-            <p><span className="font-medium text-foreground">EP ID:</span> {lead?.id}</p>
-            {lead?.university && (
-              <p><span className="font-medium text-foreground">University:</span> {lead.university}</p>
-            )}
-            <p><span className="font-medium text-foreground">Product:</span> {lead?.product}</p>
-          </div>
-
+        <div className="py-2 space-y-4">
           {/* Member dropdown */}
           <div className="space-y-1.5">
             <label htmlFor="dispatch-member" className="text-sm font-medium">
-              Assign to
+              Assign to <span className="text-destructive">*</span>
             </label>
             {membersLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
@@ -106,11 +102,13 @@ export function DispatchDialog({
                 onValueChange={(v) => setSelectedMemberId(v ?? '')}
               >
                 <SelectTrigger id="dispatch-member" className="w-full">
-                  <SelectValue placeholder="Select a member…" />
+                  <SelectValue placeholder="Select a member…">
+                    {(val: string) => (val ? members.find((m) => m.id === val)?.fullName ?? val : 'Select a member…')}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {memberOptions.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
+                    <SelectItem key={m.id} value={m.id} label={m.fullName}>
                       {m.fullName}
                     </SelectItem>
                   ))}
@@ -123,9 +121,10 @@ export function DispatchDialog({
               </Select>
             )}
           </div>
+
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 pt-2">
           <Button
             variant="outline"
             size="sm"

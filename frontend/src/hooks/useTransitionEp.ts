@@ -9,8 +9,8 @@ export function useTransitionEp() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, targetProduct }: { id: string; targetProduct: string }) =>
-      transitionEp(id, targetProduct),
+    mutationFn: ({ id, targetProduct, note }: { id: string; targetProduct: string; note?: string }) =>
+      transitionEp(id, targetProduct, note),
     
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ['eps'] });

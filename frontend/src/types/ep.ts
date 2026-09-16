@@ -100,3 +100,24 @@ export interface EpsApiResponse {
   data: Ep[];
   count: number;
 }
+
+export interface TransitionHistoryDto {
+  id: string;
+  epId: string;
+  epName: string;
+  epEmail: string | null;
+  epPhone: string | null;
+  epUniversity: string | null;
+  epFieldOfStudy: string | null;
+  triggeredByName: string;
+  fromProduct: string | null;
+  toProduct: string | null;
+  note: string | null;
+  createdAt: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+}
+
+export interface TransitionsApiResponse {
+  data: TransitionHistoryDto[];
+  count: number;
+}

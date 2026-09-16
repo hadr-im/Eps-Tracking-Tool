@@ -78,6 +78,32 @@ router.get(
 
 /**
  * @openapi
+ * /eps/transitions:
+ *   get:
+ *     tags: [EPs]
+ *     summary: Get transitioned EPs
+ *     description: |
+ *       Returns all transitioned EPs (inbound or outbound) for the caller's department.
+ *       **TL / VP only.**
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of transitioned EPs
+ *       401:
+ *         description: Missing or invalid token
+ *       403:
+ *         description: Insufficient role
+ */
+router.get(
+  '/eps/transitions',
+  authMiddleware,
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  EpController.getTransitions,
+);
+
+/**
+ * @openapi
  * /eps/{id}:
  *   patch:
  *     tags: [EPs]

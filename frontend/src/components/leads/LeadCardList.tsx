@@ -1,9 +1,8 @@
-// Each card shows core EP info + an optional Dispatch button
+// Each card shows core EP info, when canDispatch = true, includes a checkbox for bulk selection
 
-import { ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button }   from '@/components/ui/button';
 import { Badge }    from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Lead } from '@/types/lead';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -16,10 +15,19 @@ interface LeadCardListProps {
   leads: Lead[];
   isLoading: boolean;
   canDispatch: boolean;
-  onDispatch: (lead: Lead) => void;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }
 
-export function LeadCardList({ leads, isLoading, canDispatch, onDispatch }: LeadCardListProps) {
+export function LeadCardList({
+  leads,
+  isLoading,
+  canDispatch,
+  selectedIds,
+  onSelectionChange,
+}: LeadCardListProps) {
+  const selectedSet = new Set(selectedIds);
+
   if (isLoading) {
     return (
       <ul className="space-y-3">
@@ -47,11 +55,38 @@ export function LeadCardList({ leads, isLoading, canDispatch, onDispatch }: Lead
       {leads.map((lead) => (
         <li
           key={lead.id}
-          className="rounded-xl border bg-card p-4 space-y-3 text-sm"
+          className={`rounded-xl border bg-card p-4 space-y-3 text-sm transition-colors ${
+            selectedSet.has(lead.id) ? 'ring-2 ring-primary border-transparent' : ''
+          }`}
+          onClick={() => {
+            if (!canDispatch) return;
+            onSelectionChange(
+              selectedSet.has(lead.id)
+                ? selectedIds.filter((id) => id !== lead.id)
+                : [...selectedIds, lead.id]
+            );
+          }}
         >
-          {/* Name + status */}
+          {/* Name + status + checkbox */}
           <div className="flex items-start justify-between gap-2">
-            <span className="font-semibold text-base leading-tight">{lead.fullName}</span>
+            <div className="flex items-center gap-3">
+              {canDispatch && (
+                <Checkbox
+                  checked={selectedSet.has(lead.id)}
+                  onCheckedChange={(checked) => {
+                    onSelectionChange(
+                      checked
+                        ? [...selectedIds, lead.id]
+                        : selectedIds.filter((id) => id !== lead.id)
+                    );
+                  }}
+                  aria-label={`Select ${lead.fullName}`}
+                  // Stop propagation so the li onClick doesn't double-fire
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              <span className="font-semibold text-base leading-tight">{lead.fullName}</span>
+            </div>
             <Badge
               variant="outline"
               className={`text-xs shrink-0 ${STATUS_COLORS[lead.statusOnExpa] ?? 'bg-muted text-muted-foreground'}`}
@@ -61,7 +96,7 @@ export function LeadCardList({ leads, isLoading, canDispatch, onDispatch }: Lead
           </div>
 
           {/* Details grid */}
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground ml-7">
             <div>
               <dt className="font-medium text-foreground/70">EP ID</dt>
               <dd className="font-mono truncate">{lead.id}</dd>
@@ -99,19 +134,6 @@ export function LeadCardList({ leads, isLoading, canDispatch, onDispatch }: Lead
               <dd>{new Date(lead.createdAtExpa).toLocaleDateString()}</dd>
             </div>
           </dl>
-
-          {/* Dispatch button (dispatcher TL only) */}
-          {canDispatch && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-1.5 text-xs"
-              onClick={() => onDispatch(lead)}
-            >
-              Dispatch to Member
-              <ChevronRight size={13} />
-            </Button>
-          )}
         </li>
       ))}
     </ul>

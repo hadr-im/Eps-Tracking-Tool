@@ -13,7 +13,7 @@ export interface IDispatchRepository {
    Sets ownerId = memberId and stamps assignedAt = now() on the server
    Returns the updated EP entities
    */
-  assignEpsToMember(epIds: string[], memberId: string): Promise<Ep[]>;
+  assignEpsToMember(epIds: string[], memberId: string, dispatcherId: string): Promise<Ep[]>;
 
   /*
    Returns all active (non-disabled) members of a department for the dispatch dropdown.

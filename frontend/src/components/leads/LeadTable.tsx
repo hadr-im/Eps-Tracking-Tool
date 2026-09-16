@@ -1,6 +1,6 @@
 // Desktop data grid for the Leads & Sign-ups page
-// Read only columns: Full Name, EP ID, Status, Email, Phone, University, Programme, Source, Created Date.
-// Optional Dispatch button column (visible only when canDispatch = true)
+// Read-only columns: Full Name, EP ID, Status, Email, Phone, University, Programme, Source, Created Date.
+// When canDispatch = true: first column is a checkbox for bulk selection
 
 import {
   useReactTable,
@@ -10,7 +10,6 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
-import { ChevronRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,12 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
+import { Skeleton }  from '@/components/ui/skeleton';
+import { Badge }     from '@/components/ui/badge';
+import { Checkbox }  from '@/components/ui/checkbox';
 import type { Lead } from '@/types/lead';
 
-// Status badge colours 
+// Status badge colours
 const STATUS_COLORS: Record<string, string> = {
   LEAD:       'bg-slate-600  text-white border-slate-600',
   CONTACTED:  'bg-blue-500   text-white border-blue-500',
@@ -35,13 +34,61 @@ interface LeadTableProps {
   leads: Lead[];
   isLoading: boolean;
   canDispatch: boolean;
-  onDispatch: (lead: Lead) => void;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }
 
 const col = createColumnHelper<Lead>();
 
-function buildColumns(canDispatch: boolean, onDispatch: (lead: Lead) => void): ColumnDef<Lead, any>[] {
-  return [
+function buildColumns(
+  canDispatch: boolean,
+  selectedIds: string[],
+  onSelectionChange: (ids: string[]) => void,
+  allIds: string[],
+): ColumnDef<Lead, any>[] {
+  const selectedSet = new Set(selectedIds);
+
+  const checkboxCol = col.display({
+    id: 'select',
+    header: () => {
+      const allSelected = allIds.length > 0 && allIds.every((id) => selectedSet.has(id));
+      const someSelected = allIds.some((id) => selectedSet.has(id));
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={allSelected}
+            // indeterminate state when only some rows are selected
+            data-state={someSelected && !allSelected ? 'indeterminate' : undefined}
+            onCheckedChange={(checked) => {
+              onSelectionChange(checked ? allIds : []);
+            }}
+            aria-label="Select all"
+          />
+        </div>
+      );
+    },
+    cell: (info) => {
+      const id = info.row.original.id;
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={selectedSet.has(id)}
+            onCheckedChange={(checked) => {
+              onSelectionChange(
+                checked
+                  ? [...selectedIds, id]
+                  : selectedIds.filter((s) => s !== id),
+              );
+            }}
+            aria-label={`Select ${info.row.original.fullName}`}
+          />
+        </div>
+      );
+    },
+    meta: { minWidth: 44 },
+  });
+
+  const dataCols: ColumnDef<Lead, any>[] = [
     col.accessor('fullName', {
       id: 'fullName',
       header: 'Full Name',
@@ -132,39 +179,25 @@ function buildColumns(canDispatch: boolean, onDispatch: (lead: Lead) => void): C
       ),
       meta: { minWidth: 100 },
     }),
-
-    // Dispatch button (injected only for isDispatcher TLs)
-    ...(canDispatch
-      ? [
-          col.display({
-            id: 'dispatch',
-            header: () => <div className="text-center w-full">Dispatch</div>,
-            cell: (info) => (
-              <div className="flex justify-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 gap-1.5 text-xs"
-                  onClick={() => onDispatch(info.row.original)}
-                  aria-label={`Dispatch ${info.row.original.fullName}`}
-                >
-                  Dispatch
-                  <ChevronRight size={13} />
-                </Button>
-              </div>
-            ),
-            meta: { minWidth: 100 },
-          }),
-        ]
-      : []),
   ];
+
+  return canDispatch ? [checkboxCol, ...dataCols] : dataCols;
 }
 
-export function LeadTable({ leads, isLoading, canDispatch, onDispatch }: LeadTableProps) {
+export function LeadTable({
+  leads,
+  isLoading,
+  canDispatch,
+  selectedIds,
+  onSelectionChange,
+}: LeadTableProps) {
+  const allIds = useMemo(() => leads.map((l) => l.id), [leads]);
+
   const columns = useMemo(
-    () => buildColumns(canDispatch, onDispatch),
+    () => buildColumns(canDispatch, selectedIds, onSelectionChange, allIds),
+    // rebuild whenever selection or data changes so checkbox state stays accurate
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canDispatch, onDispatch],
+    [canDispatch, selectedIds, allIds],
   );
 
   const table = useReactTable({
@@ -213,7 +246,11 @@ export function LeadTable({ leads, isLoading, canDispatch, onDispatch }: LeadTab
         {/* Data rows */}
         {!isLoading &&
           table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
+            <TableRow
+              key={row.id}
+              className="hover:bg-muted/30 transition-colors"
+              data-selected={selectedIds.includes(row.original.id) || undefined}
+            >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta ?? {};
                 return (
@@ -246,3 +283,5 @@ export function LeadTable({ leads, isLoading, canDispatch, onDispatch }: LeadTab
     </Table>
   );
 }
+
+

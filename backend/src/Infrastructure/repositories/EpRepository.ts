@@ -212,6 +212,7 @@ export class EpRepository implements IEpRepository {
               },
             }
           : {}),
+        ...(filters.unassignedOnly && { ownerId: null }),
       },
       include: {
         approvedDetail: true,
@@ -361,6 +362,7 @@ export class EpRepository implements IEpRepository {
             },
           }
         : {}),
+      ...(filters.unassignedOnly && { ownerId: null }),
     };
   }
 

@@ -14,7 +14,7 @@ interface TransitionCellProps {
   epId: string;
   currentProduct: string;
   isPending: boolean;
-  onTransition: (epId: string, targetProduct: string) => void;
+  onTransition: (epId: string, targetProduct: string, note?: string) => void;
 }
 
 export function TransitionCell({
@@ -34,9 +34,9 @@ export function TransitionCell({
     setDialogOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (note?: string) => {
     if (!selectedTarget) return;
-    onTransition(epId, selectedTarget);
+    onTransition(epId, selectedTarget, note);
     // Dialog stays open displaying spinner, parent hook handles invalidation which will unmount this cell entirely
   };
 

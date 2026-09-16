@@ -31,7 +31,13 @@ export async function patchEp(id: string, payload: EpUpdatePayload): Promise<Ep>
 // POST /eps/:id/transition
 // Move an EP to a new product department
 
-export async function transitionEp(id: string, targetProduct: string): Promise<Ep> {
-  const { data } = await apiClient.post<{ data: Ep }>(`/eps/${id}/transition`, { targetProduct });
+export async function transitionEp(id: string, targetProduct: string, note?: string): Promise<Ep> {
+  const { data } = await apiClient.post<{ data: Ep }>(`/eps/${id}/transition`, { targetProduct, note });
+  return data.data;
+}
+
+// GET /eps/transitions
+export async function fetchTransitions(): Promise<import('../types/ep').TransitionHistoryDto[]> {
+  const { data } = await apiClient.get<import('../types/ep').TransitionsApiResponse>('/eps/transitions');
   return data.data;
 }

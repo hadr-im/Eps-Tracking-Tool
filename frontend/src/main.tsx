@@ -20,6 +20,7 @@ import ApprovedEpsPage        from './pages/ApprovedEpsPage.tsx'
 import EpsUnderProcessPage    from './pages/EpsUnderProcessPage.tsx'
 import GlobalDashboardPage    from './pages/GlobalDashboardPage.tsx'
 import ProfilePage            from './pages/ProfilePage.tsx'
+import TransitionedEpsPage    from './pages/TransitionedEpsPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
@@ -57,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="/dispatch"           element={<LeadsPage />} />
                   <Route path="/team/approved-eps"  element={<ApprovedEpsPage />} />
                   <Route path="/team/under-process" element={<EpsUnderProcessPage />} />
+                  <Route path="/team/transitioned-eps" element={<TransitionedEpsPage />} />
                 </Route>
 
                 {/* VP-only routes */}

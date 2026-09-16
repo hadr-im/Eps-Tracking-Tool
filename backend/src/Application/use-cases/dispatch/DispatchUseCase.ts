@@ -60,7 +60,7 @@ export class DispatchUseCase {
       throw new AppError('Member is not assigned to you', 403);
     }
 
-    return this.dispatchRepo.assignEpsToMember(epIds, memberId);
+    return this.dispatchRepo.assignEpsToMember(epIds, memberId, dispatcher.id);
   }
 
   /*

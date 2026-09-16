@@ -12,13 +12,14 @@ export interface TransitionEpRequest {
     role: UserRole;
     departmentId: string | null;
   };
+  note?: string;
 }
 
 export class TransitionEpUseCase {
   constructor(private readonly epRepo: IEpRepository) {}
 
   async execute(request: TransitionEpRequest): Promise<Ep> {
-    const { epId, targetProduct, caller } = request;
+    const { epId, targetProduct, caller, note } = request;
 
     // 1. Validate caller has a department (unless they are a VP who might not have one)
     if (!caller.departmentId && caller.role !== UserRole.VP) {
@@ -31,12 +32,9 @@ export class TransitionEpUseCase {
       throw new AppError('EP not found', 404);
     }
 
-    if (caller.role === UserRole.MEMBER && ep.ownerId !== caller.id) {
+    // Rule: any role can only transition an EP assigned to them
+    if (ep.ownerId !== caller.id) {
       throw new AppError('You can only transition EPs assigned to you', 403);
-    }
-
-    if (caller.role === UserRole.TEAM_LEADER && ep.departmentId !== caller.departmentId) {
-      throw new AppError('Team Leaders can only transition EPs within their department', 403);
     }
 
     // 3. Validate the transition is legal (must be a different product)
@@ -62,7 +60,7 @@ export class TransitionEpUseCase {
       fromDepartmentId: ep.departmentId,
       targetProduct,
       targetDepartmentId,
-      note: `Transitioned from ${ep.product} to ${targetProduct}`,
+      note: note ?? `Transitioned from ${ep.product} to ${targetProduct}`,
     });
   }
 }

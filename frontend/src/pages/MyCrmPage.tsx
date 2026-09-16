@@ -60,8 +60,8 @@ export default function MyCrmPage() {
   );
 
   const handleTransition = useCallback(
-    (id: string, targetProduct: string) => {
-      transitionMutate({ id, targetProduct });
+    (id: string, targetProduct: string, note?: string) => {
+      transitionMutate({ id, targetProduct, note });
     },
     [transitionMutate],
   );

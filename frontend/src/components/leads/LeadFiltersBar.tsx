@@ -28,9 +28,10 @@ const PRODUCTS = ['GV', 'GTA', 'GTE'] as const;
 
 interface LeadFiltersBarProps {
   onFiltersChange: (filters: LeadFilters) => void;
+  dispatchButton?: React.ReactNode;
 }
 
-export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
+export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersBarProps) {
   const [params, setParams] = useSearchParams();
 
   const [searchInput, setSearchInput] = useState(params.get('search') ?? '');
@@ -127,7 +128,7 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
           placeholder="Search by name…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="h-8 pl-8 text-xs border-0"
+          className="h-8 pl-8 text-xs border-0 bg-transparent"
         />
       </div>
 
@@ -140,7 +141,7 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
       <div className="flex md:hidden">
         <Sheet>
           <SheetTrigger 
-            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative" })} 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative border-0" })} 
             aria-label="Open filters"
           >
             <SlidersHorizontal size={16} />
@@ -158,6 +159,13 @@ export function LeadFiltersBar({ onFiltersChange }: LeadFiltersBarProps) {
           </SheetContent>
         </Sheet>
       </div>
+
+      {/* Optional Dispatch Button Node */}
+      {dispatchButton && (
+        <div className="pl-2 border-l shrink-0">
+          {dispatchButton}
+        </div>
+      )}
     </div>
   );
 }
