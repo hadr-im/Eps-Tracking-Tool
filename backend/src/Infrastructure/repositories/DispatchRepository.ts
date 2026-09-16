@@ -8,6 +8,9 @@ import { Product } from '../../Domain/enums/Product';
 import { EpStatus } from '../../Domain/enums/EpStatus';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { AuthProvider } from '../../Domain/enums/AuthProvider';
+import { TrackingPhase } from '../../Domain/enums/TrackingPhase';
+import { Duration } from '../../Domain/enums/Duration';
+import { Availability } from '../../Domain/enums/Availability';
 import { DispatchFilters } from '../../Application/use-cases/dispatch/DispatchFilters';
 import { prisma } from '../Database/PrismaService';
 
@@ -69,11 +72,15 @@ export class DispatchRepository implements IDispatchRepository {
 
   /*
    Returns active (non-disabled) members of a department
-   Used to populate the dispatch dropdown
+   When teamLeaderId is supplied, results are further scoped to members assigned to that TL (used by TL-role callers)
    */
-  async getDepartmentMembers(departmentId: string): Promise<User[]> {
+  async getDepartmentMembers(departmentId: string, teamLeaderId?: string): Promise<User[]> {
     const rows = await this.db.user.findMany({
-      where: { departmentId, isDisabled: false },
+      where: {
+        departmentId,
+        isDisabled: false,
+        ...(teamLeaderId !== undefined && { teamLeaderId }),
+      },
       orderBy: { fullName: 'asc' },
     });
 
@@ -90,11 +97,23 @@ export class DispatchRepository implements IDispatchRepository {
       row.phone,
       row.university,
       row.fieldOfStudy,
+      row.yearOfStudy,
       row.product as unknown as Product,
       row.departmentId,
       row.statusOnExpa as unknown as EpStatus,
       row.createdAtExpa,
       row.syncedAt,
+      row.ownerId,
+      row.assignedAt,
+      row.source,
+      row.cvLink,
+      row.contacted,
+      row.contactedAt,
+      row.interested,
+      row.trackingPhase as unknown as TrackingPhase | null,
+      row.notes,
+      row.duration as unknown as Duration | null,
+      row.availability as unknown as Availability | null,
     );
   }
 
@@ -112,6 +131,8 @@ export class DispatchRepository implements IDispatchRepository {
       row.isDisabled,
       row.createdAt,
       row.updatedAt,
+      row.avatarUrl,
+      row.teamLeaderId,
     );
   }
 }

@@ -10,6 +10,7 @@ import { MailService } from './services/MailService';
 import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
 import { UpdateProfileUseCase } from '../Application/use-cases/user/UpdateProfileUseCase';
 import { ChangePasswordUseCase } from '../Application/use-cases/user/ChangePasswordUseCase';
+import { UserManagementUseCase } from '../Application/use-cases/user/UserManagementUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
 import { EpManagementFactory } from './factories/EpManagementFactory';
@@ -31,6 +32,8 @@ export const authUseCase = new AuthUseCase(
 // User profile
 export const updateProfileUseCase = new UpdateProfileUseCase(authRepository);
 export const changePasswordUseCase = new ChangePasswordUseCase(authRepository, bcryptService);
+
+export const userManagementUseCase = new UserManagementUseCase(authRepository);
 
 const expaFactory = new ExpaFactory();
 

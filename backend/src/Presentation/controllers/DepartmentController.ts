@@ -15,10 +15,10 @@ function handleError(res: Response, err: unknown): void {
 export class DepartmentController {
   /*
    GET /departments/:id/members
-   Returns all active members of a department
-   
-   Permission scoping:
-    - VP & TL: may only request their own department (req.params.id must match JWT departmentId)
+   Returns members of a department
+   - TEAM_LEADER: scoped to members assigned to them (teamLeaderId = caller.id)
+   - VP: returns all active members of the department
+   Both are restricted to their own department only
    */
   static async getMembers(req: Request, res: Response): Promise<void> {
     try {
@@ -31,7 +31,9 @@ export class DepartmentController {
         return;
       }
 
-      const members = await dispatchUseCase.getDepartmentMembers(requestedDeptId);
+      // TL callers see only their own members; VP sees everyone
+      const teamLeaderId = caller.role === UserRole.TEAM_LEADER ? caller.id : undefined;
+      const members = await dispatchUseCase.getDepartmentMembers(requestedDeptId, teamLeaderId);
 
       res.status(200).json({ data: members, count: members.length });
     } catch (err) {

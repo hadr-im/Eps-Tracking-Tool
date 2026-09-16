@@ -16,7 +16,8 @@ export interface IDispatchRepository {
   assignEpsToMember(epIds: string[], memberId: string): Promise<Ep[]>;
 
   /*
-   Returns all active (non-disabled) members of a department for the dispatch dropdown
+   Returns all active (non-disabled) members of a department for the dispatch dropdown.
+   When teamLeaderId is supplied, results are further scoped to members assigned to that TL.
    */
-  getDepartmentMembers(departmentId: string): Promise<User[]>;
+  getDepartmentMembers(departmentId: string, teamLeaderId?: string): Promise<User[]>;
 }

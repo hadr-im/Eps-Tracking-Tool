@@ -84,6 +84,10 @@ model User {
   googleId     String?      @unique
   departmentId String?
   department   Department?  @relation(fields: [departmentId], references: [id])
+  /// The Team Leader this member is assigned to (null = unassigned)
+  teamLeaderId String?
+  teamLeader   User?        @relation("MemberTL", fields: [teamLeaderId], references: [id])
+  managedMembers User[]     @relation("MemberTL")
   isDispatcher Boolean      @default(false)
   isDisabled   Boolean      @default(false)
   avatarUrl    String?

@@ -14,6 +14,10 @@ export interface IAuthRepository {
   findByGoogleId(googleId: string): Promise<User | null>;
   // Insert or update a user record and return the persisted entity
   save(user: User): Promise<User>;
+  // Atomically set (or clear) a member's assigned Team Leader
+  assignTeamLeader(memberId: string, teamLeaderId: string | null): Promise<User>;
+  // Returns all active (non-disabled) members assigned to a given Team Leader
+  findMembersByTeamLeader(teamLeaderId: string): Promise<User[]>;
 
   // Refresh-token operations 
 

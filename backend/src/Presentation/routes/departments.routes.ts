@@ -20,9 +20,10 @@ const router = Router();
  *     tags: [Departments]
  *     summary: Get active members of a department
  *     description: |
- *       Returns all non-disabled users belonging to the given department.
- *       - **TEAM_LEADER**: may only request their own department.
- *       - **VP**: may request any department.
+ *       Returns active members of the given department.
+ *       - **TEAM_LEADER**: scoped only to members assigned to this TL.
+ *       - **VP**: returns all active members of the department.
+ *       Both are restricted to their own department.
  *     security:
  *       - bearerAuth: []
  *     parameters:

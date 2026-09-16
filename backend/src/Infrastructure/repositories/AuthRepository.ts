@@ -46,6 +46,7 @@ export class AuthRepository implements IAuthRepository {
       provider: user.provider,
       googleId: user.googleId,
       departmentId: user.departmentId,
+      teamLeaderId: user.teamLeaderId,
       isDispatcher: user.isDispatcher,
       isDisabled: user.isDisabled,
       avatarUrl: user.avatarUrl,
@@ -135,6 +136,24 @@ export class AuthRepository implements IAuthRepository {
     });
   }
 
+  // Team Leader assignment operations
+
+  async assignTeamLeader(memberId: string, teamLeaderId: string | null): Promise<User> {
+    const row = await this.db.user.update({
+      where: { id: memberId },
+      data: { teamLeaderId },
+    });
+    return this.toUserEntity(row);
+  }
+
+  async findMembersByTeamLeader(teamLeaderId: string): Promise<User[]> {
+    const rows = await this.db.user.findMany({
+      where: { teamLeaderId, isDisabled: false },
+      orderBy: { fullName: 'asc' },
+    });
+    return rows.map((r) => this.toUserEntity(r));
+  }
+
   // Private mappers 
 
   private toUserEntity(row: PrismaUser): User {
@@ -152,6 +171,7 @@ export class AuthRepository implements IAuthRepository {
       row.createdAt,
       row.updatedAt,
       row.avatarUrl,
+      row.teamLeaderId,
     );
   }
 

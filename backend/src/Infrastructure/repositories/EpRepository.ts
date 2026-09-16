@@ -67,11 +67,25 @@ export class EpRepository implements IEpRepository {
     return row ? this.toEpEntity(row) : null;
   }
 
-  // Returns all EPs assigned to a member, server-side filtered
+  // Returns all EPs assigned to a specific member, server-side filtered
   async findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]> {
     const rows = await this.db.ep.findMany({
       where: {
         ownerId,
+        ...this.buildWhere(filters),
+      },
+      orderBy: { assignedAt: 'desc' },
+    });
+    return rows.map((r) => this.toEpEntity(r));
+  }
+
+  // Returns EPs assigned to any of the given members (TL-scoped view)
+  // Returns an empty array immediately when ownerIds is empty (no DB hit)
+  async findByOwners(ownerIds: string[], filters?: EpFilters): Promise<Ep[]> {
+    if (ownerIds.length === 0) return [];
+    const rows = await this.db.ep.findMany({
+      where: {
+        ownerId: { in: ownerIds },
         ...this.buildWhere(filters),
       },
       orderBy: { assignedAt: 'desc' },

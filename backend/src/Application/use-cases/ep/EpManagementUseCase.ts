@@ -69,20 +69,29 @@ export class EpManagementUseCase {
   }
 
   /*
-    Returns EPs for a whole department (TL/VP view)
-    - If memberId provided -> that member's EPs only
-    - If not -> all department EPs
+    Returns EPs for a TL/VP view
+    Resolution order:
+      1. memberId supplied -> that member's EPs only (unchanged behaviour)
+      2. ownerIds supplied -> EPs belonging to those members (TL-scoped, no memberId)
+      3. Neither supplied -> all department EPs (VP full-dept view)
   */
   async getTeamEps(
     caller: EpManagementCaller,
     memberId?: string,
     filters?: EpFilters,
+    ownerIds?: string[],
   ): Promise<EpDto[]> {
     if (!caller.departmentId) throw new AppError('No department assigned to your account', 400);
 
-    const eps = memberId
-      ? await this.epRepo.findByOwner(memberId, filters)
-      : await this.epRepo.findByDepartment(caller.departmentId, filters);
+    let eps: Ep[];
+
+    if (memberId) {
+      eps = await this.epRepo.findByOwner(memberId, filters);
+    } else if (ownerIds) {
+      eps = await this.epRepo.findByOwners(ownerIds, filters);
+    } else {
+      eps = await this.epRepo.findByDepartment(caller.departmentId, filters);
+    }
 
     return eps.map((ep) => this.toDto(ep));
   }

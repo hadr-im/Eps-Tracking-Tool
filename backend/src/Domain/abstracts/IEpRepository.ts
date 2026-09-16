@@ -58,6 +58,9 @@ export interface IEpRepository {
   // Returns all EPs assigned to a specific member, optionally filtered
   findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]>;
 
+  // Returns EPs assigned to any of the given members (TL scoped view)
+  findByOwners(ownerIds: string[], filters?: EpFilters): Promise<Ep[]>;
+
   // Returns all EPs for a department, optionally filtered (includes CRM fields)
   findByDepartment(departmentId: string, filters?: EpFilters): Promise<Ep[]>;
 
