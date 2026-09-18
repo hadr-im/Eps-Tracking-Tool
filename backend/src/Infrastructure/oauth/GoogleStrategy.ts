@@ -15,6 +15,7 @@ import {
 export interface GoogleProfile {
   googleId: string;
   email: string;
+  emailVerified: boolean;
   fullName: string;
   // URL of the user's Google profile picture. May be undefined.
   avatar: string | undefined;
@@ -60,6 +61,7 @@ export function configureGoogleStrategy(): void {
           const googleProfile: GoogleProfile = {
             googleId: profile.id,
             email: primaryEmail,
+            emailVerified: profile._json?.email_verified === true,
             fullName: profile.displayName,
             avatar: profile.photos?.[0]?.value,
           };

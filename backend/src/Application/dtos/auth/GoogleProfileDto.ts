@@ -5,6 +5,7 @@
 export interface GoogleProfileDto {
   googleId: string;
   email: string;
+  emailVerified: boolean;
   fullName: string;
   avatar: string | undefined;
 }

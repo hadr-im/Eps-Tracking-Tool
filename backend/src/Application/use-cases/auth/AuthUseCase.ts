@@ -157,14 +157,18 @@ export class AuthUseCase {
     let user = await this.repo.findByGoogleId(profile.googleId);
 
     if (!user) {
-      // Email already registered locally? Link the Google account to it.
-      user = await this.repo.findByEmail(profile.email.toLowerCase()) ?? null;
+      // Email already registered locally? Link the Google account to it ONLY IF email is verified.
+      const existingUser = await this.repo.findByEmail(profile.email.toLowerCase()) ?? null;
 
-      if (user) {
-        user.googleId = profile.googleId;
-        user.provider = AuthProvider.GOOGLE;
-        user.updatedAt = new Date();
-        user = await this.repo.save(user);
+      if (existingUser) {
+        if (!profile.emailVerified) {
+          throw new AppError('Google email is unverified. Cannot link to existing account.', 403);
+        }
+        
+        existingUser.googleId = profile.googleId;
+        existingUser.provider = AuthProvider.GOOGLE;
+        existingUser.updatedAt = new Date();
+        user = await this.repo.save(existingUser);
       } else {
         // Brand new user — create from Google profile
         const newUser = UserMapper.fromGoogleProfile(profile);
