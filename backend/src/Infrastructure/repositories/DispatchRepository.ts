@@ -60,7 +60,7 @@ export class DispatchRepository implements IDispatchRepository {
     await this.db.$transaction(async (tx) => {
       // 1. Assign the EPs to the member
       await tx.ep.updateMany({
-        where: { id: { in: epIds }, ownerId: null },
+        where: { id: { in: epIds } },
         data: {
           ownerId: memberId,
           assignedAt,

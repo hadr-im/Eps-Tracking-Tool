@@ -22,6 +22,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 // helpers 
 
@@ -41,6 +49,148 @@ const ROLE_LABELS: Record<string, string> = {
   VP: 'VP',
 };
 
+// Change Password Dialog 
+
+function ChangePasswordDialog() {
+  const [open, setOpen] = useState(false);
+  const { mutateAsync: changePassword, isPending } = useChangePassword();
+  const [success, setSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setSuccess(false);
+      setServerError(null);
+    }
+  }, [open, reset]);
+
+  async function onSubmit(values: ChangePasswordFormValues) {
+    setServerError(null);
+    setSuccess(false);
+    try {
+      await changePassword({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      });
+      setSuccess(true);
+      reset();
+    } catch (err: unknown) {
+      setServerError(getFriendlyError(err, {
+        400: 'The current password you entered is incorrect.',
+        401: 'The current password you entered is incorrect.',
+        422: 'Your new password doesn\'t meet the requirements.',
+      }, 'Couldn\'t update your password. Please try again.'));
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm" className="gap-2 shrink-0">
+            <KeyRound size={14} />
+            Change Password
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-106.25">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Enter your current password and choose a new one.
+          </DialogDescription>
+        </DialogHeader>
+
+        {success ? (
+          <div className="py-6 flex flex-col items-center justify-center gap-3 text-center">
+            <CheckCircle2 size={40} className="text-green-600 dark:text-green-400" />
+            <div>
+              <p className="font-semibold">Password changed!</p>
+              <p className="text-sm text-muted-foreground mt-1">Other sessions have been logged out.</p>
+            </div>
+            <Button className="mt-4 w-full" onClick={() => setOpen(false)}>
+              Done
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4 mt-2">
+            <Field
+              id="current-password"
+              label="Current Password"
+              error={errors.currentPassword?.message}
+            >
+              <PasswordInput
+                id="current-password"
+                placeholder="Your current password"
+                autoComplete="current-password"
+                aria-invalid={!!errors.currentPassword}
+                {...register('currentPassword')}
+              />
+            </Field>
+
+            <Field id="new-password" label="New Password" error={errors.newPassword?.message}>
+              <PasswordInput
+                id="new-password"
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                aria-invalid={!!errors.newPassword}
+                {...register('newPassword')}
+              />
+            </Field>
+
+            <Field
+              id="confirm-password"
+              label="Confirm New Password"
+              error={errors.confirmPassword?.message}
+            >
+              <PasswordInput
+                id="confirm-password"
+                placeholder="Repeat new password"
+                autoComplete="new-password"
+                aria-invalid={!!errors.confirmPassword}
+                {...register('confirmPassword')}
+              />
+            </Field>
+
+            {serverError && (
+              <div className="flex items-center gap-2 text-sm text-destructive" role="alert">
+                <AlertCircle size={14} className="shrink-0" />
+                {serverError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-2">
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin mr-2" />
+                    Updating…
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Edit Profile Section 
 
 function EditProfileForm() {
@@ -49,6 +199,8 @@ function EditProfileForm() {
   const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
   const [success, setSuccess] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  
+  const isGoogle = user?.provider === 'GOOGLE';
 
   const {
     register,
@@ -103,16 +255,16 @@ function EditProfileForm() {
       {/* Avatar preview */}
       <div className="flex items-center gap-4 mb-6">
         {isLoading ? (
-          <Skeleton className="h-16 w-16 rounded-full" />
+          <Skeleton className="h-16 w-16 rounded-full shrink-0" />
         ) : (
-          <Avatar className="h-16 w-16 text-base">
+          <Avatar className="h-16 w-16 text-base shrink-0">
             <AvatarImage src={avatarUrlValue || profile?.avatarUrl || ''} alt={displayName} />
             <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-semibold">
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
         )}
-        <div>
+        <div className="min-w-0">
           {isLoading ? (
             <>
               <Skeleton className="h-4 w-32 mb-1" />
@@ -120,8 +272,8 @@ function EditProfileForm() {
             </>
           ) : (
             <>
-              <p className="font-semibold text-sm">{profile?.fullName}</p>
-              <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              <p className="font-semibold text-sm truncate">{profile?.fullName}</p>
+              <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
@@ -161,13 +313,10 @@ function EditProfileForm() {
           <Input
             id="profile-avatarUrl"
             type="url"
-            placeholder="https://github.com/shadcn.png"
+            placeholder="Publicly accessible image URL"
             aria-invalid={!!errors.avatarUrl}
             {...register('avatarUrl')}
           />
-          <p className="text-xs text-muted-foreground">
-            Paste any publicly accessible image URL.
-          </p>
         </Field>
 
         {serverError && (
@@ -184,7 +333,7 @@ function EditProfileForm() {
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <Button
             id="profile-save-btn"
             type="submit"
@@ -193,7 +342,7 @@ function EditProfileForm() {
           >
             {isPending ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin mr-2" />
                 Saving…
               </>
             ) : (
@@ -202,130 +351,44 @@ function EditProfileForm() {
           </Button>
         </div>
       </form>
-    </section>
-  );
-}
-
-// Change Password Section 
-
-function ChangePasswordForm() {
-  const { mutateAsync: changePassword, isPending } = useChangePassword();
-  const [success, setSuccess] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ChangePasswordFormValues>({
-    resolver: zodResolver(changePasswordSchema),
-  });
-
-  async function onSubmit(values: ChangePasswordFormValues) {
-    setServerError(null);
-    setSuccess(false);
-    try {
-      await changePassword({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      });
-      setSuccess(true);
-      reset();
-    } catch (err: unknown) {
-      setServerError(getFriendlyError(err, {
-        400: 'The current password you entered is incorrect.',
-        401: 'The current password you entered is incorrect.',
-        422: 'Your new password doesn\'t meet the requirements.',
-      }, 'Couldn\'t update your password. Please try again.'));
-    }
-  }
-
-  return (
-    <section aria-labelledby="change-password-heading">
-      <div className="flex items-center gap-2 mb-4">
-        <KeyRound size={16} className="text-muted-foreground" />
-        <h2 id="change-password-heading" className="text-sm font-semibold">
-          Change Password
-        </h2>
-      </div>
-
-      {success && (
-        <div className="mb-4 flex items-center gap-2 rounded-full border bg-muted px-4 py-2 text-sm text-foreground" role="status">
-          <CheckCircle2 size={14} className="shrink-0 text-green-600 dark:text-green-400" />
-          Password changed! Other sessions have been logged out.
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <Field
-          id="current-password"
-          label="Current Password"
-          error={errors.currentPassword?.message}
-        >
-          <PasswordInput
-            id="current-password"
-            placeholder="Your current password"
-            autoComplete="current-password"
-            aria-invalid={!!errors.currentPassword}
-            {...register('currentPassword')}
-          />
-        </Field>
-
-        <Field id="new-password" label="New Password" error={errors.newPassword?.message}>
-          <PasswordInput
-            id="new-password"
-            placeholder="At least 8 characters"
-            autoComplete="new-password"
-            aria-invalid={!!errors.newPassword}
-            {...register('newPassword')}
-          />
-        </Field>
-
-        <Field
-          id="confirm-password"
-          label="Confirm New Password"
-          error={errors.confirmPassword?.message}
-        >
-          <PasswordInput
-            id="confirm-password"
-            placeholder="Repeat new password"
-            autoComplete="new-password"
-            aria-invalid={!!errors.confirmPassword}
-            {...register('confirmPassword')}
-          />
-        </Field>
-
-        {serverError && (
-          <div className="flex items-center gap-2 text-sm text-destructive" role="alert">
-            <AlertCircle size={14} className="shrink-0" />
-            {serverError}
+      
+      {/* Password / Google info section at the bottom of the profile card */}
+      <div className="mt-8 border-t pt-6">
+        {isGoogle ? (
+          <div className="flex items-start gap-3">
+            <Info size={16} className="shrink-0 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold mb-1">Signed in with Google</p>
+              <p className="text-sm text-muted-foreground">
+                Your account uses Google Sign-In. To set a password, use{' '}
+                <a
+                  href="/forgot-password"
+                  className="underline underline-offset-4 hover:text-foreground transition-colors"
+                >
+                  Forgot Password
+                </a>{' '}
+                from the login page.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold">Password</p>
+              <p className="text-xs text-muted-foreground">Change your current password</p>
+            </div>
+            <ChangePasswordDialog />
           </div>
         )}
-
-        <div className="flex justify-end">
-          <Button id="change-password-btn" type="submit" size="sm" variant="outline" disabled={isPending}>
-            {isPending ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Updating…
-              </>
-            ) : (
-              'Update Password'
-            )}
-          </Button>
-        </div>
-      </form>
+      </div>
     </section>
   );
 }
+
 
 // Page 
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const isGoogle = user?.provider === 'GOOGLE';
-
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
@@ -339,37 +402,10 @@ export default function ProfilePage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto px-4 md:px-6 py-6">
-        <div className="max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
-
-          {/* Edit Profile */}
+        <div className="max-w-xl mx-auto w-full">
           <div className="rounded-xl border bg-card p-6">
             <EditProfileForm />
           </div>
-
-          {/* Change Password / Google note */}
-          <div className="rounded-xl border bg-card p-6">
-            {isGoogle ? (
-              <div className="flex items-start gap-3">
-                <Info size={16} className="shrink-0 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold mb-1">Signed in with Google</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your account uses Google Sign-In. To set a password, use{' '}
-                    <a
-                      href="/forgot-password"
-                      className="underline underline-offset-4 hover:text-foreground transition-colors"
-                    >
-                      Forgot Password
-                    </a>{' '}
-                    from the login page.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <ChangePasswordForm />
-            )}
-          </div>
-
         </div>
       </div>
     </div>

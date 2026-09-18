@@ -9,19 +9,20 @@ export function DateCell({ value, withTime = false }: DateCellProps) {
 
   try {
     const date = new Date(value);
-    const formatted = withTime
-      ? date.toLocaleString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : date.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    let formatted = `${day} ${month} ${year}`;
+
+    if (withTime) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      formatted += `, ${hours}:${minutes}`;
+    }
+
     return <span className="whitespace-nowrap text-xs tabular-nums">{formatted}</span>;
   } catch {
     return <span className="text-muted-foreground text-xs">{value}</span>;

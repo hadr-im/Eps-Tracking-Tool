@@ -48,7 +48,7 @@ export default function TeamDashboardPage() {
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team</p>
             <h1 className="text-3xl font-bold tracking-tight">Team Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground">
               Performance stats for your department
             </p>
           </div>

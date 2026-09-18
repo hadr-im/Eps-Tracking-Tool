@@ -53,7 +53,7 @@ export function TransitionDialog({
           </label>
           <textarea
             id="transition-note"
-            className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+            className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             placeholder="Why is this EP being transitioned?"
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -71,7 +71,7 @@ export function TransitionDialog({
           <Button
             onClick={() => onConfirm(note.trim() || undefined)}
             disabled={isPending}
-            className="bg-violet-600 hover:bg-violet-700 text-white"
+            className="bg-primary hover:bg-primary/80 text-white"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirm Transition

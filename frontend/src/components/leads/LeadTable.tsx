@@ -21,6 +21,7 @@ import {
 import { Skeleton }  from '@/components/ui/skeleton';
 import { Badge }     from '@/components/ui/badge';
 import { Checkbox }  from '@/components/ui/checkbox';
+import { DateCell }  from '@/components/crm/cells/DateCell';
 import type { Lead } from '@/types/lead';
 
 // Status badge colours
@@ -172,11 +173,7 @@ function buildColumns(
     col.accessor('createdAtExpa', {
       id: 'createdAtExpa',
       header: 'Created',
-      cell: (info) => (
-        <span className="text-xs whitespace-nowrap text-muted-foreground">
-          {new Date(info.getValue()).toLocaleDateString()}
-        </span>
-      ),
+      cell: (info) => <DateCell value={info.getValue()} />,
       meta: { minWidth: 100 },
     }),
   ];

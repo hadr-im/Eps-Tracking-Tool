@@ -176,13 +176,15 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       cell: (info) => readOnly ? (
         <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
       ) : (
-        <EditableTextCell
-          id={info.row.original.id}
-          field="source"
-          value={info.getValue()}
-          isPending={pendingId === info.row.original.id}
-          onUpdate={onTextUpdate}
-        />
+        <div className="flex justify-center w-full">
+          <EditableTextCell
+            id={info.row.original.id}
+            field="source"
+            value={info.getValue()}
+            isPending={pendingId === info.row.original.id}
+            onUpdate={onTextUpdate}
+          />
+        </div>
       ),
       meta: { minWidth: 120 },
     }),
@@ -191,27 +193,34 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       header: 'CV Link',
       cell: (info) => {
         const link = info.getValue() as string | null;
-        if (link) {
-          return (
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline truncate block max-w-30"
-            >
-              {link}
-            </a>
-          );
+        if (readOnly) {
+          return link
+            ? <a href={link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block max-w-30">{link}</a>
+            : <span className="text-muted-foreground text-xs">—</span>;
         }
-        if (readOnly) return <span className="text-muted-foreground text-xs">—</span>;
         return (
-          <EditableTextCell
-            id={info.row.original.id}
-            field="cvLink"
-            value={null}
-            isPending={pendingId === info.row.original.id}
-            onUpdate={onTextUpdate}
-          />
+          <div className="flex items-center gap-1 w-full">
+            <EditableTextCell
+              id={info.row.original.id}
+              field="cvLink"
+              value={link}
+              isPending={pendingId === info.row.original.id}
+              onUpdate={onTextUpdate}
+              placeholder="Add CV link…"
+            />
+            {link && (
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-blue-500 hover:text-blue-700"
+                title="Open CV"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            )}
+          </div>
         );
       },
       meta: { minWidth: 120 },
@@ -287,19 +296,21 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'notes',
       header: 'Notes',
       cell: (info) => readOnly ? (
-        <span className="text-xs max-w-50 block whitespace-pre-wrap">
+        <span className="text-xs max-w-50 block whitespace-pre-wrap text-center mx-auto">
           {info.getValue() ?? <span className="text-muted-foreground">—</span>}
         </span>
       ) : (
-        <EditableTextCell
-          id={info.row.original.id}
-          field="notes"
-          value={info.getValue()}
-          isPending={pendingId === info.row.original.id}
-          multiline
-          placeholder="Add note…"
-          onUpdate={onTextUpdate}
-        />
+        <div className="flex justify-center w-full">
+          <EditableTextCell
+            id={info.row.original.id}
+            field="notes"
+            value={info.getValue()}
+            isPending={pendingId === info.row.original.id}
+            multiline
+            placeholder="Add note…"
+            onUpdate={onTextUpdate}
+          />
+        </div>
       ),
       meta: { minWidth: 200 },
     }),

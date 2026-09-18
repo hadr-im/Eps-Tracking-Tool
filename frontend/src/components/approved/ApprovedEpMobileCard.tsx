@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Plus, Minus, ExternalLink, MessageSquare } from 'lucide-react';
-import { Badge }           from '@/components/ui/badge';
 import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
 import { DateCell }        from '@/components/crm/cells/DateCell';
 import { cn }              from '@/lib/utils';
@@ -13,6 +12,15 @@ interface ApprovedEpMobileCardProps {
   onCommentClick: (ep: ApprovedEp) => void;
 }
 
+function getInitials(fullName: string) {
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
 function ExternalLinkRow({ href, label }: { href: string | null; label: string }) {
   if (!href) return null;
   return (
@@ -20,7 +28,7 @@ function ExternalLinkRow({ href, label }: { href: string | null; label: string }
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+      className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
     >
       {label}
       <ExternalLink size={10} />
@@ -33,69 +41,36 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
   const d = ep.approvedDetail;
 
   return (
-    <li className="rounded-xl border bg-card overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3">
-        
-        {/* Top row: Name & Status */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-            <span className="font-semibold text-sm truncate">{ep.fullName}</span>
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono shrink-0">
-              {ep.product}
-            </Badge>
-          </div>
-          <div className="shrink-0">
-            <StatusBadgeCell status={ep.statusOnExpa as EpStatus} />
-          </div>
+    <li className="rounded-2xl border border-border/70 bg-card overflow-hidden transition-colors list-none">
+      {/* Header row */}
+      <div 
+        className="flex items-start gap-3 px-4 py-3.5 cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+          {getInitials(ep.fullName)}
         </div>
 
-        {/* Bottom row: Subtitle & Actions */}
-        <div className="flex items-end justify-between gap-2 mt-2">
-          
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground flex-1">
-            {ep.memberName && (
-              <span>Member: <span className="text-foreground font-medium">{ep.memberName}</span></span>
-            )}
-            {d?.realizedDate && (
-              <span>
-                REA: <span className="text-foreground font-medium">
-                  <DateCell value={d.realizedDate} />
-                </span>
-              </span>
-            )}
-            {d?.hostingMC && (
-              <span>MC: <span className="text-foreground font-medium">{d.hostingMC}</span></span>
-            )}
-            {d?.hostingLC && (
-              <span>LC: <span className="text-foreground font-medium">{d.hostingLC}</span></span>
-            )}
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">{ep.fullName}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            EP ID {ep.id} · {ep.product}
+          </p>
+        </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            {canComment && (
-              <button
-                type="button"
-                onClick={() => onCommentClick(ep)}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
-                aria-label={`Comments for ${ep.fullName}`}
-              >
-                <MessageSquare size={16} strokeWidth={1.6} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setExpanded(!expanded)}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
-              aria-label={expanded ? 'Collapse details' : 'Expand details'}
-            >
-              {expanded ? <Minus size={18} /> : <Plus size={18} />}
-            </button>
-          </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <StatusBadgeCell status={ep.statusOnExpa as EpStatus} />
+          <button
+            type="button"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={expanded ? 'Collapse details' : 'Expand details'}
+          >
+            {expanded ? <Minus size={16} /> : <Plus size={16} />}
+          </button>
         </div>
       </div>
 
-      {/* Expanded detail */}
+      {/* Expanded details */}
       <div
         className={cn(
           'grid transition-all duration-300 ease-in-out',
@@ -103,48 +78,109 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
         )}
       >
         <div className="overflow-hidden">
-          <div className="border-t px-4 py-3 space-y-2 text-xs bg-muted/10">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              <Row label="EP ID"        value={ep.id} mono />
-              <Row label="Phone"        value={ep.phone} />
-              <Row label="APP ID"       value={d?.expaAppId} mono />
-              <Row label="Opportunity"  value={d?.opportunityTitle} />
-              <Row label="Approval"     value={d ? <DateCell value={d.approvalDate} /> : null} />
-              <Row label="REA Date"     value={d ? <DateCell value={d.realizedDate} /> : null} />
-              <Row label="Finish"       value={d ? <DateCell value={d.finishedDate} /> : null} />
-              <Row label="Completed"    value={d ? <DateCell value={d.completedDate} /> : null} />
-              <Row
-                label="Project Fees"
-                value={d?.projectFees != null ? `${d.projectFees.toLocaleString()} ` : null}
-              />
-              <Row label="Created"      value={<DateCell value={ep.createdAtExpa} />} />
+          <div className="border-t border-border/50 bg-card px-4 py-4 space-y-4">
+            
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs text-muted-foreground">
+              {ep.memberName && (
+                <div className="col-span-2">
+                  <dt className="font-medium text-foreground/70 mb-0.5">Member</dt>
+                  <dd className="text-foreground font-medium">{ep.memberName}</dd>
+                </div>
+              )}
+              {ep.phone && (
+                <div className="col-span-2">
+                  <dt className="font-medium text-foreground/70 mb-0.5">Phone</dt>
+                  <dd className="text-foreground">{ep.phone}</dd>
+                </div>
+              )}
+              
+              {d?.hostingMC && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Hosting MC</dt>
+                  <dd className="text-foreground">{d.hostingMC}</dd>
+                </div>
+              )}
+              {d?.hostingLC && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Hosting LC</dt>
+                  <dd className="text-foreground">{d.hostingLC}</dd>
+                </div>
+              )}
+              
+              {d?.expaAppId && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">App ID</dt>
+                  <dd className="text-foreground font-mono">{d.expaAppId}</dd>
+                </div>
+              )}
+              {d?.opportunityTitle && (
+                <div className={d?.expaAppId ? '' : 'col-span-2'}>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Opportunity</dt>
+                  <dd className="text-foreground">{d.opportunityTitle}</dd>
+                </div>
+              )}
+              
+              {d?.approvalDate && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Approval</dt>
+                  <dd className="text-foreground"><DateCell value={d.approvalDate} /></dd>
+                </div>
+              )}
+              {d?.realizedDate && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Realized</dt>
+                  <dd className="text-foreground"><DateCell value={d.realizedDate} /></dd>
+                </div>
+              )}
+              {d?.finishedDate && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Finished</dt>
+                  <dd className="text-foreground"><DateCell value={d.finishedDate} /></dd>
+                </div>
+              )}
+              {d?.completedDate && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Completed</dt>
+                  <dd className="text-foreground"><DateCell value={d.completedDate} /></dd>
+                </div>
+              )}
+              
+              {d?.projectFees != null && (
+                <div>
+                  <dt className="font-medium text-foreground/70 mb-0.5">Project Fees</dt>
+                  <dd className="text-foreground">{d.projectFees.toLocaleString()}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="font-medium text-foreground/70 mb-0.5">Created</dt>
+                <dd className="text-foreground"><DateCell value={ep.createdAtExpa} /></dd>
+              </div>
+            </dl>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border/50 pt-3">
+              <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">Links</span>
+              <div className="flex items-center gap-3">
+                <ExternalLinkRow href={d?.contractLink ?? null} label="Contract" />
+                <ExternalLinkRow href={d?.auditFolder ?? null}  label="Audit Folder" />
+              </div>
             </div>
-            {/* Links */}
-            <div className="flex flex-wrap gap-3 pt-2">
-              <ExternalLinkRow href={d?.contractLink ?? null} label="Contract" />
-              <ExternalLinkRow href={d?.auditFolder ?? null}  label="Audit Folder" />
-            </div>
+
+            {canComment && (
+              <div className="flex items-center justify-between border-t border-border/50 pt-3">
+                <button
+                  type="button"
+                  onClick={() => onCommentClick(ep)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MessageSquare size={14} />
+                  View Comments
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
     </li>
-  );
-}
-
-function Row({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}) {
-  if (value == null || value === '') return null;
-  return (
-    <div>
-      <span className="text-muted-foreground">{label}: </span>
-      <span className={`text-foreground font-medium ${mono ? 'font-mono' : ''}`}>{value}</span>
-    </div>
   );
 }

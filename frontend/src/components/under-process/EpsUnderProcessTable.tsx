@@ -119,7 +119,7 @@ function PhaseCell({ value }: { value: string | null }) {
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
   return (
-    <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 text-[10px] font-medium whitespace-nowrap">
+    <span className="inline-flex items-center rounded-full bg-amber-600 text-white px-2 py-0.5 text-[10px] font-medium whitespace-nowrap">
       {label}
     </span>
   );

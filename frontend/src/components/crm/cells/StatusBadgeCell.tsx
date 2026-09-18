@@ -20,7 +20,7 @@ export function StatusBadgeCell({ status }: StatusBadgeCellProps) {
   return (
     <Badge
       variant="outline"
-      className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 whitespace-nowrap ${config.className}`}
+      className={`text-[11px] font-normal rounded-full px-2.5 py-0.5 whitespace-nowrap ${config.className}`}
     >
       {config.label}
     </Badge>

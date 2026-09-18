@@ -15,7 +15,7 @@ import { LeadCardList }     from '@/components/leads/LeadCardList';
 import { DispatchDialog }   from '@/components/leads/DispatchDialog';
 import { Badge }            from '@/components/ui/badge';
 import { Button }           from '@/components/ui/button';
-import type { Lead, LeadFilters } from '@/types/lead';
+import type { LeadFilters } from '@/types/lead';
 
 export default function LeadsPage() {
   const { user } = useAuth();
@@ -72,7 +72,7 @@ export default function LeadsPage() {
               variant="outline"
               className="text-sm font-semibold px-3 py-1 gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground border-transparent"
             >
-              <span className="text-base font-bold">{leads.length}</span>
+              <span className="text-sm font-semibold">{leads.length}</span>
               <span>Lead{leads.length !== 1 ? 's' : ''}</span>
             </Badge>
           )}

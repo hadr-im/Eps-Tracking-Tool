@@ -110,6 +110,8 @@ function buildColumns(
                     onSelect={(id) => onAssignEp(epId, id)}
                     placeholder="Assign..."
                     disabled={isAssigningId === epId}
+                    variant="outline"
+                    className="h-8 w-36 mx-auto text-xs rounded-full"
                   />
                 </div>
               );
@@ -350,7 +352,7 @@ function buildColumns(
     col.accessor("createdAt", {
       id: "createdAt",
       header: "Date",
-      cell: (info) => <DateCell value={info.getValue()} withTime />,
+      cell: (info) => <DateCell value={info.getValue()} />,
       meta: { minWidth: 130 },
     }),
     col.accessor("triggeredByName", {

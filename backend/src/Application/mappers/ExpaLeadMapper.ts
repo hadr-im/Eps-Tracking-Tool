@@ -31,11 +31,23 @@ export class ExpaLeadMapper {
       lead.phone,
       lead.university,
       lead.fieldOfStudy,
+      null, // yearOfStudy
       product,
       departmentId,
       status,
       new Date(lead.creationDate),
       now,
+      null, // ownerId
+      null, // assignedAt
+      null, // source
+      null, // cvLink
+      false, // contacted
+      null, // contactedAt
+      false, // interested
+      null, // trackingPhase
+      null, // notes
+      null, // duration
+      null, // availability
     );
   }
 

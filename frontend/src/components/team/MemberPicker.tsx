@@ -19,6 +19,8 @@ interface MemberPickerProps {
   onSelect: (memberId: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  variant?: 'solid' | 'outline';
+  className?: string;
 }
 
 export function MemberPicker({
@@ -28,9 +30,11 @@ export function MemberPicker({
   onSelect,
   placeholder = 'Select a member…',
   disabled = false,
+  variant = 'solid',
+  className,
 }: MemberPickerProps) {
   if (isLoading) {
-    return <Skeleton className="h-9 w-52" />;
+    return <Skeleton className={cn("h-9 w-52", className)} />;
   }
 
   return (
@@ -38,11 +42,14 @@ export function MemberPicker({
       <SelectTrigger 
         id="member-picker" 
         className={cn(
-          "w-52 transition-all duration-300 ease-in-out",
-          selectedId && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
+          "transition-all duration-300 ease-in-out",
+          !className && "w-52", 
+          variant === 'solid' && selectedId && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0",
+          variant === 'outline' && "border bg-transparent text-center border-border justify-center",
+          className
         )}
       >
-        <SelectValue placeholder={placeholder}>
+        <SelectValue placeholder={placeholder} className={cn(variant === 'outline' && "justify-center text-center")}>
           {(val) => (val ? members.find((m) => m.id === val)?.fullName ?? val : placeholder)}
         </SelectValue>
       </SelectTrigger>
