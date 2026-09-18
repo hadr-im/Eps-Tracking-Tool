@@ -128,7 +128,8 @@ export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersB
           placeholder="Search by name…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="h-8 pl-8 text-xs border-0 bg-transparent"
+          className="h-9 pl-9 text-xs rounded-full bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+
         />
       </div>
 

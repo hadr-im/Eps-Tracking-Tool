@@ -68,8 +68,8 @@ export function DispatchDialog({
     }
   }
 
-  // Filter to members only (exclude TLs from the member dropdown)
-  const memberOptions = members.filter((m) => m.role === 'MEMBER');
+  // Include all department members (Members, TLs, VPs)
+  const memberOptions = members;
 
   const leadCount = leads.length;
 

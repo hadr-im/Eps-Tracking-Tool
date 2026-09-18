@@ -103,12 +103,8 @@ export interface EpsApiResponse {
 
 export interface TransitionHistoryDto {
   id: string;
-  epId: string;
-  epName: string;
-  epEmail: string | null;
-  epPhone: string | null;
-  epUniversity: string | null;
-  epFieldOfStudy: string | null;
+  ep: Ep | null;
+  memberName: string | null;
   triggeredByName: string;
   fromProduct: string | null;
   toProduct: string | null;

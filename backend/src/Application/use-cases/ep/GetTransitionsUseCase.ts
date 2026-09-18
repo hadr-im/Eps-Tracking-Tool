@@ -20,19 +20,12 @@ export class GetTransitionsUseCase {
       },
       include: {
         ep: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-            university: true,
-            fieldOfStudy: true,
+          include: {
+            owner: { select: { fullName: true } },
           },
         },
         triggeredBy: {
-          select: {
-            fullName: true,
-          },
+          select: { fullName: true },
         },
       },
       orderBy: {
@@ -40,20 +33,49 @@ export class GetTransitionsUseCase {
       },
     });
 
-    return transitions.map((t) => ({
-      id: t.id,
-      epId: t.epId,
-      epName: t.ep?.fullName ?? 'Unknown',
-      epEmail: t.ep?.email ?? null,
-      epPhone: t.ep?.phone ?? null,
-      epUniversity: t.ep?.university ?? null,
-      epFieldOfStudy: t.ep?.fieldOfStudy ?? null,
-      triggeredByName: t.triggeredBy?.fullName ?? 'System',
-      fromProduct: t.fromProduct,
-      toProduct: t.toProduct,
-      note: t.note,
-      createdAt: t.createdAt.toISOString(),
-      direction: t.fromDepartment === caller.departmentId ? 'OUTBOUND' : 'INBOUND',
-    }));
+    return transitions.map((t) => {
+      const ep = t.ep;
+      
+      // Full EP DTO inline
+      const epDto = ep ? {
+        id: ep.id,
+        fullName: ep.fullName,
+        email: ep.email,
+        phone: ep.phone,
+        university: ep.university,
+        fieldOfStudy: ep.fieldOfStudy,
+        yearOfStudy: ep.yearOfStudy,
+        product: ep.product,
+        departmentId: ep.departmentId,
+        ownerId: ep.ownerId,
+        assignedAt: ep.assignedAt?.toISOString() ?? null,
+        statusOnExpa: ep.statusOnExpa,
+        source: ep.source,
+        cvLink: ep.cvLink,
+        contacted: ep.contacted,
+        contactedAt: ep.contactedAt?.toISOString() ?? null,
+        interested: ep.interested,
+        trackingPhase: ep.trackingPhase,
+        notes: ep.notes,
+        duration: ep.duration,
+        availability: ep.availability,
+        createdAtExpa: ep.createdAtExpa.toISOString(),
+        syncedAt: ep.syncedAt.toISOString(),
+      } : null;
+
+      return {
+        id: t.id,
+        ep: epDto,
+        memberName: ep?.owner?.fullName ?? null,
+        
+        // Transition-specific fields
+        triggeredByName: t.triggeredBy?.fullName ?? 'System',
+        fromProduct: t.fromProduct,
+        toProduct: t.toProduct,
+        note: t.note,
+        createdAt: t.createdAt.toISOString(),
+        direction: t.fromDepartment === caller.departmentId ? 'OUTBOUND' : 'INBOUND',
+      };
+    });
   }
 }

@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   Hourglass,
   LayoutDashboard,
+  Send,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -31,7 +32,8 @@ const TEAM_NAV = [
   { to: '/team/dashboard',     icon: Users2,         label: 'Team Dashboard'  },
   { to: '/team/approved-eps',  icon: BadgeCheck,     label: 'Approved EPs'    },
   { to: '/team/under-process', icon: Hourglass,      label: 'Under Process'   },
-  { to: '/dispatch',           icon: ArrowRightLeft, label: 'Dispatch'        },
+  { to: '/team/transitioned-eps', icon: ArrowRightLeft, label: 'Transitioned EPs' },
+  { to: '/dispatch',           icon: Send,           label: 'Dispatch'        },
 ];
 
 const BOTTOM_NAV = [

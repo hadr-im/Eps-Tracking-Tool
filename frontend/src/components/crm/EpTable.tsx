@@ -448,7 +448,7 @@ export function EpTable({
 
   return (
     <Table
-      className="w-max min-w-full table-fixed"
+      className="w-max min-w-full table-fixed border-separate border-spacing-0"
       containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
     >
       <TableHeader className="sticky top-0 z-40 bg-card">
@@ -457,7 +457,7 @@ export function EpTable({
             {/* Frozen header spacer: spans the sticky columns */}
             <TableHead
               colSpan={1}
-              className="sticky left-0 z-30 border-r bg-card text-xs font-semibold shadow-[1px_0_0_0_var(--border)]"
+              className="sticky left-0 z-30 border-r border-b border-border bg-card text-xs font-semibold"
             >
               {/* Empty: sits above Full Name */}
             </TableHead>
@@ -490,8 +490,8 @@ export function EpTable({
                         ? { position: 'sticky', left: STICKY_OFFSET[header.id] ?? 0, zIndex: 20 }
                         : {}),
                     }}
-                    className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r last:border-r-0 ${
-                      isSticky ? 'bg-background shadow-[1px_0_0_0_var(--border)]' : 'bg-muted/40'
+                    className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
+                      isSticky ? 'bg-background' : 'bg-muted/40'
                     }`}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -507,9 +507,9 @@ export function EpTable({
           {isLoading &&
             Array.from({ length: 6 }).map((_, i) => (
               <TableRow key={`skel-${i}`}>
-                {columns.map((_, ci) => (
-                  <TableCell key={ci} className="border-r last:border-r-0 py-2">
-                    <Skeleton className="h-4 w-full rounded" />
+                {columns.map((_, ci) => ( 
+                  <TableCell key={ci} className="border-r border-border last:border-r-0 py-2">
+                      <Skeleton className="h-4 w-full rounded" />
                   </TableCell>
                 ))}
               </TableRow>

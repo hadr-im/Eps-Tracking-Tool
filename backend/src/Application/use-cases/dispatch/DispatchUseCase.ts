@@ -55,11 +55,6 @@ export class DispatchUseCase {
       throw new AppError('Member does not belong to your department', 403);
     }
 
-    // Target member must be assigned to this dispatcher TL
-    if (targetMember.teamLeaderId !== dispatcher.id) {
-      throw new AppError('Member is not assigned to you', 403);
-    }
-
     return this.dispatchRepo.assignEpsToMember(epIds, memberId, dispatcher.id);
   }
 

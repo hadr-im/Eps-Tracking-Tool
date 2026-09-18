@@ -35,7 +35,7 @@ export function AppLayout() {
         >
           <Menu size={18} />
         </SheetTrigger>
-        <SheetContent side="right" className="w-55 p-0 border-l">
+        <SheetContent side="right" className="w-55! p-0 border-l">
           <SidebarBody
             collapsed={false}
             onNavClick={() => setSheetOpen(false)}

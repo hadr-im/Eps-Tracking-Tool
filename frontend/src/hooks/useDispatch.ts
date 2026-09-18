@@ -13,6 +13,7 @@ export function useDispatch() {
     mutationFn: (payload: DispatchPayload) => dispatchLeads(payload),
     onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['transitions'] });
       const count = payload.epIds.length;
       toast.success(`${count} lead${count !== 1 ? 's' : ''} dispatched successfully`);
     },

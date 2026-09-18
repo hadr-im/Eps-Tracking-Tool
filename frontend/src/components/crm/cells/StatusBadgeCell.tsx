@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import type { EpStatus } from '@/types/ep';
 
 const STATUS_CONFIG: Record<EpStatus, { label: string; className: string }> = {
-  LEAD:        { label: 'Lead',        className: 'bg-sidebar-primary text-sidebar-primary-foreground border-transparent' },
+  LEAD:        { label: 'Lead',        className: 'bg-sidebar-primary text-white border-sidebar-primary' },
   CONTACTED:   { label: 'Contacted',   className: 'bg-blue-500    text-white border-blue-500'    },
   INTERESTED:  { label: 'Interested',  className: 'bg-violet-500  text-white border-violet-500'  },
   APPROVED:    { label: 'Approved',    className: 'bg-amber-500   text-white border-amber-500'   },
@@ -16,7 +16,7 @@ interface StatusBadgeCellProps {
 }
 
 export function StatusBadgeCell({ status }: StatusBadgeCellProps) {
-  const config = STATUS_CONFIG[status] ?? { label: status, className: 'bg-slate-100 text-slate-600' };
+  const config = STATUS_CONFIG[status] ?? { label: status, className: 'bg-sidebar-primary text-white' };
   return (
     <Badge
       variant="outline"

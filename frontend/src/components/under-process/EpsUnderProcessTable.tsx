@@ -75,8 +75,8 @@ interface EpsUnderProcessTableProps {
 // Sticky offsets
 
 const STICKY_OFFSET: Record<string, number> = {
-  memberName: 0,
-  fullName:   140,
+  fullName:   0,
+  memberName: 180,
 };
 
 // Inline cell helpers 
@@ -144,6 +144,17 @@ function buildColumns(
 ): ColumnDef<Ep, any>[] {
   return [
 
+    // Sticky: Full Name 
+    col.accessor('fullName', {
+      id: 'fullName',
+      header: () => <div className="text-center w-full">Full Name</div>,
+      cell: (info) => (
+        <span className="font-medium text-sm whitespace-nowrap">{info.getValue()}</span>
+      ),
+      enableSorting: true,
+      meta: { sticky: 'left', stickyOffset: 0, minWidth: 180 },
+    }),
+
     // Sticky: Member Name 
     col.accessor('ownerId', {
       id: 'memberName',
@@ -162,18 +173,7 @@ function buildColumns(
         const nb = b.original.ownerId ? (memberMap[b.original.ownerId] ?? '') : '';
         return na.localeCompare(nb);
       },
-      meta: { sticky: 'left', stickyOffset: 0, minWidth: 140 },
-    }),
-
-    // Sticky: Full Name 
-    col.accessor('fullName', {
-      id: 'fullName',
-      header: () => <div className="text-center w-full">Full Name</div>,
-      cell: (info) => (
-        <span className="font-medium text-sm whitespace-nowrap">{info.getValue()}</span>
-      ),
-      enableSorting: true,
-      meta: { sticky: 'left', stickyOffset: 140, minWidth: 180 },
+      meta: { sticky: 'left', stickyOffset: 180, minWidth: 140 },
     }),
 
     // Identity 
@@ -419,17 +419,17 @@ export function EpsUnderProcessTable({
   const groupSpans = buildGroupSpans(allIds);
 
   return (
-    <Table
-      className="w-max min-w-full table-fixed"
-      containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
-    >
+      <Table
+        className="w-max min-w-full table-fixed border-separate border-spacing-0"
+        containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
+      >
       <TableHeader className="sticky top-0 z-40 bg-card">
         {/* Group band */}
         <TableRow className="border-b-0">
           {/* Spacer over the two sticky columns */}
           <TableHead
             colSpan={2}
-            className="sticky left-0 z-30 border-r bg-card text-xs font-semibold shadow-[1px_0_0_0_var(--border)]"
+              className="sticky left-0 z-30 border-r border-b bg-card text-xs font-semibold"
           />
           {groupSpans.map((g) => (
             <TableHead
@@ -461,8 +461,8 @@ export function EpsUnderProcessTable({
                       ? { position: 'sticky', left: STICKY_OFFSET[header.id] ?? 0, zIndex: 20 }
                       : {}),
                   }}
-                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r last:border-r-0 ${
-                    isSticky ? 'bg-background shadow-[1px_0_0_0_var(--border)]' : 'bg-muted/40'
+                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b last:border-r-0 ${
+                    isSticky ? 'bg-background' : 'bg-muted/40'
                   } ${canSort ? 'cursor-pointer select-none' : ''}`}
                   onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                 >
@@ -508,10 +508,8 @@ export function EpsUnderProcessTable({
                         ? { position: 'sticky', left: STICKY_OFFSET[cell.column.id] ?? 0, zIndex: 10 }
                         : {}),
                     }}
-                    className={`border-r last:border-r-0 py-2 text-center align-middle ${
-                      isSticky
-                        ? 'bg-background group-hover:bg-muted transition-colors shadow-[1px_0_0_0_var(--border)]'
-                        : ''
+                    className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
+                      isSticky ? 'bg-background group-hover:bg-muted transition-colors' : ''
                     }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">

@@ -25,7 +25,7 @@ import type { Lead } from '@/types/lead';
 
 // Status badge colours
 const STATUS_COLORS: Record<string, string> = {
-  LEAD:       'bg-slate-600  text-white border-slate-600',
+  LEAD:       'bg-sidebar-primary text-white border-sidebar-primary',
   CONTACTED:  'bg-blue-500   text-white border-blue-500',
   INTERESTED: 'bg-violet-500 text-white border-violet-500',
 };
@@ -85,7 +85,7 @@ function buildColumns(
         </div>
       );
     },
-    meta: { minWidth: 44 },
+    meta: { sticky: 'left', minWidth: 44 },
   });
 
   const dataCols: ColumnDef<Lead, any>[] = [
@@ -95,7 +95,7 @@ function buildColumns(
       cell: (info) => (
         <span className="font-medium text-sm whitespace-nowrap">{info.getValue()}</span>
       ),
-      meta: { minWidth: 160 },
+      meta: { sticky: 'left', minWidth: 160 },
     }),
     col.accessor('id', {
       id: 'id',
@@ -206,9 +206,19 @@ export function LeadTable({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const leafColumns = table.getAllLeafColumns();
+  const stickyOffsets: Record<string, number> = {};
+  let cumulativeLeft = 0;
+  for (const c of leafColumns) {
+    const meta = (c.columnDef.meta ?? {}) as { sticky?: string; minWidth?: number };
+    if (meta.sticky !== 'left') break;
+    stickyOffsets[c.id] = cumulativeLeft;
+    cumulativeLeft += meta.minWidth ?? 90;
+  }
+
   return (
     <Table
-      className="w-max min-w-full table-fixed"
+      className="w-max min-w-full table-fixed border-separate border-spacing-0"
       containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
     >
       <TableHeader className="sticky top-0 z-20 bg-card">
@@ -216,11 +226,20 @@ export function LeadTable({
           <TableRow key={headerGroup.id} className="bg-muted/40">
             {headerGroup.headers.map((header) => {
               const meta = header.column.columnDef.meta ?? {};
+              const isSticky = meta.sticky === 'left';
               return (
                 <TableHead
                   key={header.id}
-                  style={{ minWidth: meta.minWidth ?? 90, width: meta.minWidth ?? 90 }}
-                  className="whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r last:border-r-0 bg-muted/40"
+                  style={{
+                    minWidth: meta.minWidth ?? 90,
+                    width: meta.minWidth ?? 90,
+                    ...(isSticky
+                      ? { position: 'sticky', left: stickyOffsets[header.id] ?? 0, zIndex: 20 }
+                      : {}),
+                  }}
+                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
+                    isSticky ? 'bg-background' : 'bg-muted/40'
+                  }`}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
@@ -236,7 +255,7 @@ export function LeadTable({
           Array.from({ length: 6 }).map((_, i) => (
             <TableRow key={`skel-${i}`}>
               {columns.map((_, ci) => (
-                <TableCell key={ci} className="border-r last:border-r-0 py-2">
+                <TableCell key={ci} className="border-r border-border last:border-r-0 py-2">
                   <Skeleton className="h-4 w-full rounded" />
                 </TableCell>
               ))}
@@ -248,16 +267,25 @@ export function LeadTable({
           table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}
-              className="hover:bg-muted/30 transition-colors"
+              className="hover:bg-muted/30 transition-colors group"
               data-selected={selectedIds.includes(row.original.id) || undefined}
             >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta ?? {};
+                const isSticky = meta.sticky === 'left';
                 return (
                   <TableCell
                     key={cell.id}
-                    style={{ minWidth: meta.minWidth ?? 90, width: meta.minWidth ?? 90 }}
-                    className="border-r last:border-r-0 py-2 text-center align-middle"
+                    style={{
+                      minWidth: meta.minWidth ?? 90,
+                      width: meta.minWidth ?? 90,
+                      ...(isSticky
+                        ? { position: 'sticky', left: stickyOffsets[cell.column.id] ?? 0, zIndex: 10 }
+                        : {}),
+                    }}
+                    className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
+                      isSticky ? 'bg-background group-hover:bg-muted transition-colors' : ''
+                    }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -283,5 +311,3 @@ export function LeadTable({
     </Table>
   );
 }
-
-

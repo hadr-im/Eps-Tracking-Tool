@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { Lead } from '@/types/lead';
 
 const STATUS_COLORS: Record<string, string> = {
-  LEAD:       'bg-slate-600  text-white border-slate-600',
+  LEAD:       'bg-sidebar-primary text-white border-sidebar-primary',
   CONTACTED:  'bg-blue-500   text-white border-blue-500',
   INTERESTED: 'bg-violet-500 text-white border-violet-500',
 };

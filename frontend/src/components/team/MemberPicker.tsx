@@ -14,25 +14,27 @@ import type { DepartmentMember } from '@/services/departmentService';
 
 interface MemberPickerProps {
   members: DepartmentMember[];
-  isLoading: boolean;
+  isLoading?: boolean;
   selectedId: string | null;
   onSelect: (memberId: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function MemberPicker({
   members,
-  isLoading,
+  isLoading = false,
   selectedId,
   onSelect,
   placeholder = 'Select a member…',
+  disabled = false,
 }: MemberPickerProps) {
   if (isLoading) {
     return <Skeleton className="h-9 w-52" />;
   }
 
   return (
-    <Select value={selectedId ?? ''} onValueChange={(val) => val && onSelect(val)}>
+    <Select value={selectedId ?? ''} onValueChange={(val) => val && onSelect(val)} disabled={disabled}>
       <SelectTrigger 
         id="member-picker" 
         className={cn(

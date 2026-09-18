@@ -134,7 +134,7 @@ function buildColumns(
     // EP Name
     col.accessor("fullName", {
       id: "fullName",
-      header: () => <div className="text-center w-full">EP Name</div>,
+      header: () => <div className="text-center w-full">Full Name</div>,
       cell: (info) => (
         <span className="font-medium text-sm whitespace-nowrap">
           {info.getValue()}
@@ -391,7 +391,7 @@ export function ApprovedEpsTable({
 
   return (
     <Table
-      className="w-max min-w-full table-fixed"
+      className="w-max min-w-full table-fixed border-separate border-spacing-0"
       containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
     >
       <TableHeader className="sticky top-0 z-40 bg-card">
@@ -400,7 +400,7 @@ export function ApprovedEpsTable({
           {/* Spacer spans the two sticky columns (fullName + memberName) */}
           <TableHead
             colSpan={2}
-            className="sticky left-0 z-30 border-r bg-card text-xs font-semibold shadow-[1px_0_0_0_var(--border)]"
+            className="sticky left-0 z-30 border-r border-b border-border bg-card text-xs font-semibold"
           />
           {groupSpans.map((g) => (
             <TableHead
@@ -436,10 +436,8 @@ export function ApprovedEpsTable({
                         }
                       : {}),
                   }}
-                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r last:border-r-0 ${
-                    isSticky
-                      ? "bg-background shadow-[1px_0_0_0_var(--border)]"
-                      : "bg-muted/40"
+                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
+                    isSticky ? "bg-background" : "bg-muted/40"
                   } ${canSort ? "cursor-pointer select-none" : ""}`}
                   onClick={
                     canSort
@@ -467,7 +465,7 @@ export function ApprovedEpsTable({
           Array.from({ length: 8 }).map((_, i) => (
             <TableRow key={`skel-${i}`}>
               {columns.map((_, ci) => (
-                <TableCell key={ci} className="border-r last:border-r-0 py-2">
+                <TableCell key={ci} className="border-r border-border last:border-r-0 py-2">
                   <Skeleton className="h-4 w-full rounded" />
                 </TableCell>
               ))}
@@ -499,10 +497,8 @@ export function ApprovedEpsTable({
                           }
                         : {}),
                     }}
-                    className={`border-r last:border-r-0 py-2 text-center align-middle ${
-                      isSticky
-                        ? "bg-background group-hover:bg-muted transition-colors shadow-[1px_0_0_0_var(--border)]"
-                        : ""
+                    className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
+                      isSticky ? "bg-background group-hover:bg-muted transition-colors" : ""
                     }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">
