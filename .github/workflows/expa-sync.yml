@@ -44,10 +44,27 @@ jobs:
             echo "job=sync-leads" >> "$GITHUB_OUTPUT"
           fi
 
+      # Skips rather than fails when the secrets are absent. On a 5-minute
+      # schedule an unconfigured job would otherwise send a failure email every
+      # 5 minutes, training everyone to ignore them.
+      - name: Check configuration
+        id: cfg
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BACKEND_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::BACKEND_URL / CRON_SECRET not set - skipping sync."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # One request per product. The endpoint paginates EXPA for a whole
       # department, which can outlast a serverless request if all three run
       # together, so they are split and run sequentially.
       - name: Sync each department
+        if: steps.cfg.outputs.ready == 'true'
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
