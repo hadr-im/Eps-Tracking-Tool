@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" covers local development; the rhel target is the engine Vercel's
+  // Lambda runtime needs, and is not inferred from the build machine.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
