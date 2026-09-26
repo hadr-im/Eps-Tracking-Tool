@@ -24,7 +24,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Vercel builds the API with esbuild, which strips types without checking
+  # them, so a type error would deploy cleanly and only fail at runtime. This
+  # job is the only thing that type-checks the backend before it ships.
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # postinstall runs prisma generate, which the compiler needs for the
+      # generated client's types.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
     defaults:
       run:
