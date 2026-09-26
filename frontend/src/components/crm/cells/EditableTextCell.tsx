@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
 
 interface EditableTextCellProps {
@@ -8,6 +9,7 @@ interface EditableTextCellProps {
   isPending: boolean;
   multiline?: boolean;
   placeholder?: string;
+  truncate?: boolean;
   onUpdate: (id: string, field: string, value: string | null) => void;
 }
 
@@ -18,13 +20,15 @@ export function EditableTextCell({
   isPending,
   multiline = false,
   placeholder = '—',
+  truncate = false,
   onUpdate,
 }: EditableTextCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
   const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
 
-  // Sync external value changes 
   useEffect(() => {
     if (!editing) setDraft(value ?? '');
   }, [value, editing]);
@@ -70,21 +74,44 @@ export function EditableTextCell({
     );
   }
 
+  const showPopup = truncate && !!value;
+
   return (
-    <button
-      type="button"
-      onClick={() => { if (!isPending) setEditing(true); }}
-      className="group flex w-full min-w-24 cursor-text items-start gap-1 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-accent"
-      title="Click to edit"
-      aria-label={`Edit ${field}`}
-    >
-      <span className={`flex-1 ${!value ? 'text-muted-foreground' : ''}`}>
-        {value ?? placeholder}
-      </span>
-      <Pencil
-        size={10}
-        className="mt-0.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60"
-      />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => { if (!isPending) setEditing(true); }}
+        onMouseEnter={showPopup ? () => setHover(true) : undefined}
+        onMouseLeave={showPopup ? () => setHover(false) : undefined}
+        onMouseMove={
+          showPopup ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined
+        }
+        className="group flex w-full min-w-24 cursor-text items-start gap-1 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-accent"
+        aria-label={`Edit ${field}`}
+      >
+        <span
+          className={`flex-1 ${!value ? 'text-muted-foreground' : ''} ${
+            truncate ? 'block truncate whitespace-nowrap overflow-hidden' : ''
+          }`}
+        >
+          {value ?? placeholder}
+        </span>
+        <Pencil
+          size={10}
+          className="mt-0.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60"
+        />
+      </button>
+
+      {showPopup && hover && createPortal(
+        <div
+          role="tooltip"
+          className="pointer-events-none fixed z-[9999] w-56 rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground shadow-lg shadow-black/10 whitespace-pre-wrap break-words"
+          style={{ left: pos.x + 12, top: pos.y + 16 }}
+        >
+          {value}
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

@@ -62,15 +62,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // the latest token without needing a re-render cycle
   const tokenRef = useRef<string | null>(null);
 
-  // clearAuth 
+  // clearAuth
 
-  const clearAuth = useCallback((): void => {
+  /*
+    Drops local auth state only. Deliberately does NOT touch the query cache,
+    so it is safe to call while unrelated requests are in flight.
+  */
+  const resetAuthState = useCallback((): void => {
     tokenRef.current = null;
     setAccessToken(null);
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
-    queryClient.clear(); // Ensure previous user's data is wiped from cache
-  }, [queryClient]);
+  }, []);
+
+  /*
+    Ends a real session: local state plus every cached query, so one user's
+    data can never be shown to the next.
+
+    Only for logout and session expiry. Never for "there was no session to
+    begin with" — clearing the cache cancels in-flight queries, and on the
+    public signup pages that killed the departments lookup mid-request and
+    left it pending forever.
+  */
+  const clearAuth = useCallback((): void => {
+    resetAuthState();
+    queryClient.clear();
+  }, [resetAuthState, queryClient]);
 
   // Register apiClient callbacks on mount (runs once)
   // These give the axios interceptor access to the current token and a way to
@@ -96,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //
   // The browser automatically sends the httpOnly refreshToken cookie
   // If the cookie is valid = we get a fresh accessToken and restore the user from the stored localStorage snapshot
-  // If the cookie is absent or expired = clearAuth() and continue as guest
+  // If the cookie is absent or expired = resetAuthState() and continue as guest
   //
   // isLoading stays true until this resolves so ProtectedRoute can show a spinner instead of flashing a redirect to /login
 
@@ -121,18 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(TOKEN_KEY, newToken);
         } else {
           // Valid cookie but no user snapshot (treat as unauthenticated)
-          clearAuth();
+          resetAuthState();
         }
       } catch {
-        // No cookie, expired token or network error = not authenticated
-        clearAuth();
+        // No cookie, expired token or network error = not authenticated.
+        // Nothing was ever loaded under a session here, so reset local state
+        // without clearing the cache — public pages (signup) may be fetching.
+        resetAuthState();
       } finally {
         setIsLoading(false);
       }
     }
 
     void tryRestoreSession();
-  }, [clearAuth]);
+  }, [resetAuthState]);
 
   // Auth actions
 

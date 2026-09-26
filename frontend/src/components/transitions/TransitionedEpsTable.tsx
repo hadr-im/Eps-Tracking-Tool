@@ -5,21 +5,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadgeCell } from "@/components/crm/cells/StatusBadgeCell";
 import { DateCell } from "@/components/crm/cells/DateCell";
+import { TruncatedText } from "@/components/crm/cells/TruncatedText";
 import { MemberPicker } from "@/components/team/MemberPicker";
 import type { TransitionHistoryDto } from "@/types/ep";
 import type { DepartmentMember } from "@/services/departmentService";
+import { BAND_CLASS, bandStyle, type BandTone, TABLE_CONTAINER_CLASS } from "@/components/ui/data-table";
 
 // Column group metadata
 interface ColumnGroup {
   label: string;
-  headerClass: string;
+  tone: BandTone;
   columnIds: string[];
 }
 
 const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: "General Info",
-    headerClass: "bg-blue-500 text-white border-blue-500",
+    tone: 1 as BandTone,
     columnIds: [
       "statusOnExpa",
       "epId",
@@ -34,7 +36,7 @@ const COLUMN_GROUPS: ColumnGroup[] = [
   },
   {
     label: "CRM",
-    headerClass: "bg-amber-500 text-white border-amber-500",
+    tone: 2 as BandTone,
     columnIds: [
       "memberName",
       "source",
@@ -47,12 +49,12 @@ const COLUMN_GROUPS: ColumnGroup[] = [
   },
   {
     label: "Interests",
-    headerClass: "bg-emerald-500 text-white border-emerald-500",
+    tone: 3 as BandTone,
     columnIds: ["duration", "availability"],
   },
   {
     label: "Transition",
-    headerClass: "bg-violet-500 text-white border-violet-500",
+    tone: 4 as BandTone,
     columnIds: ["fromProduct", "createdAt", "triggeredByName", "note"],
   },
 ];
@@ -152,9 +154,10 @@ function buildColumns(
       id: "email",
       header: "Email",
       cell: (info) => (
-        <span className="text-xs truncate max-w-40 block mx-auto">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
+        />
       ),
       meta: { minWidth: 160 },
     }),
@@ -172,9 +175,10 @@ function buildColumns(
       id: "university",
       header: "University",
       cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
+        />
       ),
       meta: { minWidth: 130 },
     }),
@@ -182,9 +186,10 @@ function buildColumns(
       id: "fieldOfStudy",
       header: "Field of Study",
       cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
+        />
       ),
       meta: { minWidth: 130 },
     }),
@@ -214,9 +219,10 @@ function buildColumns(
       id: "source",
       header: "Source",
       cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
+        />
       ),
       meta: { minWidth: 120 },
     }),
@@ -285,9 +291,10 @@ function buildColumns(
       id: "notes",
       header: "Notes",
       cell: (info) => (
-        <span className="text-xs max-w-50 block whitespace-pre-wrap mx-auto text-left">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-50 block truncate whitespace-nowrap overflow-hidden mx-auto text-left"
+        />
       ),
       meta: { minWidth: 200 },
     }),
@@ -367,9 +374,10 @@ function buildColumns(
       id: "note",
       header: "Transition Note",
       cell: (info) => (
-        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed max-w-62.5 mx-auto text-left">
-          {info.getValue() || "—"}
-        </p>
+        <TruncatedText
+          value={(info.getValue() as string | null) || null}
+          className="text-xs text-muted-foreground max-w-62.5 mx-auto text-left block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 200 },
     }),
@@ -379,11 +387,11 @@ function buildColumns(
 // Helpers
 function buildGroupSpans(
   allColumnIds: string[],
-): { label: string; span: number; headerClass: string }[] {
+): { label: string; span: number; tone: BandTone }[] {
   return COLUMN_GROUPS.map((g) => ({
     label: g.label,
     span: g.columnIds.filter((id) => allColumnIds.includes(id)).length,
-    headerClass: g.headerClass,
+    tone: g.tone,
   })).filter((g) => g.span > 0);
 }
 
@@ -426,7 +434,7 @@ export function TransitionedEpsTable({
   return (
     <Table
       className="w-max min-w-full table-fixed border-separate border-spacing-0"
-      containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
+      containerClassName={TABLE_CONTAINER_CLASS}
     >
       <TableHeader className="sticky top-0 z-40 bg-card">
         {/* Column group band */}
@@ -439,7 +447,8 @@ export function TransitionedEpsTable({
             <TableHead
               key={g.label}
               colSpan={g.span}
-              className={`border-l text-center text-xs font-semibold tracking-wide py-1.5 ${g.headerClass}`}
+              className={`${BAND_CLASS} border-l border-black/5`}
+                style={bandStyle(g.tone)}
             >
               {g.label}
             </TableHead>
@@ -448,7 +457,7 @@ export function TransitionedEpsTable({
 
         {/* Column headers */}
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id} className="bg-muted/40">
+          <TableRow key={headerGroup.id} className="bg-muted">
             {headerGroup.headers.map((header) => {
               const meta = header.column.columnDef.meta ?? {};
               const isSticky = meta.sticky === "left";
@@ -467,8 +476,8 @@ export function TransitionedEpsTable({
                         }
                       : {}),
                   }}
-                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
-                    isSticky ? "bg-background" : "bg-muted/40"
+                  className={`whitespace-nowrap text-center align-middle text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-r border-b border-border last:border-r-0 ${
+                    isSticky ? "bg-muted" : "bg-muted"
                   }`}
                 >
                   {flexRender(
@@ -503,7 +512,7 @@ export function TransitionedEpsTable({
           table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}
-              className="hover:bg-muted/30 transition-colors group"
+              className="hover:bg-muted/60 transition-colors group"
             >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta ?? {};
@@ -525,7 +534,7 @@ export function TransitionedEpsTable({
                     }}
                     className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
                       isSticky
-                        ? "bg-background group-hover:bg-muted transition-colors"
+                        ? "bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors"
                         : ""
                     }`}
                   >

@@ -5,12 +5,18 @@ import type {
   PasswordResetOtp as PrismaOtp,
 } from '@prisma/client';
 
-import { IAuthRepository } from '../../Domain/abstracts/IAuthRepository';
+import {
+  IAuthRepository,
+  GrantedAccess,
+  ManagedAccess,
+  DepartmentSummary,
+} from '../../Domain/abstracts/IAuthRepository';
 import { User } from '../../Domain/entities/User';
 import { RefreshToken } from '../../Domain/entities/RefreshToken';
 import { OtpToken } from '../../Domain/entities/OtpToken';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { AuthProvider } from '../../Domain/enums/AuthProvider';
+import { AccountStatus } from '../../Domain/enums/AccountStatus';
 import { prisma } from '../Database/PrismaService';
 
 export class AuthRepository implements IAuthRepository {
@@ -51,6 +57,11 @@ export class AuthRepository implements IAuthRepository {
       isDisabled: user.isDisabled,
       avatarUrl: user.avatarUrl,
       updatedAt: user.updatedAt,
+      status: user.status,
+      requestedRole: user.requested?.role ?? null,
+      requestedDepartmentId: user.requested?.departmentId ?? null,
+      requestedTeamLeaderId: user.requested?.teamLeaderId ?? null,
+      requestedIsDispatcher: user.requested?.isDispatcher ?? false,
     };
 
     const row = await this.db.user.upsert({
@@ -154,6 +165,157 @@ export class AuthRepository implements IAuthRepository {
     return rows.map((r) => this.toUserEntity(r));
   }
 
+  // Account approval
+
+  async departmentExists(departmentId: string): Promise<boolean> {
+    const row = await this.db.department.findUnique({
+      where: { id: departmentId },
+      select: { id: true },
+    });
+    return row !== null;
+  }
+
+  /*
+    Departments plus whether their single-holder roles are taken.
+
+    Only granted values count: a pending applicant has no department and no
+    role yet, so an unapproved VP request never makes a department look
+    occupied. Disabled accounts are excluded too, which reopens the slot
+    during a handover.
+  */
+  async listDepartments(): Promise<DepartmentSummary[]> {
+    const [rows, holders] = await Promise.all([
+      this.db.department.findMany({
+        select: { id: true, name: true, product: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.db.user.findMany({
+        where: {
+          isDisabled: false,
+          departmentId: { not: null },
+          OR: [{ role: UserRole.VP }, { isDispatcher: true }],
+        },
+        select: { departmentId: true, role: true, isDispatcher: true },
+      }),
+    ]);
+
+    const vpTaken = new Set<string>();
+    const dispatcherTaken = new Set<string>();
+    for (const h of holders) {
+      if (!h.departmentId) continue;
+      if (h.role === UserRole.VP) vpTaken.add(h.departmentId);
+      if (h.isDispatcher) dispatcherTaken.add(h.departmentId);
+    }
+
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      product: String(r.product),
+      hasVp: vpTaken.has(r.id),
+      hasDispatcher: dispatcherTaken.has(r.id),
+    }));
+  }
+
+  async findUsersByStatus(
+    status: AccountStatus,
+    requestedDepartmentId?: string,
+  ): Promise<User[]> {
+    const rows = await this.db.user.findMany({
+      where: {
+        status,
+        ...(requestedDepartmentId !== undefined && { requestedDepartmentId }),
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r) => this.toUserEntity(r));
+  }
+
+  // Approved accounts in a department, including disabled ones so a VP can
+  // see and re-enable someone who left.
+  async findDepartmentUsers(departmentId: string): Promise<User[]> {
+    const rows = await this.db.user.findMany({
+      where: { departmentId, status: AccountStatus.ACTIVE },
+      orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
+    });
+    return rows.map((r) => this.toUserEntity(r));
+  }
+
+  async updateUserAccess(userId: string, access: ManagedAccess): Promise<User> {
+    const row = await this.db.user.update({
+      where: { id: userId },
+      data: {
+        role: access.role,
+        teamLeaderId: access.teamLeaderId,
+        isDispatcher: access.isDispatcher,
+        isDisabled: access.isDisabled,
+      },
+    });
+    return this.toUserEntity(row);
+  }
+
+  async findActiveDispatcher(departmentId: string): Promise<User | null> {
+    const row = await this.db.user.findFirst({
+      where: { departmentId, isDispatcher: true, isDisabled: false },
+    });
+    return row ? this.toUserEntity(row) : null;
+  }
+
+  async findActiveVp(departmentId: string): Promise<User | null> {
+    const row = await this.db.user.findFirst({
+      where: { departmentId, role: UserRole.VP, isDisabled: false },
+    });
+    return row ? this.toUserEntity(row) : null;
+  }
+
+  async findTeamLeadersByDepartment(departmentId: string): Promise<User[]> {
+    const rows = await this.db.user.findMany({
+      where: {
+        departmentId,
+        role: UserRole.TEAM_LEADER,
+        isDisabled: false,
+        status: AccountStatus.ACTIVE,
+      },
+      orderBy: { fullName: 'asc' },
+    });
+    return rows.map((r) => this.toUserEntity(r));
+  }
+
+  /*
+    Grants the approved access in a single UPDATE. The partial unique indexes
+    one_dispatcher_per_department / one_vp_per_department are the final
+    authority here: if two VPs approve conflicting requests at the same moment,
+    Postgres rejects the loser and the use case turns that into a 409.
+  */
+  async approveUser(userId: string, grant: GrantedAccess, reviewerId: string): Promise<User> {
+    const row = await this.db.user.update({
+      where: { id: userId },
+      data: {
+        role: grant.role,
+        departmentId: grant.departmentId,
+        teamLeaderId: grant.teamLeaderId,
+        isDispatcher: grant.isDispatcher,
+        status: AccountStatus.ACTIVE,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+    return this.toUserEntity(row);
+  }
+
+  async rejectUser(userId: string, reviewerId: string, reason: string | null): Promise<User> {
+    const row = await this.db.user.update({
+      where: { id: userId },
+      data: {
+        status: AccountStatus.REJECTED,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+        rejectionReason: reason,
+      },
+    });
+    return this.toUserEntity(row);
+  }
+
   // Private mappers 
 
   private toUserEntity(row: PrismaUser): User {
@@ -172,6 +334,14 @@ export class AuthRepository implements IAuthRepository {
       row.updatedAt,
       row.avatarUrl,
       row.teamLeaderId,
+      row.status as AccountStatus,
+      {
+        role: (row.requestedRole as UserRole | null) ?? null,
+        departmentId: row.requestedDepartmentId,
+        teamLeaderId: row.requestedTeamLeaderId,
+        isDispatcher: row.requestedIsDispatcher,
+      },
+      row.rejectionReason,
     );
   }
 

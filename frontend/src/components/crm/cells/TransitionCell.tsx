@@ -7,8 +7,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TransitionDialog } from '../TransitionDialog';
+import GVLogo  from '@/assets/GV-SIGNUP.png';
+import GTALogo from '@/assets/GTA-SIGNUP.png';
+import GTELogo from '@/assets/GTE-SIGNUP.png';
 
-const ALL_PRODUCTS = ['GV', 'GTA', 'GTE'];
+const ALL_PRODUCTS = ['GV', 'GTA', 'GTE'] as const;
+type Product = typeof ALL_PRODUCTS[number];
+
+const PRODUCT_CONFIG: Record<Product, { color: string; logo: string }> = {
+  GV:  { color: 'var(--gv)',  logo: GVLogo },
+  GTA: { color: 'var(--gta)', logo: GTALogo },
+  GTE: { color: 'var(--gte)', logo: GTELogo },
+};
 
 interface TransitionCellProps {
   epId: string;
@@ -26,7 +36,6 @@ export function TransitionCell({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
 
-  // Derive legal targets (anything except the current product)
   const availableTargets = ALL_PRODUCTS.filter((p) => p !== currentProduct);
 
   const handleSelect = (val: string) => {
@@ -37,17 +46,12 @@ export function TransitionCell({
   const handleConfirm = (note?: string) => {
     if (!selectedTarget) return;
     onTransition(epId, selectedTarget, note);
-    // Dialog stays open displaying spinner, parent hook handles invalidation which will unmount this cell entirely
   };
 
   const handleOpenChange = (open: boolean) => {
-    // Only allow closing if not currently mutating
     if (!isPending) {
       setDialogOpen(open);
-      if (!open) {
-        // Reset select visually when dialog is cancelled
-        setSelectedTarget(null);
-      }
+      if (!open) setSelectedTarget(null);
     }
   };
 
@@ -69,11 +73,17 @@ export function TransitionCell({
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {availableTargets.map((p) => (
-            <SelectItem key={p} value={p} className="text-xs">
-              To {p}
-            </SelectItem>
-          ))}
+          {availableTargets.map((p) => {
+            const cfg = PRODUCT_CONFIG[p as Product];
+            return (
+              <SelectItem key={p} value={p} label={`To ${p}`} className="text-sm">
+                <img src={cfg.logo} alt={p} className="h-5 w-5 shrink-0 object-contain" />
+                <span style={{ color: cfg.color }} className="font-semibold">
+                  {p}
+                </span>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 

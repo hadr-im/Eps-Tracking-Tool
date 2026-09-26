@@ -16,14 +16,9 @@ import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { StatusChangeTrend } from '@/types/dashboard';
+import { STATUS_COLOR, TOOLTIP_STYLE } from './chartTokens';
 
 const TRACKED_STATUSES = ['APPROVED', 'REALIZED', 'COMPLETED'] as const;
-
-const STATUS_COLOR: Record<string, string> = {
-  APPROVED:  '#f59e0b',
-  REALIZED:  '#10b981',
-  COMPLETED: '#22c55e',
-};
 
 const STATUS_LABEL: Record<string, string> = {
   APPROVED:  'Approved',
@@ -61,13 +56,6 @@ interface TrendsChartProps {
   isLoading: boolean;
 }
 
-const TOOLTIP_STYLE = {
-  fontSize: 12,
-  borderRadius: 8,
-  border: '1px solid hsl(var(--border))',
-  background: 'hsl(var(--card))',
-  color: 'hsl(var(--foreground))',
-};
 
 export function TrendsChart({ data, isLoading }: TrendsChartProps) {
   if (isLoading) {
@@ -126,7 +114,10 @@ export function TrendsChart({ data, isLoading }: TrendsChartProps) {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                cursor={{ stroke: 'var(--color-border)', strokeDasharray: '3 3' }}
+              />
               <Legend
                 wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                 iconType="circle"

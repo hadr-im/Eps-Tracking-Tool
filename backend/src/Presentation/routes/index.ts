@@ -7,10 +7,13 @@ import leadsRoutes from './leads.routes';
 import departmentsRoutes from './departments.routes';
 import dashboardRoutes from './dashboard.routes';
 import usersRoutes from './users.routes';
+import cronRoutes from './cron.routes';
 
 const router = Router();
 
 router.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+router.use('/cron',        cronRoutes);
 
 router.use('/auth',        authRoutes);
 router.use('/',            epRoutes);

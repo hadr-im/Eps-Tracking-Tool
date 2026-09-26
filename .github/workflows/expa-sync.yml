@@ -1,0 +1,70 @@
+name: EXPA Sync
+
+# Replaces the in-process node-cron scheduler, which cannot run on a serverless
+# host because there is no long-lived process between requests. Each run calls
+# the backend's /api/cron/* endpoints over HTTP instead.
+#
+# Required repository secrets:
+#   BACKEND_URL  - deployed backend origin, no trailing slash
+#                  (e.g. https://eps-tracking-api.vercel.app)
+#   CRON_SECRET  - must match the CRON_SECRET env var set on the backend
+#
+# Note: GitHub disables scheduled workflows after 60 days without repo activity,
+# and may delay runs under load. Swap in cron-job.org if timing gets strict.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # leads sync, every 5 minutes
+    - cron: '0 * * * *'     # status/approvals sync, hourly
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which sync to run
+        required: true
+        default: sync-leads
+        type: choice
+        options: [sync-leads, sync-status]
+
+concurrency:
+  group: expa-sync-${{ github.event.schedule || inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine job
+        id: pick
+        run: |
+          if [ "${{ github.event.schedule }}" = "0 * * * *" ]; then
+            echo "job=sync-status" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.job }}" ]; then
+            echo "job=${{ inputs.job }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "job=sync-leads" >> "$GITHUB_OUTPUT"
+          fi
+
+      # One request per product. The endpoint paginates EXPA for a whole
+      # department, which can outlast a serverless request if all three run
+      # together, so they are split and run sequentially.
+      - name: Sync each department
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          JOB: ${{ steps.pick.outputs.job }}
+        run: |
+          set -u
+          failed=0
+          for product in GV GTA GTE; do
+            echo "::group::$JOB $product"
+            code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+              --max-time 120 --retry 2 --retry-delay 10 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$BACKEND_URL/api/cron/$JOB?product=$product") || code=000
+            echo "HTTP $code"
+            cat /tmp/out.json 2>/dev/null || true
+            echo
+            [ "$code" = "200" ] || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed

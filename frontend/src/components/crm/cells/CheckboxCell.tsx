@@ -16,7 +16,7 @@ export function CheckboxCell({ id, field, value, isPending, onUpdate }: Checkbox
         checked={value}
         disabled={isPending}
         onCheckedChange={(checked) => onUpdate(id, field, Boolean(checked))}
-        className={isPending ? 'opacity-50 cursor-not-allowed' : ''}
+        className={`border-2 border-foreground/40 ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
         aria-label={field}
       />
     </div>

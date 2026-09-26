@@ -6,6 +6,8 @@ export interface Comment {
   id: string;
   epId: string;
   authorId: string | null;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
   fieldName: string | null;
   content: string;
   createdAt: string; // ISO date string

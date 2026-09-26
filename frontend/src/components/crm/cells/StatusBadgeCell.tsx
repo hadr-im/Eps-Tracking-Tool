@@ -1,14 +1,24 @@
-import { Badge } from '@/components/ui/badge';
 import type { EpStatus } from '@/types/ep';
+import { SoftBadge, type SoftBadgeTone } from '@/components/ui/soft-badge';
 
-const STATUS_CONFIG: Record<EpStatus, { label: string; className: string }> = {
-  LEAD:        { label: 'Lead',        className: 'bg-sidebar-primary text-white border-sidebar-primary' },
-  CONTACTED:   { label: 'Contacted',   className: 'bg-blue-500    text-white border-blue-500'    },
-  INTERESTED:  { label: 'Interested',  className: 'bg-violet-500  text-white border-violet-500'  },
-  APPROVED:    { label: 'Approved',    className: 'bg-amber-500   text-white border-amber-500'   },
-  REALIZED:    { label: 'Realized',    className: 'bg-emerald-500 text-white border-emerald-500' },
-  COMPLETED:   { label: 'Completed',   className: 'bg-green-600   text-white border-green-600'   },
-  FINISHED:    { label: 'Finished',    className: 'bg-gray-400    text-white border-gray-400'    },
+/*
+  Status pills — soft-badge style, same shape as the dispatcher chip.
+
+  The tone climbs the funnel:
+    LEAD -> neutral
+    CONTACTED -> blue
+    INTERESTED -> dispatcher (violet) — a distinct interim step
+    APPROVED -> amber
+    REALIZED / COMPLETED / FINISHED -> green (with deepening implied by icon-free reads)
+*/
+const STATUS_CONFIG: Record<EpStatus, { label: string; tone: SoftBadgeTone }> = {
+  LEAD:       { label: 'Lead',       tone: 'neutral' },
+  CONTACTED:  { label: 'Contacted',  tone: 'blue' },
+  INTERESTED: { label: 'Interested', tone: 'dispatcher' },
+  APPROVED:   { label: 'Approved',   tone: 'amber' },
+  REALIZED:   { label: 'Realized',   tone: 'green' },
+  COMPLETED:  { label: 'Completed',  tone: 'green' },
+  FINISHED:   { label: 'Finished',   tone: 'neutral' },
 };
 
 interface StatusBadgeCellProps {
@@ -16,13 +26,6 @@ interface StatusBadgeCellProps {
 }
 
 export function StatusBadgeCell({ status }: StatusBadgeCellProps) {
-  const config = STATUS_CONFIG[status] ?? { label: status, className: 'bg-sidebar-primary text-white' };
-  return (
-    <Badge
-      variant="outline"
-      className={`text-[11px] font-normal rounded-full px-2.5 py-0.5 whitespace-nowrap ${config.className}`}
-    >
-      {config.label}
-    </Badge>
-  );
+  const config = STATUS_CONFIG[status] ?? { label: status, tone: 'neutral' as SoftBadgeTone };
+  return <SoftBadge tone={config.tone}>{config.label}</SoftBadge>;
 }

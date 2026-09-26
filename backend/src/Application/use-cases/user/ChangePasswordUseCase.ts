@@ -15,20 +15,30 @@ export class ChangePasswordUseCase {
     if (!user) throw new AppError('User not found', 404);
     if (user.isDisabled) throw new AppError('Account is disabled', 403);
 
-    // Google-only users cannot change password here (they have no passwordHash)
-    if (user.provider === AuthProvider.GOOGLE && !user.passwordHash) {
-      throw new AppError(
-        'Google-authenticated accounts cannot change their password here. Use "Forgot password" to set one.',
-        403,
-      );
-    }
+    /*
+      Google-only accounts have no password yet, so they can set one here
+      without providing a "current" — that's the first-time-set flow. Every
+      other call must include the current password, and it must match.
 
-    // Verify current password
-    const isValid = await this.bcrypt.compare(dto.currentPassword, user.passwordHash!);
-    if (!isValid) throw new AppError('Current password is incorrect', 400);
+      Never accept an empty current password on an account that already has
+      one: it would let anyone with a stolen access token overwrite the
+      password without knowing the old one.
+    */
+    if (user.passwordHash) {
+      if (!dto.currentPassword) {
+        throw new AppError('Current password is required', 400);
+      }
+      const isValid = await this.bcrypt.compare(dto.currentPassword, user.passwordHash);
+      if (!isValid) throw new AppError('Current password is incorrect', 400);
+    }
 
     // Hash and save new password
     user.passwordHash = await this.bcrypt.hash(dto.newPassword);
+    // A Google-only account picks up a password here — mark it LOCAL so the
+    // regular sign-in flow works from now on.
+    if (user.provider === AuthProvider.GOOGLE) {
+      user.provider = AuthProvider.LOCAL;
+    }
     user.updatedAt = new Date();
     await this.repo.save(user);
 

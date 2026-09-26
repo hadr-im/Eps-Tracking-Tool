@@ -129,6 +129,26 @@ export class EpController {
   }
 
   /*
+    PATCH /eps/:id/owner
+    TL / VP reassigns an EP to a different member in the same department.
+  */
+  static async reassignOwner(req: Request, res: Response): Promise<void> {
+    try {
+      const caller = req.user!;
+      const epId   = typeof req.params['id'] === 'string' ? req.params['id'] : '';
+      const memberId = (req.body as { memberId?: unknown })?.memberId;
+      if (typeof memberId !== 'string' || memberId.length === 0) {
+        res.status(400).json({ message: 'memberId is required' });
+        return;
+      }
+      const updated = await epManagementUseCase.reassignOwner(epId, memberId, caller);
+      res.status(200).json({ data: updated });
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
+  /*
     GET /eps/under-process
     TL/VP only (EPs with trackingPhase = LOOKING_FOR_OPPORTUNITIES)
     Read-only, TL/VP may comment via POST /eps/:id/comments

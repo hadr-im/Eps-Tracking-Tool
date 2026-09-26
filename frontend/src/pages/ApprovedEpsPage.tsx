@@ -1,46 +1,44 @@
 import { useState, useCallback } from 'react';
-import { Eye } from 'lucide-react';
+
 import { useAuth }              from '@/hooks/useAuth';
 import { useApprovedEps }       from '@/hooks/useApprovedEps';
+import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
+import { useReassignEpOwner }   from '@/hooks/useReassignEpOwner';
 import { CommentPanel }         from '@/components/team/CommentPanel';
 import { ApprovedEpsFilters }   from '@/components/approved/ApprovedEpsFilters';
 import { ApprovedEpsTable }     from '@/components/approved/ApprovedEpsTable';
 import { ApprovedEpMobileCard } from '@/components/approved/ApprovedEpMobileCard';
 import type { ApprovedEp, ApprovedEpFilters as Filters } from '@/types/approvedEp';
 import type { Ep } from '@/types/ep';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function ApprovedEpsPage() {
   const { user } = useAuth();
   const canComment = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canReassign = canComment;
 
   const [filters, setFilters] = useState<Filters>({});
   const [openEp, setOpenEp]   = useState<ApprovedEp | null>(null);
 
   const { data: eps = [], isLoading } = useApprovedEps(filters);
+  const { data: departmentMembers = [] } = useDepartmentMembers(user?.departmentId ?? null);
+  const { mutate: reassignOwner, variables: reassignVars, isPending: isReassigning } =
+    useReassignEpOwner();
 
   const handleCommentClick = useCallback((ep: ApprovedEp) => setOpenEp(ep), []);
+  const handleReassign = useCallback(
+    (epId: string, memberId: string) => reassignOwner({ epId, memberId }),
+    [reassignOwner],
+  );
+  const reassigningId = isReassigning ? reassignVars?.epId ?? null : null;
 
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Approved EPs</p>
-            <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-            <p className="text-sm text-muted-foreground">
-              Department-wide operational tracker
-            </p>
-          </div>
-
-          {/* Read-only badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-sidebar-primary px-3 py-1 text-xs font-semibold text-sidebar-primary-foreground">
-            <Eye size={12} />
-            Read-only
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Approved EPs"
+        subtitle="Department-wide operational tracker"
+      />
 
       {/* Filter bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
@@ -57,6 +55,9 @@ export default function ApprovedEpsPage() {
           eps={eps}
           isLoading={isLoading}
           onCommentClick={canComment ? handleCommentClick : undefined}
+          departmentMembers={canReassign ? departmentMembers : undefined}
+          onReassign={canReassign ? handleReassign : undefined}
+          reassigningId={reassigningId}
         />
       </div>
 

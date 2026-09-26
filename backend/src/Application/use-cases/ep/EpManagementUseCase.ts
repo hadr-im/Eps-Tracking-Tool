@@ -1,5 +1,6 @@
 import { IEpRepository } from '../../../Domain/abstracts/IEpRepository';
 import { ICommentRepository } from '../../../Domain/abstracts/ICommentRepository';
+import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { Comment } from '../../../Domain/entities/Comment';
 import { UserRole } from '../../../Domain/enums/UserRole';
@@ -13,6 +14,7 @@ export interface EpManagementCaller {
   id: string;
   role: UserRole;
   departmentId: string | null;
+  isDispatcher?: boolean;
 }
 
 // Full CRM-aware DTO returned by all EP management endpoints
@@ -46,6 +48,8 @@ export interface CommentDto {
   id: string;
   epId: string;
   authorId: string | null;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
   fieldName: string | null;
   content: string;
   createdAt: string;
@@ -55,6 +59,7 @@ export class EpManagementUseCase {
   constructor(
     private readonly epRepo: IEpRepository,
     private readonly commentRepo: ICommentRepository,
+    private readonly authRepo: IAuthRepository,
   ) {}
 
   /*
@@ -86,6 +91,7 @@ export class EpManagementUseCase {
     let eps: Ep[];
 
     if (memberId) {
+      await this.assertCanViewMember(caller, memberId);
       eps = await this.epRepo.findByOwner(memberId, filters);
     } else if (ownerIds) {
       eps = await this.epRepo.findByOwners(ownerIds, filters);
@@ -94,6 +100,42 @@ export class EpManagementUseCase {
     }
 
     return eps.map((ep) => this.toDto(ep));
+  }
+
+  /*
+    Decides whether the caller may read another person's pipeline.
+
+    Mirrors exactly who the caller can already see in the member picker
+    (DepartmentController.getMembers), so the API grants nothing the UI does
+    not. Without this check, passing any user id to GET /eps returned that
+    person's EPs regardless of role, department or team.
+  */
+  private async assertCanViewMember(
+    caller: EpManagementCaller,
+    memberId: string,
+  ): Promise<void> {
+    // Your own EPs are always yours to read.
+    if (memberId === caller.id) return;
+
+    if (caller.role === UserRole.MEMBER) {
+      throw new AppError('You can only view your own EPs', 403);
+    }
+
+    const target = await this.authRepo.findById(memberId);
+    if (!target) throw new AppError('Member not found', 404);
+
+    if (target.departmentId !== caller.departmentId) {
+      throw new AppError('That member is not in your department', 403);
+    }
+
+    // A VP oversees the whole department, and so does the dispatcher TL, who
+    // has to assign leads across every member.
+    if (caller.role === UserRole.VP || caller.isDispatcher) return;
+
+    // Any other Team Leader sees only their own team.
+    if (target.teamLeaderId !== caller.id) {
+      throw new AppError('That member is not on your team', 403);
+    }
   }
 
   /*
@@ -137,6 +179,40 @@ export class EpManagementUseCase {
   }
 
   /*
+    Reassigns an EP to a different member of the same department.
+    TL / VP only. Used from the Approved EPs and Under-Process tables when the
+    department wants to move ownership of an in-flight EP without going through
+    the dispatch pool.
+  */
+  async reassignOwner(
+    epId: string,
+    memberId: string,
+    caller: EpManagementCaller,
+  ): Promise<EpDto> {
+    if (caller.role === UserRole.MEMBER) {
+      throw new AppError('Only Team Leaders or VPs can reassign EPs', 403);
+    }
+    if (!caller.departmentId) {
+      throw new AppError('No department assigned to your account', 400);
+    }
+
+    const ep = await this.epRepo.findById(epId);
+    if (!ep) throw new AppError('EP not found', 404);
+    if (ep.departmentId !== caller.departmentId) {
+      throw new AppError('EP does not belong to your department', 403);
+    }
+
+    const target = await this.authRepo.findById(memberId);
+    if (!target) throw new AppError('Member not found', 404);
+    if (target.departmentId !== caller.departmentId) {
+      throw new AppError('That member is not in your department', 403);
+    }
+
+    const updated = await this.epRepo.reassignOwner(epId, memberId);
+    return this.toDto(updated);
+  }
+
+  /*
     Adds a comment on an EP
     TL/VP only (members cannot comment)
     Validates the EP belongs to the caller's department
@@ -161,7 +237,9 @@ export class EpManagementUseCase {
     }
 
     const comment = await this.commentRepo.create(epId, caller.id, fieldName, content);
-    return this.toCommentDto(comment);
+    const author = caller.id ? await this.authRepo.findById(caller.id) : null;
+    const authorMap = author ? new Map([[author.id, author]]) : new Map();
+    return this.toCommentDto(comment, authorMap);
   }
 
   /*
@@ -179,7 +257,10 @@ export class EpManagementUseCase {
     }
 
     const comments = await this.commentRepo.findByEpId(epId);
-    return comments.map((c) => this.toCommentDto(c));
+    const authorIds = [...new Set(comments.map((c) => c.authorId).filter((id): id is string => !!id))];
+    const authors = await Promise.all(authorIds.map((id) => this.authRepo.findById(id)));
+    const authorMap = new Map(authors.filter(Boolean).map((u) => [u!.id, u!]));
+    return comments.map((c) => this.toCommentDto(c, authorMap));
   }
 
   /*
@@ -226,11 +307,14 @@ export class EpManagementUseCase {
     };
   }
 
-  private toCommentDto(comment: Comment): CommentDto {
+  private toCommentDto(comment: Comment, authorMap: Map<string, import('../../../Domain/entities/User').User> = new Map()): CommentDto {
+    const author = comment.authorId ? authorMap.get(comment.authorId) : undefined;
     return {
       id: comment.id,
       epId: comment.epId,
       authorId: comment.authorId,
+      authorName: author?.fullName ?? null,
+      authorAvatarUrl: author?.avatarUrl ?? null,
       fieldName: comment.fieldName,
       content: comment.content,
       createdAt: comment.createdAt.toISOString(),

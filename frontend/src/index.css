@@ -5,12 +5,30 @@
 @import "@fontsource/poppins/500.css";
 @import "@fontsource/poppins/600.css";
 @import "@fontsource/poppins/700.css";
+/* Wordmark font, used only for the "EPs Tracking Tool" brand text */
+@import "@fontsource/pacifico/400.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Poppins', sans-serif;
+    --font-brand: 'Pacifico', cursive;
+
+    /* AIESEC product palette — one colour per exchange programme */
+    --color-gte: var(--gte);
+    --color-gta: var(--gta);
+    --color-gv: var(--gv);
+    --color-aiesec-blue: var(--aiesec-blue);
+    --color-dispatcher: var(--dispatcher);
+
+    /* Chart palette exposed as Tailwind colour classes */
+    --color-chart-blue: var(--chart-blue);
+    --color-chart-amber: var(--chart-amber);
+    --color-chart-emerald: var(--chart-emerald);
+    --color-chart-teal: var(--chart-teal);
+    --color-chart-violet: var(--chart-violet);
+    --color-chart-rose: var(--chart-rose);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -76,14 +94,66 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
+    --sidebar: #FFFFFF;
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent: oklch(0.96 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* AIESEC brand colours, one per product */
+    --gte: #F48924;         /* Global Teacher  */
+    --gta: #0CB9C1;         /* Global Talent   */
+    --gv: #F85A40;          /* Global Volunteer */
+    --aiesec-blue: #037EF3;
+    --brand-gray: #f5f5f5;
+
+    /*
+      Deliberately outside the product palette: the dispatcher is a
+      responsibility, not a programme, so it must not read as "this person
+      belongs to GV/GTA/GTE".
+    */
+    --dispatcher: #7C3AED;
+
+    /*
+      Chart palette. Reuses the brand + soft-badge accents so charts, badges
+      and buttons agree on what each concept looks like. Every series and pill
+      in the dashboard pulls from here, so a single change updates all of them.
+    */
+    --chart-blue: var(--aiesec-blue);
+    --chart-amber: #F59E0B;
+    --chart-emerald: #10B981;
+    --chart-teal: #0CB9C1;      /* == GTA */
+    --chart-violet: var(--dispatcher);
+    --chart-rose: #F43F5E;
+
+    /*
+      Cursor / active fill used by Recharts. Very light neutral grey rather
+      than a tinted colour, so hovering a bar or point never suggests a
+      "selected" state that the chart doesn't actually support.
+    */
+    --chart-hover: rgba(15, 23, 42, 0.04);
+
+    /*
+      Table group bands. Filled, with a gradient so the header has some depth
+      instead of reading as a flat slab.
+    */
+    /*
+      Group bands.
+
+      Muted tints in five hues that harmonise with the AIESEC blue accent —
+      cool blue, teal, indigo, amber and rose. Same low saturation across the
+      set so no single band shouts louder than the others, with the label in a
+      matching deep tone of the same hue. Same shape as the softer palette we
+      use for status pills, so the tables read as part of one system.
+    */
+    --band-1: #DBEAFE;   --band-1-ink: #1E40AF;   /* blue    */
+    --band-2: #CCFBF1;   --band-2-ink: #0F766E;   /* teal    */
+    --band-3: #E0E7FF;   --band-3-ink: #3730A3;   /* indigo  */
+    --band-4: #FEF3C7;   --band-4-ink: #92400E;   /* amber   */
+    --band-5: #FFE4E6;   --band-5-ink: #9F1239;   /* rose    */
 }
 
 .dark {
@@ -130,4 +200,55 @@
   html {
     @apply font-sans;
     }
+
+  /*
+    Scrollbars.
+
+    The native Windows bar is a thick grey slab that cuts across the table
+    frame. This slims it down and keeps it inside the rounded corners: a
+    transparent track so the card shows through, and a thumb that only gains
+    contrast on hover.
+  */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-foreground) 18%, transparent);
+    border-radius: 9999px;
+    /* Inset the thumb so it reads as a floating pill, not a full-width bar */
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-foreground) 32%, transparent);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  /*
+    Scrollable, but with no visible bar. Used on table frames where the bar
+    cut across the rounded card edge; the content still scrolls by wheel,
+    trackpad, touch and keyboard.
+  */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 }

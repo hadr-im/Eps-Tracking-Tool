@@ -47,8 +47,9 @@ export class SyncStatusUseCase {
     private readonly epRepo: IEpRepository,
   ) {}
 
-  async execute(): Promise<DepartmentStatusResult[]> {
-    const products = [Product.GV, Product.GTA, Product.GTE];
+  // `only` scopes the run to a single department — see SyncLeadsUseCase.execute.
+  async execute(only?: Product): Promise<DepartmentStatusResult[]> {
+    const products = only ? [only] : [Product.GV, Product.GTA, Product.GTE];
     const results: DepartmentStatusResult[] = [];
 
     for (const product of products) {

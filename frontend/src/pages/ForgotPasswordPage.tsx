@@ -7,9 +7,11 @@ import { z } from 'zod'
 
 import { apiClient } from '@/services/apiClient'
 import { getFriendlyError } from '@/lib/utils'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field } from '@/components/auth/AuthFormFields'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 
 const emailOnlySchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -22,7 +24,6 @@ export default function ForgotPasswordPage() {
   const navigate = useNavigate()
   const initialEmail = searchParams.get('email') || ''
   
-  const [serverError, setServerError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
 
   const {
@@ -45,14 +46,13 @@ export default function ForgotPasswordPage() {
   }, [initialEmail])
 
   async function sendOtp(email: string) {
-    setServerError(null)
     setIsSending(true)
     try {
       await apiClient.post('/auth/forgot-password', { email })
       // Forward user to OTP verification page with email in query params
       navigate(`/verify-otp?email=${encodeURIComponent(email)}`, { replace: true })
     } catch (err: unknown) {
-      setServerError(getFriendlyError(err, {
+      toast.error(getFriendlyError(err, {
         400: 'Please provide a valid email address.',
         404: 'No account found with that email address.',
         429: 'Please wait a moment before requesting another code.',
@@ -67,66 +67,49 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Forgot Password</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enter your email to receive a 6-digit verification code
-          </p>
-        </div>
+    <AuthLayout
+      title="Forgot Password"
+      subtitle="Enter your email to receive a 6-digit verification code"
+      footerLink={
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={14} />
+          Back to sign in
+        </Link>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <Field id="email" label="Email address" error={errors.email?.message}>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-invalid={!!errors.email}
+            {...register('email')}
+          />
+        </Field>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-          <Field id="email" label="Email address" error={errors.email?.message}>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              aria-describedby={errors.email ? 'email-error' : undefined}
-              aria-invalid={!!errors.email}
-              {...register('email')}
-            />
-          </Field>
-
-          {/* Server-side error */}
-          {serverError && (
-            <p role="alert" className="text-sm text-destructive text-center">
-              {serverError}
-            </p>
+        <Button
+          id="forgot-password-submit"
+          type="submit"
+          size="lg"
+          className="mt-2 w-full"
+          disabled={isSending}
+        >
+          {isSending ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Sending code…
+            </>
+          ) : (
+            'Send verification code'
           )}
-
-          <Button
-            id="forgot-password-submit"
-            type="submit"
-            size="lg"
-            className="mt-2 w-full"
-            disabled={isSending}
-          >
-            {isSending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Sending OTP…
-              </>
-            ) : (
-              'Send OTP'
-            )}
-          </Button>
-        </form>
-
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to login
-          </Link>
-        </div>
-      </div>
-    </div>
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

@@ -1,6 +1,7 @@
 import { IEpRepository } from '../../../Domain/abstracts/IEpRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { UserRole } from '../../../Domain/enums/UserRole';
+import { AppError } from '../../errors/AppError';
 
 // Caller identity passed in by the controller (from JWT payload via req.user)
 export interface CallerContext {
@@ -44,19 +45,22 @@ export class GetApprovedEpsUseCase {
     return eps.map((ep) => this.toDto(ep));
   }
 
-  private resolveDepartmentId(
-    caller: CallerContext,
-    requestedDepartmentId?: string,
-  ): string {
-    // VPs may cross department boundaries
-    if (caller.role === UserRole.VP && requestedDepartmentId) {
-      return requestedDepartmentId;
-    }
+  /*
+    Resolves which department to read.
 
-    // Everyone else is scoped to their own department
+    A departmentId from the query string may only ever name the caller's own
+    department. This previously returned any value a VP supplied, which would
+    have handed back another department's EPs to anyone who asked; the UI never
+    sent it, so it was an open door nobody walked through.
+  */
+  private resolveDepartmentId(caller: CallerContext, requestedDepartmentId?: string): string {
     const departmentId = caller.departmentId;
     if (!departmentId) {
-      throw new Error('User has no department assigned');
+      throw new AppError('No department assigned to your account', 400);
+    }
+
+    if (requestedDepartmentId && requestedDepartmentId !== departmentId) {
+      throw new AppError('You can only view your own department', 403);
     }
 
     return departmentId;

@@ -19,17 +19,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton }  from '@/components/ui/skeleton';
-import { Badge }     from '@/components/ui/badge';
 import { Checkbox }  from '@/components/ui/checkbox';
 import { DateCell }  from '@/components/crm/cells/DateCell';
 import type { Lead } from '@/types/lead';
+import { TABLE_CONTAINER_CLASS } from "@/components/ui/data-table";
+import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
+import { TruncatedText }  from '@/components/crm/cells/TruncatedText';
+import type { EpStatus } from '@/types/ep';
 
-// Status badge colours
-const STATUS_COLORS: Record<string, string> = {
-  LEAD:       'bg-sidebar-primary text-white border-sidebar-primary',
-  CONTACTED:  'bg-blue-500   text-white border-blue-500',
-  INTERESTED: 'bg-violet-500 text-white border-violet-500',
-};
 
 interface LeadTableProps {
   leads: Lead[];
@@ -109,26 +106,19 @@ function buildColumns(
     col.accessor('statusOnExpa', {
       id: 'statusOnExpa',
       header: 'Status',
-      cell: (info) => {
-        const s = info.getValue() as string;
-        return (
-          <Badge
-            variant="outline"
-            className={`text-xs whitespace-nowrap ${STATUS_COLORS[s] ?? 'bg-muted text-muted-foreground'}`}
-          >
-            {s.charAt(0) + s.slice(1).toLowerCase()}
-          </Badge>
-        );
-      },
+      cell: (info) => (
+        <StatusBadgeCell status={info.getValue() as EpStatus} />
+      ),
       meta: { minWidth: 100 },
     }),
     col.accessor('email', {
       id: 'email',
       header: 'Email',
       cell: (info) => (
-        <span className="text-xs truncate max-w-40 block">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 160 },
     }),
@@ -146,9 +136,10 @@ function buildColumns(
       id: 'university',
       header: 'University',
       cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 140 },
     }),
@@ -164,9 +155,10 @@ function buildColumns(
       id: 'source',
       header: 'Source',
       cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 100 },
     }),
@@ -216,11 +208,11 @@ export function LeadTable({
   return (
     <Table
       className="w-max min-w-full table-fixed border-separate border-spacing-0"
-      containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
+      containerClassName={TABLE_CONTAINER_CLASS}
     >
       <TableHeader className="sticky top-0 z-20 bg-card">
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id} className="bg-muted/40">
+          <TableRow key={headerGroup.id} className="bg-muted">
             {headerGroup.headers.map((header) => {
               const meta = header.column.columnDef.meta ?? {};
               const isSticky = meta.sticky === 'left';
@@ -234,8 +226,8 @@ export function LeadTable({
                       ? { position: 'sticky', left: stickyOffsets[header.id] ?? 0, zIndex: 20 }
                       : {}),
                   }}
-                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
-                    isSticky ? 'bg-background' : 'bg-muted/40'
+                  className={`whitespace-nowrap text-center align-middle text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-r border-b border-border last:border-r-0 ${
+                    isSticky ? 'bg-muted' : 'bg-muted'
                   }`}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
@@ -264,7 +256,7 @@ export function LeadTable({
           table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}
-              className="hover:bg-muted/30 transition-colors group"
+              className="hover:bg-muted/60 transition-colors group"
               data-selected={selectedIds.includes(row.original.id) || undefined}
             >
               {row.getVisibleCells().map((cell) => {
@@ -281,7 +273,7 @@ export function LeadTable({
                         : {}),
                     }}
                     className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
-                      isSticky ? 'bg-background group-hover:bg-muted transition-colors' : ''
+                      isSticky ? 'bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors' : ''
                     }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">

@@ -17,6 +17,7 @@ import { PhaseBreakdownChart }    from '@/components/dashboard/PhaseBreakdownCha
 import { LeaderboardChart }       from '@/components/dashboard/LeaderboardChart';
 import { TrendsChart }            from '@/components/dashboard/TrendsChart';
 import { TransitionStats }        from '@/components/dashboard/TransitionStats';
+import { PageHeader } from '@/components/layout/PageHeader';
 import {
   Select,
   SelectContent,
@@ -42,33 +43,36 @@ export default function GlobalDashboardPage() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight">Global Overview</h1>
-            <p className="text-sm text-muted-foreground">
-              Department-wide performance
-            </p>
-          </div>
-
-          {/* Time-range selector */}
+      <PageHeader
+        title="Global Overview"
+        subtitle="Department-wide performance"
+        actions={
           <Select
             value={String(months)}
             onValueChange={(v) => !v || setMonths(Number(v))}
           >
-            <SelectTrigger className="h-8 w-40 text-xs" aria-label="Select time range">
-              <SelectValue />
+            <SelectTrigger
+              className="h-9 w-44 rounded-lg border border-border bg-card text-xs font-medium"
+              aria-label="Select time range"
+            >
+              {/* Render prop: without it the trigger shows the raw value ("6")
+                  instead of the option's label. */}
+              <SelectValue>
+                {(val) =>
+                  MONTH_OPTIONS.find((o) => o.value === val)?.label ?? 'Select range'
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {MONTH_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                <SelectItem key={o.value} value={o.value} label={o.label}>
+                  {o.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        }
+      />
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto px-4 md:px-6 py-6 space-y-6">
@@ -82,7 +86,11 @@ export default function GlobalDashboardPage() {
         )}
 
         {/* KPI summary cards */}
-        <SummaryCards summary={data?.summary} isLoading={isLoading} />
+        <SummaryCards
+          summary={data?.summary}
+          transitions={(data?.transitionStats ?? []).reduce((sum, t) => sum + t.count, 0)}
+          isLoading={isLoading}
+        />
 
         {/* Leaderboard + Trends (side-by-side on large screens) */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

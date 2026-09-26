@@ -11,6 +11,9 @@ import { AuthUseCase } from '../Application/use-cases/auth/AuthUseCase';
 import { UpdateProfileUseCase } from '../Application/use-cases/user/UpdateProfileUseCase';
 import { ChangePasswordUseCase } from '../Application/use-cases/user/ChangePasswordUseCase';
 import { UserManagementUseCase } from '../Application/use-cases/user/UserManagementUseCase';
+import { AccountApprovalUseCase } from '../Application/use-cases/user/AccountApprovalUseCase';
+import { MemberManagementUseCase } from '../Application/use-cases/user/MemberManagementUseCase';
+import { SignupOptionsUseCase } from '../Application/use-cases/user/SignupOptionsUseCase';
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
 import { EpManagementFactory } from './factories/EpManagementFactory';
@@ -34,6 +37,11 @@ export const updateProfileUseCase = new UpdateProfileUseCase(authRepository);
 export const changePasswordUseCase = new ChangePasswordUseCase(authRepository, bcryptService);
 
 export const userManagementUseCase = new UserManagementUseCase(authRepository);
+
+// Signup approval
+export const accountApprovalUseCase = new AccountApprovalUseCase(authRepository);
+export const memberManagementUseCase = new MemberManagementUseCase(authRepository);
+export const signupOptionsUseCase = new SignupOptionsUseCase(authRepository);
 
 const expaFactory = new ExpaFactory();
 

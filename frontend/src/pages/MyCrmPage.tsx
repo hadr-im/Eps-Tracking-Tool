@@ -12,8 +12,8 @@ import { CrmFilters }   from '@/components/crm/CrmFilters';
 import { EpTable }      from '@/components/crm/EpTable';
 import { EpCardList }   from '@/components/crm/EpCardList';
 import { CommentPanel } from '@/components/team/CommentPanel';
-import { Badge }        from '@/components/ui/badge';
 import type { EpFilters, TrackingPhase } from '@/types/ep';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function MyCrmPage() {
   // Filters (set by CrmFilters, consumed by useEps) 
@@ -66,42 +66,43 @@ export default function MyCrmPage() {
     [transitionMutate],
   );
 
+  /*
+    Progress, not a label. A bare "3/20" says little at a glance, so the count
+    carries a bar underneath showing how far through the list you are.
+  */
+  const contactedPct = eps.length > 0 ? (contactedCount / eps.length) * 100 : 0;
+
   const leadsBadge = !isLoading ? (
-    <Badge
+    <div
       id="leads-processed-badge"
-      variant="outline"
-      className="text-xs font-semibold px-4 py-1.5 gap-2 bg-muted text-sidebar-primary border-transparent rounded-full shrink-0 w-fit"
+      className="flex flex-col gap-1.5 rounded-lg border bg-card px-3.5 py-2 min-w-46"
     >
-      <div className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
-      {contactedCount}/{eps.length} Leads Contacted
-    </Badge>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Leads contacted
+        </span>
+        <span className="text-xs font-bold tabular-nums">
+          {contactedCount}
+          <span className="text-muted-foreground font-medium">/{eps.length}</span>
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-aiesec-blue transition-all duration-300"
+          style={{ width: `${contactedPct}%` }}
+        />
+      </div>
+    </div>
   ) : null;
 
   // Render 
   return (
     <div className="flex flex-col h-full">
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">My CRM</p>
-
-        <h1 className="text-3xl font-bold tracking-tight">My Assigned EPs</h1>
-
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Manage and track your assigned EPs
-          </p>
-
-          {/* Desktop badge, vertically centered with the subtitle */}
-          <div className="hidden md:block">
-            {leadsBadge}
-          </div>
-        </div>
-
-        {/* Mobile badge */}
-        <div className="block md:hidden mt-2">
-          {leadsBadge}
-        </div>
-      </div>
+      <PageHeader
+        title="My Assigned EPs"
+        subtitle="Manage and track your assigned EPs"
+        actions={leadsBadge}
+      />
       {/* Filters */}
       <div className="shrink-0 px-4 md:px-6 py-3 bg-background border-b border-border/60">
         <CrmFilters onFiltersChange={setFilters} />

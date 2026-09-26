@@ -13,9 +13,10 @@ import { LeadFiltersBar }   from '@/components/leads/LeadFiltersBar';
 import { LeadTable }        from '@/components/leads/LeadTable';
 import { LeadCardList }     from '@/components/leads/LeadCardList';
 import { DispatchDialog }   from '@/components/leads/DispatchDialog';
-import { Badge }            from '@/components/ui/badge';
+import { SoftBadge }        from '@/components/ui/soft-badge';
 import { Button }           from '@/components/ui/button';
 import type { LeadFilters } from '@/types/lead';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function LeadsPage() {
   const { user } = useAuth();
@@ -54,30 +55,17 @@ export default function LeadsPage() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dispatch</p>
-            <h1 className="text-3xl font-bold tracking-tight">Leads &amp; Sign-ups</h1>
-            <p className="text-sm text-muted-foreground">
-              Unassigned EP pool for your department
-            </p>
-          </div>
-
-          {/* Total count badge */}
-          {!isLoading && (
-            <Badge
-              id="leads-count-badge"
-              variant="outline"
-              className="text-sm font-semibold px-3 py-1 gap-1.5 bg-sidebar-primary text-sidebar-primary-foreground border-transparent"
-            >
-              <span className="text-sm font-semibold">{leads.length}</span>
-              <span>Lead{leads.length !== 1 ? 's' : ''}</span>
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Leads & Sign-ups"
+        subtitle="Unassigned EP pool for your department"
+        actions={
+          !isLoading && (
+            <SoftBadge tone="blue" className="px-3 py-1 text-xs">
+              {leads.length} Lead{leads.length !== 1 ? 's' : ''}
+            </SoftBadge>
+          )
+        }
+      />
 
       {/* Filters & Dispatch Action */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">

@@ -150,6 +150,37 @@ router.patch(
 
 /**
  * @openapi
+ * /eps/{id}/owner:
+ *   patch:
+ *     tags: [EPs]
+ *     summary: Reassign an EP to a different department member (TL / VP)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [memberId]
+ *             properties:
+ *               memberId: { type: string }
+ *     responses:
+ *       200: { description: Updated EP }
+ *       403: { description: Members cannot reassign, or EP outside caller's department }
+ *       404: { description: EP or member not found }
+ */
+router.patch(
+  '/eps/:id/owner',
+  authMiddleware,
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  EpController.reassignOwner,
+);
+
+/**
+ * @openapi
  * /eps/{id}/transition:
  *   post:
  *     tags: [EPs]

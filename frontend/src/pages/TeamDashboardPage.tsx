@@ -17,6 +17,7 @@ import { ConversionRates }      from '@/components/dashboard/ConversionRates';
 import { cn }                    from '@/lib/utils';
 import { Button }               from '@/components/ui/button';
 import { AlertCircle }          from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function TeamDashboardPage() {
   const { user } = useAuth();
@@ -42,18 +43,10 @@ export default function TeamDashboardPage() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 px-4 md:px-6 pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team</p>
-            <h1 className="text-3xl font-bold tracking-tight">Team Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Performance stats for your department
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Team Dashboard"
+        subtitle="Performance stats for your department"
+      />
 
       {/* Member picker bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">

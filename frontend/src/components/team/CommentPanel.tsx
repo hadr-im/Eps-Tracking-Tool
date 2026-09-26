@@ -4,7 +4,8 @@
 // TL/VP: can add comments. Read-only for all others (same sheet, just no input).
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
+import { UserAvatar } from '@/components/layout/UserAvatar';
 import {
   Sheet,
   SheetContent,
@@ -12,7 +13,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Button }   from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useComments }   from '@/hooks/useComments';
 import { useAddComment } from '@/hooks/useAddComment';
@@ -68,7 +68,7 @@ export function CommentPanel({ ep, canComment, onClose }: CommentPanelProps) {
         </SheetHeader>
 
         {/* Comment list */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-0">
           {isLoading && (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -90,58 +90,67 @@ export function CommentPanel({ ep, canComment, onClose }: CommentPanelProps) {
             </div>
           )}
 
+          {/* Flat rows: label left, timestamp right, text below, each entry
+              closed off by a hairline. Cards made a short note look heavier
+              than it is and stacked badly once there were several. */}
           {!isLoading &&
             comments.map((c) => (
-              <div key={c.id} className="space-y-0.5">
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  {c.fieldName && (
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-                      {c.fieldName}
-                    </span>
-                  )}
-                  <span>{new Date(c.createdAt).toLocaleString()}</span>
+              <div key={c.id} className="border-b pb-3 last:border-b-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <UserAvatar
+                    fullName={c.authorName ?? undefined}
+                    avatarUrl={c.authorAvatarUrl}
+                    className="h-6 w-6 shrink-0 text-[9px]"
+                  />
+                  <span className="text-xs font-semibold text-foreground truncate flex-1">
+                    {c.authorName ?? 'Unknown'}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                    {new Date(c.createdAt).toLocaleString()}
+                  </span>
                 </div>
-                <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm leading-relaxed">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word pl-8">
                   {c.content}
-                </div>
+                </p>
               </div>
             ))}
 
           <div ref={bottomRef} />
         </div>
 
-        {/* Add comment input (TL/VP only) */}
+        {/* Add comment (TL/VP only).
+            The send control sits inside the field, divided off by a rule, so
+            the composer reads as one object instead of a box plus a button. */}
         {canComment && (
-          <form
-            onSubmit={handleSubmit}
-            className="shrink-0 border-t px-5 py-4 flex gap-2 items-end"
-          >
-            <textarea
-              className="flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-0 focus:ring-1 focus:ring-ring min-h-16 max-h-30"
-              placeholder="Add a comment…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={2}
-              disabled={isSending}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e as unknown as React.FormEvent);
-                }
-              }}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!draft.trim() || isSending}
-              aria-label="Send comment"
-            >
-              {isSending ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Send size={16} />
-              )}
-            </Button>
+          <form onSubmit={handleSubmit} className="shrink-0 border-t px-5 py-3">
+            <div className="flex items-stretch rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
+              <textarea
+                className="flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none min-h-10 max-h-28"
+                placeholder="Add a comment…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={1}
+                disabled={isSending}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e as unknown as React.FormEvent);
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!draft.trim() || isSending}
+                aria-label="Send comment"
+                className="shrink-0 border-l px-3 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors rounded-r-lg disabled:opacity-40 disabled:pointer-events-none"
+              >
+                {isSending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ArrowRight size={16} />
+                )}
+              </button>
+            </div>
           </form>
         )}
       </SheetContent>

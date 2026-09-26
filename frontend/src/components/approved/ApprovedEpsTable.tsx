@@ -10,11 +10,11 @@ import {
 } from "@tanstack/react-table";
 import { useState, useMemo } from "react";
 import {
-  MessageSquare,
   ExternalLink,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  UserPlus,
 } from "lucide-react";
 import {
   Table,
@@ -24,49 +24,120 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadgeCell } from "@/components/crm/cells/StatusBadgeCell";
 import { DateCell } from "@/components/crm/cells/DateCell";
+import { TruncatedText } from "@/components/crm/cells/TruncatedText";
+import { initialsFor } from "@/components/layout/UserAvatar";
+import type { DepartmentMember } from "@/services/departmentService";
 import type { ApprovedEp } from "@/types/approvedEp";
 import type { EpStatus } from "@/types/ep";
+import { BAND_CLASS, bandStyle, type BandTone, TABLE_CONTAINER_CLASS } from "@/components/ui/data-table";
+
+// Compact member select for table cells
+
+function MemberSelectCell({
+  members,
+  selectedId,
+  onSelect,
+  disabled,
+}: {
+  members: DepartmentMember[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  disabled?: boolean;
+}) {
+  const selected = selectedId ? members.find((m) => m.id === selectedId) : null;
+
+  return (
+    <Select
+      value={selectedId ?? ''}
+      onValueChange={(val) => val && onSelect(val)}
+      disabled={disabled}
+    >
+      <SelectTrigger
+        className="h-7 w-auto min-w-32 max-w-48 border rounded-lg px-2 gap-1.5 bg-transparent focus:ring-1 focus:ring-aiesec-blue/30 disabled:opacity-50"
+      >
+        {selected ? (
+          <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0">
+            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-aiesec-blue/10 text-aiesec-blue font-semibold text-[9px]">
+              {initialsFor(selected.fullName)}
+            </span>
+            <span className="truncate text-xs font-medium text-foreground">
+              {selected.fullName}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-muted-foreground flex-1">
+            <UserPlus size={12} strokeWidth={1.8} />
+            <span className="text-xs">Assign</span>
+          </div>
+        )}
+      </SelectTrigger>
+      <SelectContent className="w-auto! min-w-40">
+        {members.map((m) => (
+          <SelectItem key={m.id} value={m.id} label={m.fullName}>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-aiesec-blue/10 text-aiesec-blue font-semibold text-[9px]">
+                {initialsFor(m.fullName)}
+              </span>
+              <span className="text-sm">{m.fullName}</span>
+            </div>
+          </SelectItem>
+        ))}
+        {members.length === 0 && (
+          <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+            No members found
+          </div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
 
 // Column group metadata
 
 interface ColumnGroup {
   label: string;
-  headerClass: string;
+  tone: BandTone;
   columnIds: string[];
 }
 
 const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: "Identity",
-    headerClass: "bg-blue-500 text-white border-blue-500",
+    tone: 1 as BandTone,
     columnIds: ["statusOnExpa", "createdAtExpa", "id", "phone"],
   },
   {
     label: "Opportunity",
-    headerClass: "bg-violet-500 text-white border-violet-500",
+    tone: 2 as BandTone,
     columnIds: ["appId", "opportunityTitle", "product", "duration"],
   },
   {
     label: "Hosting",
-    headerClass: "bg-amber-500 text-white border-amber-500",
+    tone: 3 as BandTone,
     columnIds: ["hostingMC", "hostingLC"],
   },
   {
     label: "Timeline",
-    headerClass: "bg-emerald-500 text-white border-emerald-500",
+    tone: 4 as BandTone,
     columnIds: ["approvalDate", "reaDate", "finishedDate", "completedDate"],
   },
   {
     label: "Financials & Docs",
-    headerClass: "bg-rose-500 text-white border-rose-500",
+    tone: 5 as BandTone,
     columnIds: ["projectFees", "contractLink", "auditFolder"],
   },
   {
     label: "Actions",
-    headerClass: "bg-slate-500 text-white border-slate-500",
+    tone: 5 as BandTone,
     columnIds: ["comments"],
   },
 ];
@@ -78,6 +149,11 @@ interface ApprovedEpsTableProps {
   isLoading: boolean;
   onCommentClick?: (ep: ApprovedEp) => void;
   commentCounts?: Record<string, number>;
+  // TL / VP only — when present, the Member column renders a picker
+  // scoped to the department instead of a static name.
+  departmentMembers?: DepartmentMember[];
+  onReassign?: (epId: string, memberId: string) => void;
+  reassigningId?: string | null;
 }
 
 const STICKY_OFFSET: Record<string, number> = {
@@ -129,6 +205,9 @@ const col = createColumnHelper<ApprovedEp>();
 function buildColumns(
   onCommentClick?: (ep: ApprovedEp) => void,
   commentCounts: Record<string, number> = {},
+  departmentMembers?: DepartmentMember[],
+  onReassign?: (epId: string, memberId: string) => void,
+  reassigningId?: string | null,
 ): ColumnDef<ApprovedEp, any>[] {
   return [
     // EP Name
@@ -144,17 +223,30 @@ function buildColumns(
       meta: { sticky: "left", stickyOffset: 0, minWidth: 180 },
     }),
 
-    // Member Name
+    // Member — picker for TL/VP, plain text otherwise
     col.accessor("memberName", {
       id: "memberName",
       header: () => <div className="text-center w-full">Member</div>,
-      cell: (info) => (
-        <span className="text-xs whitespace-nowrap">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
-      ),
+      cell: (info) => {
+        const ep = info.row.original;
+        if (departmentMembers && onReassign) {
+          return (
+            <MemberSelectCell
+              members={departmentMembers}
+              selectedId={ep.ownerId ?? null}
+              onSelect={(memberId) => onReassign(ep.id, memberId)}
+              disabled={reassigningId === ep.id}
+            />
+          );
+        }
+        return (
+          <span className="text-xs whitespace-nowrap">
+            {info.getValue() ?? <span className="text-muted-foreground">—</span>}
+          </span>
+        );
+      },
       enableSorting: true,
-      meta: { sticky: "left", stickyOffset: 180, minWidth: 140 },
+      meta: { sticky: "left", stickyOffset: 180, minWidth: 160 },
     }),
 
     // Identity
@@ -215,9 +307,10 @@ function buildColumns(
       id: "opportunityTitle",
       header: "Opportunity",
       cell: (info) => (
-        <span className="text-xs truncate max-w-45 block">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue() as string | null}
+          className="text-xs max-w-45 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       enableSorting: true,
       meta: { minWidth: 200 },
@@ -331,12 +424,12 @@ function buildColumns(
                 <button
                   type="button"
                   onClick={() => onCommentClick(ep)}
-                  className="relative inline-flex items-center gap-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold underline text-foreground hover:text-aiesec-blue transition-colors"
                   aria-label={`View comments for ${ep.fullName}`}
                 >
-                  <MessageSquare size={15} strokeWidth={1.6} />
+                  View comments
                   {count > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                    <span className="no-underline inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
                       {count > 9 ? "9+" : count}
                     </span>
                   )}
@@ -356,7 +449,7 @@ function buildGroupSpans(allColumnIds: string[]) {
   return COLUMN_GROUPS.map((g) => ({
     label: g.label,
     span: g.columnIds.filter((id) => allColumnIds.includes(id)).length,
-    headerClass: g.headerClass,
+    tone: g.tone,
   })).filter((g) => g.span > 0);
 }
 
@@ -367,13 +460,16 @@ export function ApprovedEpsTable({
   isLoading,
   onCommentClick,
   commentCounts = {},
+  departmentMembers,
+  onReassign,
+  reassigningId,
 }: ApprovedEpsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const columns = useMemo(
-    () => buildColumns(onCommentClick, commentCounts),
+    () => buildColumns(onCommentClick, commentCounts, departmentMembers, onReassign, reassigningId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onCommentClick, commentCounts],
+    [onCommentClick, commentCounts, departmentMembers, onReassign, reassigningId],
   );
 
   const table = useReactTable({
@@ -392,7 +488,7 @@ export function ApprovedEpsTable({
   return (
     <Table
       className="w-max min-w-full table-fixed border-separate border-spacing-0"
-      containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
+      containerClassName={TABLE_CONTAINER_CLASS}
     >
       <TableHeader className="sticky top-0 z-40 bg-card">
         {/* Group band */}
@@ -406,7 +502,8 @@ export function ApprovedEpsTable({
             <TableHead
               key={g.label}
               colSpan={g.span}
-              className={`border-l text-center text-xs font-semibold tracking-wide py-1.5 ${g.headerClass}`}
+              className={`${BAND_CLASS} border-l border-black/5`}
+                style={bandStyle(g.tone)}
             >
               {g.label}
             </TableHead>
@@ -415,7 +512,7 @@ export function ApprovedEpsTable({
 
         {/* Column headers */}
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id} className="bg-muted/40">
+          <TableRow key={headerGroup.id} className="bg-muted">
             {headerGroup.headers.map((header) => {
               const meta = header.column.columnDef.meta ?? {};
               const isSticky = meta.sticky === "left";
@@ -436,8 +533,8 @@ export function ApprovedEpsTable({
                         }
                       : {}),
                   }}
-                  className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
-                    isSticky ? "bg-background" : "bg-muted/40"
+                  className={`whitespace-nowrap text-center align-middle text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-r border-b border-border last:border-r-0 ${
+                    isSticky ? "bg-muted" : "bg-muted"
                   } ${canSort ? "cursor-pointer select-none" : ""}`}
                   onClick={
                     canSort
@@ -477,7 +574,7 @@ export function ApprovedEpsTable({
           table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}
-              className="hover:bg-muted/30 transition-colors group"
+              className="hover:bg-muted/60 transition-colors group"
             >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta ?? {};
@@ -498,7 +595,7 @@ export function ApprovedEpsTable({
                         : {}),
                     }}
                     className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
-                      isSticky ? "bg-background group-hover:bg-muted transition-colors" : ""
+                      isSticky ? "bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors" : ""
                     }`}
                   >
                     <div className="flex items-center justify-center w-full h-full">

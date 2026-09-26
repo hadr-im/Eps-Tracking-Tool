@@ -5,7 +5,22 @@
 // - Read-only banner is always visible
 
 import { useState, useCallback } from 'react';
-import { Eye, Plus, Minus, MessageSquare } from 'lucide-react';
+import {
+  MessageSquare,
+  User,
+  GraduationCap,
+  Mail,
+  Phone,
+  BookOpen,
+  Calendar,
+  Link2,
+  CheckCircle2,
+  Clock,
+  Tag,
+  StickyNote,
+  Compass,
+  Timer,
+} from 'lucide-react';
 import { useAuth }               from '@/hooks/useAuth';
 import { useDepartmentMembers }  from '@/hooks/useDepartmentMembers';
 import { useTeamEps }            from '@/hooks/useTeamEps';
@@ -13,8 +28,15 @@ import { MemberPicker }          from '@/components/team/MemberPicker';
 import { CommentPanel }          from '@/components/team/CommentPanel';
 import { EpTable }               from '@/components/crm/EpTable';
 import { StatusBadgeCell }       from '@/components/crm/cells/StatusBadgeCell';
-import { cn }                    from '@/lib/utils';
+import {
+  EpMobileCard,
+  EpSection,
+  EpInfoRow,
+  EpBlockRow,
+  formatEnum,
+} from '@/components/crm/EpMobileCard';
 import type { Ep }               from '@/types/ep';
+import { PageHeader }            from '@/components/layout/PageHeader';
 
 // No-op callbacks
 const noop = () => {};
@@ -42,24 +64,10 @@ export default function TeamCrmPage() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team CRM</p>
-            <h1 className="text-3xl font-bold tracking-tight">Team Pipeline</h1>
-            <p className="text-sm text-muted-foreground">
-              Read-only view of a member's EP pipeline
-            </p>
-          </div>
-
-          {/* Read-only badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-sidebar-primary px-3 py-1 text-xs font-semibold text-sidebar-primary-foreground">
-            <Eye size={12} />
-            Read-only
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="Team Pipeline"
+        subtitle="Read-only view of a member's EP pipeline"
+      />
 
       {/* Member picker bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">
@@ -135,6 +143,12 @@ export default function TeamCrmPage() {
   );
 }
 
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString();
+}
+
 function TeamCrmMobileCard({
   ep,
   canComment,
@@ -144,68 +158,65 @@ function TeamCrmMobileCard({
   canComment: boolean;
   onCommentClick: (ep: Ep) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <li className="rounded-xl border bg-card overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-            <span className="font-semibold text-sm truncate">{ep.fullName}</span>
-          </div>
-          <div className="shrink-0">
-            <StatusBadgeCell status={ep.statusOnExpa} />
-          </div>
-        </div>
+    <EpMobileCard
+      fullName={ep.fullName}
+      id={ep.id}
+      createdAt={ep.createdAtExpa}
+      headerSub={<span>{ep.product}</span>}
+      headerRight={<StatusBadgeCell status={ep.statusOnExpa} />}
+      footer={
+        canComment && (
+          <button
+            type="button"
+            onClick={() => onCommentClick(ep)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-aiesec-blue/25 bg-aiesec-blue/10 px-3 py-1.5 text-[11px] font-semibold text-aiesec-blue hover:bg-aiesec-blue/15 transition-colors"
+          >
+            <MessageSquare size={13} strokeWidth={2.2} />
+            View Comments
+          </button>
+        )
+      }
+    >
+      <EpSection label="General Info" icon={User}>
+        <EpInfoRow label="Email" icon={Mail} value={ep.email} />
+        <EpInfoRow label="Phone" icon={Phone} value={ep.phone} />
+        <EpInfoRow label="University" icon={GraduationCap} value={ep.university} />
+        <EpInfoRow label="Field of Study" icon={BookOpen} value={ep.fieldOfStudy} />
+        <EpInfoRow label="Year" value={ep.yearOfStudy} />
+        <EpInfoRow label="Created on EXPA" icon={Calendar} value={formatDate(ep.createdAtExpa)} />
+      </EpSection>
 
-        <div className="flex items-end justify-between gap-2 mt-2">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground flex-1">
-            <span>ID: <span className="text-foreground font-medium">{ep.id}</span></span>
-            <span>Product: <span className="text-foreground font-medium">{ep.product}</span></span>
-            <span>Phase: <span className="text-foreground font-medium">{ep.trackingPhase?.replace(/_/g, ' ') ?? '—'}</span></span>
-            <span>Contacted: <span className="text-foreground font-medium">{ep.contacted ? 'Yes' : 'No'}</span></span>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            {canComment && (
-              <button
-                type="button"
-                onClick={() => onCommentClick(ep)}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
-                aria-label={`Comments for ${ep.fullName}`}
+      <EpSection label="CRM" icon={Tag}>
+        <EpInfoRow label="Source" value={ep.source} />
+        <EpInfoRow
+          label="CV Link"
+          icon={Link2}
+          value={
+            ep.cvLink ? (
+              <a
+                href={ep.cvLink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-aiesec-blue underline break-all"
               >
-                <MessageSquare size={16} strokeWidth={1.6} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground transition-colors p-1 rounded-md"
-              aria-label={expanded ? 'Collapse details' : 'Expand details'}
-            >
-              {expanded ? <Minus size={18} /> : <Plus size={18} />}
-            </button>
-          </div>
-        </div>
-      </div>
+                Open CV
+              </a>
+            ) : null
+          }
+        />
+        <EpInfoRow label="Assigned At" icon={Calendar} value={formatDate(ep.assignedAt)} />
+        <EpInfoRow label="Contacted" icon={CheckCircle2} value={ep.contacted ? 'Yes' : 'No'} />
+        <EpInfoRow label="Contacted At" icon={Clock} value={formatDate(ep.contactedAt)} />
+        <EpInfoRow label="Interested" icon={CheckCircle2} value={ep.interested ? 'Yes' : 'No'} />
+        <EpInfoRow label="Tracking Phase" value={formatEnum(ep.trackingPhase)} />
+        <EpBlockRow label="Notes" icon={StickyNote} value={ep.notes} />
+      </EpSection>
 
-      {/* Expanded Details */}
-      <div
-        className={cn(
-          'grid transition-all duration-300 ease-in-out',
-          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="border-t px-4 py-3 bg-muted/10">
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-muted-foreground">Transition</span>
-              <span className="text-muted-foreground text-xs">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </li>
+      <EpSection label="Interests" icon={Compass}>
+        <EpInfoRow label="Duration" icon={Timer} value={formatEnum(ep.duration)} />
+        <EpInfoRow label="Availability" value={formatEnum(ep.availability)} />
+      </EpSection>
+    </EpMobileCard>
   );
 }

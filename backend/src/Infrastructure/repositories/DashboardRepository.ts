@@ -50,11 +50,17 @@ export class DashboardRepository implements IDashboardRepository {
     }));
   }
 
-  async getMemberBreakdown(departmentId: string): Promise<MemberBreakdown[]> {
+  async getMemberBreakdown(
+    departmentId: string,
+    teamLeaderId?: string,
+  ): Promise<MemberBreakdown[]> {
     // Because the dataset is huge, a single raw SQL query is used to conditionally count
     // directly in PostgreSQL, returning only the small set of final numbers
+    //
+    // The teamLeaderId predicate is written so that passing undefined matches
+    // every member, keeping this to one query instead of two near-identical ones.
     const result = await this.db.$queryRaw`
-      SELECT 
+      SELECT
         u.id AS "memberId",
         u."fullName" AS "fullName",
         COUNT(e.id)::int AS "totalAssigned",
@@ -66,6 +72,7 @@ export class DashboardRepository implements IDashboardRepository {
       WHERE u."departmentId" = ${departmentId}
         AND u.role = 'MEMBER'
         AND u."isDisabled" = false
+        AND (${teamLeaderId ?? null}::text IS NULL OR u."teamLeaderId" = ${teamLeaderId ?? null}::text)
       GROUP BY u.id, u."fullName"
       ORDER BY "approvedCount" DESC, "contactedCount" DESC
     `;

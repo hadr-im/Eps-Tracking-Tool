@@ -3,6 +3,7 @@ import { Ep } from '../../../Domain/entities/Ep';
 import { User } from '../../../Domain/entities/User';
 import { UserRole } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
+import { IMailService } from '../../abstracts/IMailService';
 import { DispatchFilters } from './DispatchFilters';
 
 // Minimal shape the use case needs from the authenticated caller
@@ -14,7 +15,10 @@ export interface CallerContext {
 }
 
 export class DispatchUseCase {
-  constructor(private readonly dispatchRepo: IDispatchRepository) {}
+  constructor(
+    private readonly dispatchRepo: IDispatchRepository,
+    private readonly mail: IMailService,
+  ) {}
 
   // Returns EPs that haven't been assigned yet (server-side filtered)
   async getLeadsPool(departmentId: string, filters?: DispatchFilters): Promise<Ep[]> {
@@ -55,7 +59,26 @@ export class DispatchUseCase {
       throw new AppError('Member does not belong to your department', 403);
     }
 
-    return this.dispatchRepo.assignEpsToMember(epIds, memberId, dispatcher.id);
+    const assigned = await this.dispatchRepo.assignEpsToMember(epIds, memberId, dispatcher.id);
+
+    /*
+      Tell the member their CRM just grew.
+
+      Not awaited on purpose: SMTP can take several seconds, and the dispatcher
+      should not sit watching a spinner for it. MailService already logs and
+      swallows its own failures, so a dead mail server never turns a successful
+      dispatch into a failed request.
+    */
+    if (assigned.length > 0 && targetMember.email) {
+      void this.mail.sendDispatchNotification({
+        email: targetMember.email,
+        memberName: targetMember.fullName,
+        count: assigned.length,
+        dispatcherName: members.find((m) => m.id === dispatcher.id)?.fullName ?? null,
+      });
+    }
+
+    return assigned;
   }
 
   /*

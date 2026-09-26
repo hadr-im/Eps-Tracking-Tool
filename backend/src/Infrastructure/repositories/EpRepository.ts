@@ -136,6 +136,14 @@ export class EpRepository implements IEpRepository {
     return this.toEpEntity(row);
   }
 
+  async reassignOwner(epId: string, memberId: string): Promise<Ep> {
+    const row = await this.db.ep.update({
+      where: { id: epId },
+      data: { ownerId: memberId, assignedAt: new Date() },
+    });
+    return this.toEpEntity(row);
+  }
+
   /**
    Atomically transitions an EP to a new product/department.
   Uses a Prisma interactive transaction:

@@ -9,6 +9,7 @@ import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useDispatch } from '@/hooks/useDispatch';
 import { TransitionedEpsTable } from '@/components/transitions/TransitionedEpsTable';
 import { TransitionedEpsCardList } from '@/components/transitions/TransitionedEpsCardList';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function TransitionedEpsPage() {
   const { user } = useAuth();
@@ -36,16 +37,10 @@ export default function TransitionedEpsPage() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="shrink-0 px-6 pt-5 pb-4 bg-card">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Oversight
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">Transitioned EPs</h1>
-        <p className="text-sm text-muted-foreground">
-          View EPs transitioned in or out of your department
-        </p>
-      </div>
+      <PageHeader
+        title="Transitioned EPs"
+        subtitle="View EPs transitioned in or out of your department"
+      />
 
       {/* Search + count bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">

@@ -1,5 +1,22 @@
 import { UserRole } from '../enums/UserRole';
 import { AuthProvider } from '../enums/AuthProvider';
+import { AccountStatus } from '../enums/AccountStatus';
+
+/*
+  What a user asked for during signup.
+
+  Deliberately kept separate from the granted fields on User (role,
+  departmentId, teamLeaderId, isDispatcher). Signup writes here; only approval
+  copies these across. If a status check is ever missed somewhere, an
+  unapproved account still reads as a MEMBER with no department, which the
+  existing authorisation code already rejects.
+*/
+export interface RequestedAccess {
+  role: UserRole | null;
+  departmentId: string | null;
+  teamLeaderId: string | null;
+  isDispatcher: boolean;
+}
 
 /*
  Domain entity representing a system user.
@@ -24,5 +41,11 @@ export class User {
     public updatedAt: Date,
     public avatarUrl: string | null = null,
     public teamLeaderId: string | null = null,
+    // Defaults to ACTIVE so existing construction sites (and seeded accounts)
+    // keep working; the signup path passes PENDING explicitly.
+    public status: AccountStatus = AccountStatus.ACTIVE,
+    public requested: RequestedAccess | null = null,
+    // Shown back to the applicant when they try to sign in after a rejection.
+    public rejectionReason: string | null = null,
   ) {}
 }

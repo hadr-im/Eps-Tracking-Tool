@@ -16,16 +16,25 @@ import { BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { StatusCount } from '@/types/dashboard';
+import { TOOLTIP_STYLE, CHART_HOVER_FILL, STATUS_COLOR } from './chartTokens';
 
 // Ordered pipeline stages with display labels and colors
+/*
+  Stage colours come from the shared STATUS_COLOR map, so bars in the funnel
+  match the pills in the tables and the areas in the trends chart. Completed
+  and Realised sit next to each other in the funnel — they used two shades of
+  green, which were hard to tell apart; the shared map splits them into
+  emerald and teal.
+*/
+
 const STAGE_META: Record<string, { label: string; color: string }> = {
-  LEAD:        { label: 'Lead',       color: '#64748b' }, // slate-500
-  CONTACTED:   { label: 'Contacted',  color: '#3b82f6' }, // blue-500
-  INTERESTED:  { label: 'Interested', color: '#8b5cf6' }, // violet-500
-  APPROVED:    { label: 'Approved',   color: '#f59e0b' }, // amber-500
-  REALIZED:    { label: 'Realised',   color: '#10b981' }, // emerald-500
-  COMPLETED:   { label: 'Completed',  color: '#22c55e' }, // green-500
-  FINISHED:    { label: 'Finished',   color: '#9ca3af' }, // gray-400
+  LEAD:        { label: 'Lead',       color: STATUS_COLOR.LEAD! },
+  CONTACTED:   { label: 'Contacted',  color: STATUS_COLOR.CONTACTED! },
+  INTERESTED:  { label: 'Interested', color: STATUS_COLOR.INTERESTED! },
+  APPROVED:    { label: 'Approved',   color: STATUS_COLOR.APPROVED! },
+  REALIZED:    { label: 'Realised',   color: STATUS_COLOR.REALIZED! },
+  COMPLETED:   { label: 'Completed',  color: STATUS_COLOR.COMPLETED! },
+  FINISHED:    { label: 'Finished',   color: STATUS_COLOR.FINISHED! },
 };
 
 const STAGE_ORDER = ['LEAD', 'CONTACTED', 'INTERESTED', 'APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED'];
@@ -90,14 +99,8 @@ export function StatusFunnelChart({ data, isLoading }: StatusFunnelChartProps) {
                 tickLine={false}
               />
               <Tooltip
-                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: '1px solid hsl(var(--border))',
-                  background: 'hsl(var(--card))',
-                  color: 'hsl(var(--foreground))',
-                }}
+                cursor={{ fill: CHART_HOVER_FILL }}
+                contentStyle={TOOLTIP_STYLE}
                 formatter={(value) => [value, 'EPs']}
               />
               <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48}>

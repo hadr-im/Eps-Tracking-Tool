@@ -4,6 +4,7 @@ import { EpFilters } from './EpFilters';
 import { CallerContext } from './GetApprovedEpsUseCase';
 import { UserRole } from '../../../Domain/enums/UserRole';
 import { EpDetailDto } from './GetApprovedEpsWithDetailUseCase';
+import { AppError } from '../../errors/AppError';
 
 /*
   Returns all REALIZED EPs for the caller's department with ApprovedDetail joined
@@ -23,12 +24,25 @@ export class GetRealisedEpsUseCase {
     return rows.map((r) => this.toDto(r));
   }
 
+  /*
+    Resolves which department to read.
+
+    A departmentId from the query string may only ever name the caller's own
+    department. This previously returned any value a VP supplied, which would
+    have handed back another department's EPs to anyone who asked; the UI never
+    sent it, so it was an open door nobody walked through.
+  */
   private resolveDepartmentId(caller: CallerContext, requestedDepartmentId?: string): string {
-    if (caller.role === UserRole.VP && requestedDepartmentId) {
-      return requestedDepartmentId;
+    const departmentId = caller.departmentId;
+    if (!departmentId) {
+      throw new AppError('No department assigned to your account', 400);
     }
-    if (!caller.departmentId) throw new Error('User has no department assigned');
-    return caller.departmentId;
+
+    if (requestedDepartmentId && requestedDepartmentId !== departmentId) {
+      throw new AppError('You can only view your own department', 403);
+    }
+
+    return departmentId;
   }
 
   private toDto({ ep, approvedDetail, memberName }: EpWithDetail): EpDetailDto {

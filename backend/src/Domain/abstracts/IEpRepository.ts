@@ -67,6 +67,10 @@ export interface IEpRepository {
   // Partial update (only the fields present in data are written)
   updateEp(epId: string, data: EpUpdateData): Promise<Ep>;
 
+  // Change an EP's owner without going through the dispatch pool.
+  // Stamps assignedAt server-side; used by the TL/VP reassign action.
+  reassignOwner(epId: string, memberId: string): Promise<Ep>;
+
   /**
    Atomically moves an EP to a new product/department and records a TransitionHistory row
    Uses a Prisma interactive transaction,  if either write fails, both roll back

@@ -9,25 +9,30 @@ interface RateStat {
   color: string; 
 }
 
+/*
+  Bar colours match the funnel: contacted -> blue, interested -> violet,
+  approved -> amber. Pulling from the shared chart tokens means these bars
+  and the funnel stages next to them agree on what each stage looks like.
+*/
 function buildRates(rates: ConversionRatesType): RateStat[] {
   return [
     {
       label: 'Contacted Rate',
       description: 'of assigned EPs were contacted',
       rate: rates.contactedRate,
-      color: 'bg-blue-500',
+      color: 'bg-chart-blue',
     },
     {
       label: 'Interested Rate',
       description: 'of contacted became interested',
       rate: rates.interestedRate,
-      color: 'bg-violet-500',
+      color: 'bg-chart-violet',
     },
     {
       label: 'Approval Rate',
       description: 'of interested got approved',
       rate: rates.approvalRate,
-      color: 'bg-emerald-500',
+      color: 'bg-chart-amber',
     },
   ];
 }

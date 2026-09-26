@@ -20,8 +20,11 @@ export class SyncLeadsUseCase {
     private readonly epRepo: IEpRepository,
   ) {}
 
-  async execute(): Promise<DepartmentSyncResult[]> {
-    const products = [Product.GV, Product.GTA, Product.GTE];
+  // `only` scopes the run to a single department. Serverless deployments have a
+  // hard request timeout, so the scheduler calls this once per product rather
+  // than paginating all three inside one invocation.
+  async execute(only?: Product): Promise<DepartmentSyncResult[]> {
+    const products = only ? [only] : [Product.GV, Product.GTA, Product.GTE];
     const results: DepartmentSyncResult[] = [];
 
     for (const product of products) {

@@ -4,6 +4,7 @@ import { SummaryCards }         from '@/components/dashboard/SummaryCards';
 import { StatusFunnelChart }    from '@/components/dashboard/StatusFunnelChart';
 import { PhaseBreakdownChart }  from '@/components/dashboard/PhaseBreakdownChart';
 import { ConversionRates }      from '@/components/dashboard/ConversionRates';
+import { PageHeader }           from '@/components/layout/PageHeader';
 
 interface MyDashboardPageProps {
   // If provided, shows a specific member's stats (TL/VP use-case)
@@ -16,22 +17,14 @@ export default function MyDashboardPage({ userId }: MyDashboardPageProps = {}) {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card border-b">
-          <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {userId ? 'Team' : 'My'} Dashboard
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {userId ? 'Member Dashboard' : 'My Personal Dashboard'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {userId
-              ? "Viewing this member's EP performance stats"
-              : 'Your personal EP pipeline performance'}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={userId ? 'Member Dashboard' : 'My Personal Dashboard'}
+        subtitle={
+          userId
+            ? "Viewing this member's EP performance stats"
+            : 'Your personal EP pipeline performance'
+        }
+      />
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto px-4 md:px-6 py-6 space-y-6">

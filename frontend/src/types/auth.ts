@@ -9,6 +9,9 @@ export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP';
 // Mirrors backend/src/Domain/enums/AuthProvider.ts
 export type AuthProvider = 'LOCAL' | 'GOOGLE';
 
+// Mirrors backend/src/Domain/enums/AccountStatus.ts
+export type AccountStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
+
 // The user object stored in AuthContext.
  // Only auth-essential fields 
 
@@ -19,8 +22,12 @@ export interface AuthUser {
   role: UserRole;
   provider: AuthProvider;
   departmentId: string | null;
+  teamLeaderId: string | null;
   isDispatcher: boolean;
   avatarUrl: string | null;
+  // Only ACTIVE accounts can reach an authenticated screen, but the field is
+  // carried so the UI never has to guess.
+  status: AccountStatus;
 }
 
 // Shape returned by the backend on POST /auth/login and GET /auth/google/callback 
@@ -38,17 +45,7 @@ export interface LoginPayload {
 }
 
 
-// POST /auth/signup (mirrors SignupDto)
-// password:  min 8 chars
-// fullName:  min 2 chars
- 
-export interface SignupPayload {
-  email: string;
-  password: string;
-  fullName: string;
-  role?: UserRole;
-  departmentId?: string;
-}
+// Signup payloads live in ./signup.ts alongside the rest of the signup flow.
 
 // POST /auth/forgot-password (mirrors ForgotPasswordDto)
 export interface ForgotPasswordPayload {

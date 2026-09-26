@@ -37,7 +37,12 @@ export interface DashboardScope {
 export interface IDashboardRepository {
   getStatusCounts(scope: DashboardScope): Promise<StatusCount[]>;
   getPhaseCounts(scope: DashboardScope): Promise<PhaseCount[]>;
-  getMemberBreakdown(departmentId: string): Promise<MemberBreakdown[]>;
+  /*
+    Per-member performance rows for a department.
+    Pass teamLeaderId to narrow it to that leader's own members; omit it for
+    the full department view.
+  */
+  getMemberBreakdown(departmentId: string, teamLeaderId?: string): Promise<MemberBreakdown[]>;
   // 'since' filters the history to recent data 
   getStatusChangesOverTime(departmentId: string, since: Date): Promise<StatusChangeTrend[]>;
   getTransitionStats(departmentId: string): Promise<TransitionStat[]>;

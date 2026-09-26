@@ -1,15 +1,36 @@
+import { useEffect, useState } from 'react';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
+
+// Bottom-right on desktop, top-center on phones — a bottom toast on a small
+// screen collides with the on-screen keyboard and the thumb zone.
+const MOBILE_QUERY = '(max-width: 640px)';
+
+function useToastPosition(): ToasterProps['position'] {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isMobile ? 'top-center' : 'bottom-right';
+}
 
 function Toaster({ ...props }: ToasterProps) {
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark');
+  const position = useToastPosition();
 
   return (
     <Sonner
       theme={isDark ? 'dark' : 'light'}
       className="toaster group"
-      position="top-right"
+      position={position}
       gap={8}
       toastOptions={{
         classNames: {

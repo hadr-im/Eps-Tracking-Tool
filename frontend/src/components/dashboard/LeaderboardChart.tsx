@@ -19,13 +19,7 @@ interface LeaderboardChartProps {
   onMemberClick?: (memberId: string) => void;
 }
 
-const TOOLTIP_STYLE = {
-  fontSize: 12,
-  borderRadius: 8,
-  border: '1px solid hsl(var(--border))',
-  background: 'hsl(var(--card))',
-  color: 'hsl(var(--foreground))',
-};
+import { TOOLTIP_STYLE, CHART_HOVER_FILL } from './chartTokens';
 
 export function LeaderboardChart({ data, isLoading, onMemberClick }: LeaderboardChartProps) {
   if (isLoading) {
@@ -98,7 +92,7 @@ export function LeaderboardChart({ data, isLoading, onMemberClick }: Leaderboard
                 tickLine={false}
               />
               <Tooltip
-                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                cursor={{ fill: CHART_HOVER_FILL }}
                 contentStyle={TOOLTIP_STYLE}
                 formatter={(value, name) => [value, name]}
                 labelFormatter={(_, payload) =>

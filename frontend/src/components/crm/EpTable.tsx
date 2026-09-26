@@ -11,7 +11,6 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
-import { MessageSquare } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,40 +24,52 @@ import { StatusBadgeCell }     from './cells/StatusBadgeCell';
 import { CheckboxCell }        from './cells/CheckboxCell';
 import { TrackingPhaseCell }   from './cells/TrackingPhaseCell';
 import { EditableTextCell }    from './cells/EditableTextCell';
+import { TruncatedText }       from './cells/TruncatedText';
 import { DateCell }            from './cells/DateCell';
 import { TransitionCell }      from './cells/TransitionCell';
 import { DurationCell }        from './cells/DurationCell';
 import { AvailabilityCell }    from './cells/AvailabilityCell';
 import type { Ep, TrackingPhase } from '@/types/ep';
+import { BAND_CLASS, bandStyle, TABLE_CONTAINER_CLASS, type BandTone } from '@/components/ui/data-table';
 
 // Column group metadata 
 
 interface ColumnGroup {
   label: string;
-  headerClass: string;     
+  tone: BandTone;
   columnIds: string[];
 }
 
+/*
+  Group bands. Filled and gradient-shaded, white text — see bandStyle().
+  The tone names map to the shared --band-* tokens so every wide table in the
+  app bands its columns the same way.
+*/
 const COLUMN_GROUPS: ColumnGroup[] = [
   {
     label: 'General Info',
-    headerClass: 'bg-blue-500 text-white border-blue-500',
+    tone: 1,
     columnIds: ['statusOnExpa', 'id', 'createdAtExpa', 'email', 'phone', 'university', 'fieldOfStudy', 'yearOfStudy'],
   },
   {
     label: 'CRM',
-    headerClass: 'bg-amber-500 text-white border-amber-500',
-    columnIds: ['source', 'cvLink', 'assignedAt', 'contactedAt', 'contacted', 'interested', 'trackingPhase', 'notes', 'comments'],
+    tone: 2,
+    columnIds: ['source', 'cvLink', 'assignedAt', 'contactedAt', 'contacted', 'interested', 'trackingPhase', 'notes'],
   },
   {
     label: 'Interests',
-    headerClass: 'bg-emerald-500 text-white border-emerald-500',
+    tone: 3,
     columnIds: ['duration', 'availability'],
   },
   {
     label: 'Transition',
-    headerClass: 'bg-violet-500 text-white border-violet-500',
+    tone: 4,
     columnIds: ['transition'],
+  },
+  {
+    label: 'Comments',
+    tone: 5,
+    columnIds: ['comments'],
   },
 ];
 
@@ -128,9 +139,10 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'email',
       header: 'Email',
       cell: (info) => (
-        <span className="text-xs truncate max-w-40 block">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 160 },
     }),
@@ -148,7 +160,10 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'university',
       header: 'University',
       cell: (info) => (
-        <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 130 },
     }),
@@ -156,7 +171,10 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'fieldOfStudy',
       header: 'Field of Study',
       cell: (info) => (
-        <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
       ),
       meta: { minWidth: 130 },
     }),
@@ -174,7 +192,10 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'source',
       header: 'Source',
       cell: (info) => readOnly ? (
-        <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
+        />
       ) : (
         <div className="flex justify-center w-full">
           <EditableTextCell
@@ -296,17 +317,16 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       id: 'notes',
       header: 'Notes',
       cell: (info) => readOnly ? (
-        <span className="text-xs max-w-50 block whitespace-pre-wrap text-center mx-auto">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
+        <TruncatedText value={info.getValue() as string | null} />
       ) : (
-        <div className="flex justify-center w-full">
+        <div className="flex justify-center w-full max-w-50 mx-auto">
           <EditableTextCell
             id={info.row.original.id}
             field="notes"
             value={info.getValue()}
             isPending={pendingId === info.row.original.id}
             multiline
+            truncate
             placeholder="Add note…"
             onUpdate={onTextUpdate}
           />
@@ -391,12 +411,12 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
                 <button
                   type="button"
                   onClick={() => onCommentClick(ep)}
-                  className="relative inline-flex items-center gap-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold underline text-foreground hover:text-aiesec-blue transition-colors"
                   aria-label={`View comments for ${ep.fullName}`}
                 >
-                  <MessageSquare size={15} strokeWidth={1.6} />
+                  View comments
                   {count > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                    <span className="no-underline inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
                       {count > 9 ? '9+' : count}
                     </span>
                   )}
@@ -413,11 +433,11 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
 // Helpers 
 
 // Builds the group-header colspan map: { groupLabel → colSpan }
-function buildGroupSpans(allColumnIds: string[]): { label: string; span: number; headerClass: string }[] {
+function buildGroupSpans(allColumnIds: string[]): { label: string; span: number; tone: BandTone }[] {
   return COLUMN_GROUPS.map((g) => ({
     label: g.label,
     span: g.columnIds.filter((id) => allColumnIds.includes(id)).length,
-    headerClass: g.headerClass,
+    tone: g.tone,
   })).filter((g) => g.span > 0);
 }
 
@@ -460,7 +480,7 @@ export function EpTable({
   return (
     <Table
       className="w-max min-w-full table-fixed border-separate border-spacing-0"
-      containerClassName="relative w-full h-full overflow-auto rounded-xl border bg-card"
+      containerClassName={TABLE_CONTAINER_CLASS}
     >
       <TableHeader className="sticky top-0 z-40 bg-card">
         {/* Column group band */}
@@ -477,7 +497,8 @@ export function EpTable({
               <TableHead
                 key={g.label}
                 colSpan={g.span}
-                className={`border-l text-center text-xs font-semibold tracking-wide py-1.5 ${g.headerClass}`}
+                className={`${BAND_CLASS} border-l border-black/5`}
+                style={bandStyle(g.tone)}
               >
                 {g.label}
               </TableHead>
@@ -486,7 +507,7 @@ export function EpTable({
 
           {/* Column headers */}
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="bg-muted/40">
+            <TableRow key={headerGroup.id} className="bg-muted">
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta ?? {};
                 const isSticky = meta.sticky === 'left';
@@ -501,8 +522,8 @@ export function EpTable({
                         ? { position: 'sticky', left: STICKY_OFFSET[header.id] ?? 0, zIndex: 20 }
                         : {}),
                     }}
-                    className={`whitespace-nowrap text-center align-middle text-xs font-semibold text-foreground/80 border-r border-b border-border last:border-r-0 ${
-                      isSticky ? 'bg-background' : 'bg-muted/40'
+                    className={`whitespace-nowrap text-center align-middle text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-r border-b border-border last:border-r-0 ${
+                      isSticky ? 'bg-muted' : 'bg-muted'
                     }`}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -531,7 +552,7 @@ export function EpTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className="hover:bg-muted/30 transition-colors group"
+                className="hover:bg-muted/60 transition-colors group"
               >
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta ?? {};
@@ -549,7 +570,7 @@ export function EpTable({
                       }}
                       className={`border-r last:border-r-0 py-2 text-center align-middle ${
                         isSticky
-                          ? 'bg-background group-hover:bg-muted transition-colors shadow-[1px_0_0_0_var(--border)]'
+                          ? 'bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors shadow-[1px_0_0_0_var(--border)]'
                           : ''
                       }`}
                     >
@@ -562,10 +583,14 @@ export function EpTable({
               </TableRow>
             ))}
 
-          {/* Empty state */}
+          {/* Empty state — hover suppressed: "no results" is not a row you
+              can act on, so it should not light up under the cursor. */}
           {!isLoading && eps.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-40 text-center text-muted-foreground text-sm">
+            <TableRow className="hover:bg-transparent border-b-0">
+              <TableCell
+                colSpan={columns.length}
+                className="h-40 text-center text-muted-foreground text-sm"
+              >
                 No EPs found. Try adjusting your filters.
               </TableCell>
             </TableRow>

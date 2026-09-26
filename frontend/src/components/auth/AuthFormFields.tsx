@@ -34,7 +34,7 @@ interface PasswordInputProps extends React.ComponentProps<'input'> {
   id: string
 }
 
-export function PasswordInput({ id, ...props }: PasswordInputProps) {
+export function PasswordInput({ id, className, ...props }: PasswordInputProps) {
   const [show, setShow] = useState(false)
 
   return (
@@ -42,7 +42,7 @@ export function PasswordInput({ id, ...props }: PasswordInputProps) {
       <Input
         id={id}
         type={show ? 'text' : 'password'}
-        className="pr-10"
+        className={`pr-10 ${className ?? ''}`}
         {...props}
       />
       <button

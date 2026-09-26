@@ -5,8 +5,8 @@ import { ExpaFactory } from '../factories/ExpaFactory';
   Scheduled EXPA synchronisation jobs
 
   Schedules:
-    - Daily Leads Sync  : every day at midnight (adds new leads to the DB)
-    - Status Sync       : every 15 minutes     (detects EXPA status changes)
+    - Leads sync   : every 5 minutes  (adds new leads to the DB)
+    - Status sync  : every hour       (detects EXPA status / approval changes)
 
   Each department is handled in isolation inside the use-cases, so a
   failure in one programme (e.g. GV) never blocks the others (GTA, GTE)
@@ -14,23 +14,22 @@ import { ExpaFactory } from '../factories/ExpaFactory';
   Call 'startCronJobs()' once at application startup (see server.ts)
 */
 
-// Use a module-level factory so the repositories are shared across both jobs and only instantiated once
 const factory = new ExpaFactory();
-const syncLeadsUseCase = factory.makeSyncLeadsUseCase();
+const syncLeadsUseCase  = factory.makeSyncLeadsUseCase();
 const syncStatusUseCase = factory.makeSyncStatusUseCase();
 
-// Job handlers 
+// Job handlers
 
 async function runLeadsSync(): Promise<void> {
-  console.log('[Cron] Starting daily leads sync...');
+  console.log('[Cron] Starting leads sync...');
   try {
     const results = await syncLeadsUseCase.execute();
     for (const r of results) {
       console.log(`[Cron] LeadsSync | ${r.product}: fetched ${r.fetched}, new ${r.newLeads}`);
     }
-    console.log('[Cron] Daily leads sync complete.');
+    console.log('[Cron] Leads sync complete.');
   } catch (err) {
-    console.error('[Cron] Daily leads sync failed unexpectedly:', err);
+    console.error('[Cron] Leads sync failed unexpectedly:', err);
   }
 }
 
@@ -49,20 +48,20 @@ async function runStatusSync(): Promise<void> {
   }
 }
 
-// Scheduler 
+// Scheduler
 
 export function startCronJobs(): void {
-  // Daily leads sync: every day at midnight (server local time)
-  cron.schedule('0 0 * * *', runLeadsSync, {
-    name: 'daily-leads-sync',
+  // Leads sync: every 5 minutes
+  cron.schedule('*/5 * * * *', runLeadsSync, {
+    name: 'leads-sync',
   });
 
-  // Status sync: every 15 minutes
-  cron.schedule('*/15 * * * *', runStatusSync, {
+  // Status/approvals sync: every hour (at :00)
+  cron.schedule('0 * * * *', runStatusSync, {
     name: 'status-sync',
   });
 
   console.log('[Cron] Jobs scheduled:');
-  console.log('  Daily-leads-sync (every day at midnight)');
-  console.log('  Status-sync      (every 15 minutes)');
+  console.log('  leads-sync   (every 5 minutes)');
+  console.log('  status-sync  (every hour)');
 }

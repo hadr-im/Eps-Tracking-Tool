@@ -11,7 +11,7 @@ const FETCH_LEADS_QUERY = `
   query FetchLeads($page: Int!, $perPage: Int!, $programmeCode: [Int]!) {
     people(
       filters: {
-        registered: { from: "2025-11-01", to: "2027-01-31" }
+        registered: { from: "2026-08-01", to: "2027-01-31" }
         selected_programmes: $programmeCode
       }
       per_page: $perPage

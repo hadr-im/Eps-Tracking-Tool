@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Search, Eye, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useAuth }                   from '@/hooks/useAuth';
 import { useEpsUnderProcess }        from '@/hooks/useEpsUnderProcess';
 import { useDepartmentMembers }      from '@/hooks/useDepartmentMembers';
@@ -11,6 +11,7 @@ import { Input }                     from '@/components/ui/input';
 import { Button }                    from '@/components/ui/button';
 import { cn }                        from '@/lib/utils';
 import type { Ep }                   from '@/types/ep';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function EpsUnderProcessPage() {
   const { user } = useAuth();
@@ -53,22 +54,10 @@ export default function EpsUnderProcessPage() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Page header */}
-      <div className="shrink-0 pl-4 pr-16 md:px-6 pt-4 md:pt-5 pb-3 bg-card">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Under Process</p>
-            <h1 className="text-3xl font-bold tracking-tight">EPs Pipeline</h1>
-            <p className="text-sm text-muted-foreground">
-              EPs currently looking for an opportunity match
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-sidebar-primary px-3 py-1 text-xs font-semibold text-sidebar-primary-foreground">
-            <Eye size={12} />
-            Read-only
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title="EPs Under Process"
+        subtitle="EPs currently looking for an opportunity match"
+      />
 
       {/* Search + count bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">

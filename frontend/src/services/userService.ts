@@ -13,8 +13,10 @@ export interface UpdateProfilePayload {
   avatarUrl?: string;
 }
 
+// Two shapes: change (both fields) and set-first-password (newPassword only,
+// for Google accounts that haven't picked a password yet).
 export interface ChangePasswordPayload {
-  currentPassword: string;
+  currentPassword?: string;
   newPassword: string;
 }
 

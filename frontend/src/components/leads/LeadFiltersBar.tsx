@@ -1,30 +1,19 @@
-// Server-side filter bar for the Leads and Sign-ups page
-// Filters: debounced search (full name), product (GV/GTA/GTE)
-// All values are synced to URL search params for shareable/bookmarkable state
+/*
+  Server-side filter bar for the Leads and Sign-ups page.
+
+  Only search here. Each department has a single product (GV / GTA / GTE), and
+  the caller's department is enforced server-side, so a product filter would
+  either be the same as "current department" or expose data the caller cannot
+  see anyway.
+*/
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button, buttonVariants } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import type { LeadFilters } from '@/types/lead';
 import { cn } from '@/lib/utils';
-
-const PRODUCTS = ['GV', 'GTA', 'GTE'] as const;
 
 interface LeadFiltersBarProps {
   onFiltersChange: (filters: LeadFilters) => void;
@@ -35,9 +24,7 @@ export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersB
   const [params, setParams] = useSearchParams();
 
   const [searchInput, setSearchInput] = useState(params.get('search') ?? '');
-
-  const product = params.get('product') ?? undefined;
-  const search  = params.get('search')  ?? undefined;
+  const search = params.get('search') ?? undefined;
 
   // Debounce search -> URL param after 300ms idle
   useEffect(() => {
@@ -54,20 +41,11 @@ export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersB
 
   // Notify parent whenever URL params change
   useEffect(() => {
-    onFiltersChange({ search, product });
+    onFiltersChange({ search });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
 
-  function setParam(key: string, value: string | null) {
-    setParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (value) next.set(key, value);
-      else next.delete(key);
-      return next;
-    }, { replace: true });
-  }
-
-  const hasActiveFilters = !!(search || product);
+  const hasActiveFilters = !!search;
 
   function clearFilters() {
     setSearchInput('');
@@ -76,25 +54,6 @@ export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersB
 
   const filtersList = (
     <>
-      {/* Product */}
-      <Select value={product ?? 'all'} onValueChange={(v) => setParam('product', v === 'all' ? null : v)}>
-        <SelectTrigger 
-          id="filter-product" 
-          className={cn(
-            "h-8 w-auto min-w-28 text-xs transition-all duration-300 ease-in-out",
-            product && "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary focus:ring-0"
-          )}
-        >
-          <SelectValue placeholder="Product" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all" className="text-xs">All Products</SelectItem>
-          {PRODUCTS.map((p) => (
-            <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       {/* Clear */}
       <div
         className={cn(
@@ -129,37 +88,11 @@ export function LeadFiltersBar({ onFiltersChange, dispatchButton }: LeadFiltersB
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="h-9 pl-9 text-xs rounded-full bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
-
         />
       </div>
 
-      {/* Desktop Filters */}
-      <div className="hidden md:flex flex-wrap items-center gap-2">
-        {filtersList}
-      </div>
-
-      {/* Mobile Filters Button */}
-      <div className="flex md:hidden">
-        <Sheet>
-          <SheetTrigger 
-            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 w-8 p-0 text-xs bg-transparent relative border-0" })} 
-            aria-label="Open filters"
-          >
-            <SlidersHorizontal size={16} />
-            {hasActiveFilters && (
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-sidebar-primary" />
-            )}
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-2xl p-5">
-            <SheetHeader className="mb-4 p-0 text-left">
-              <SheetTitle className="text-sm font-semibold">Filters</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              {filtersList}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+      {/* Clear (only appears while search has content) */}
+      {filtersList}
 
       {/* Optional Dispatch Button Node */}
       {dispatchButton && (

@@ -42,9 +42,9 @@ export function TrackingPhaseCell({ id, value, isPending, onUpdate }: TrackingPh
           {(v) => (v ? PHASES.find((p) => p.value === v)?.label ?? v : 'set phase')}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="w-auto! min-w-52">
         {PHASES.map((p) => (
-          <SelectItem key={p.value} value={p.value} className="text-xs">
+          <SelectItem key={p.value} value={p.value} className="text-sm">
             {p.label}
           </SelectItem>
         ))}

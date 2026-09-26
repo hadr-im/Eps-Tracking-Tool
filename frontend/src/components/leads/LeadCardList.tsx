@@ -1,17 +1,20 @@
+// LeadCardList — mobile view of the dispatch lead pool.
+//
+// One row per lead. Everything the dispatcher needs to scan (name, product,
+// status, when it came in) is visible without expanding; the extras open in
+// place when the caret is tapped.
+
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge }    from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateCell } from '@/components/crm/cells/DateCell';
-import { Plus, Minus } from 'lucide-react';
-import { useState } from 'react';
+import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
+import { UserAvatar } from '@/components/layout/UserAvatar';
 import { cn } from '@/lib/utils';
 import type { Lead } from '@/types/lead';
-
-const STATUS_COLORS: Record<string, string> = {
-  LEAD:       'bg-sidebar-primary text-white border-sidebar-primary',
-  CONTACTED:  'bg-blue-500   text-white border-blue-500',
-  INTERESTED: 'bg-violet-500 text-white border-violet-500',
-};
+import type { EpStatus } from '@/types/ep';
 
 interface LeadCardListProps {
   leads: Lead[];
@@ -21,16 +24,7 @@ interface LeadCardListProps {
   onSelectionChange: (ids: string[]) => void;
 }
 
-function getInitials(fullName: string) {
-  return fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-}
-
-function LeadMobileCard({
+function LeadRow({
   lead,
   canDispatch,
   isSelected,
@@ -43,106 +37,100 @@ function LeadMobileCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const hasExtras = !!(lead.email || lead.phone || lead.university || lead.source);
+
   return (
-    <div
+    <li
       className={cn(
-        "rounded-2xl border bg-card overflow-hidden transition-all duration-200 relative",
-        isSelected ? "ring-2 ring-primary border-transparent" : "border-border/70"
+        // Flat row, not a full card. On mobile a stack of cards looks like a
+        // series of buttons; single rows separated by a hairline read as a
+        // list of records instead.
+        'border-b border-border/70 bg-card transition-colors',
+        isSelected && 'bg-aiesec-blue/5',
       )}
     >
-      {/* Header row */}
-      <div 
-        className="flex items-start gap-3 px-4 py-3.5 cursor-pointer"
+      {/* Header — the always-visible summary */}
+      <div
+        className="flex items-center gap-3 px-4 py-3"
         onClick={() => {
           if (canDispatch) onToggleSelection();
-          else setExpanded(!expanded);
+          else if (hasExtras) setExpanded((v) => !v);
         }}
       >
         {canDispatch && (
-          <div className="flex h-9 items-center pt-0.5">
-             <Checkbox
-               checked={isSelected}
-               onCheckedChange={onToggleSelection}
-               aria-label={`Select ${lead.fullName}`}
-               onClick={(e) => e.stopPropagation()}
-             />
-          </div>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onToggleSelection}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Select ${lead.fullName}`}
+          />
         )}
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-          {getInitials(lead.fullName)}
-        </div>
+        <UserAvatar fullName={lead.fullName} className="h-9 w-9" />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{lead.fullName}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            EP ID {lead.id} · {lead.product}
+          <p className="truncate text-sm font-semibold text-foreground">
+            {lead.fullName}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            <span className="tabular-nums">#{lead.id}</span>
+            <span className="mx-1.5">·</span>
+            <DateCell value={lead.createdAtExpa} />
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <Badge
-            variant="outline"
-            className={`text-[10px] px-1.5 py-0 shrink-0 ${STATUS_COLORS[lead.statusOnExpa] ?? 'bg-muted text-muted-foreground'}`}
-          >
-            {lead.statusOnExpa.charAt(0) + lead.statusOnExpa.slice(1).toLowerCase()}
-          </Badge>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={expanded ? 'Collapse details' : 'Expand details'}
-          >
-            {expanded ? <Minus size={16} /> : <Plus size={16} />}
-          </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadgeCell status={lead.statusOnExpa as EpStatus} />
+          {hasExtras && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={expanded ? 'Hide details' : 'Show details'}
+              aria-expanded={expanded}
+            >
+              <ChevronDown
+                size={16}
+                className={cn('transition-transform', expanded && 'rotate-180')}
+              />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Expanded details */}
+      {/* Extras — plain key/value rows rather than a boxed grid */}
       <div
         className={cn(
-          'grid transition-all duration-300 ease-in-out',
-          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          'grid transition-[grid-template-rows] duration-200 ease-out',
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         )}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-border/50 bg-card px-4 py-4">
-             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs text-muted-foreground">
-              {lead.email && (
-                <div className="col-span-2">
-                  <dt className="font-medium text-foreground/70 mb-0.5">Email</dt>
-                  <dd className="truncate text-foreground">{lead.email}</dd>
-                </div>
-              )}
-              {lead.phone && (
-                <div>
-                  <dt className="font-medium text-foreground/70 mb-0.5">Phone</dt>
-                  <dd className="text-foreground">{lead.phone}</dd>
-                </div>
-              )}
-              {lead.university && (
-                <div className={lead.phone ? '' : 'col-span-2'}>
-                  <dt className="font-medium text-foreground/70 mb-0.5">University</dt>
-                  <dd className="truncate text-foreground">{lead.university}</dd>
-                </div>
-              )}
-              {lead.source && (
-                <div>
-                  <dt className="font-medium text-foreground/70 mb-0.5">Source</dt>
-                  <dd className="text-foreground">{lead.source}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="font-medium text-foreground/70 mb-0.5">Created</dt>
-                <dd className="text-foreground"><DateCell value={lead.createdAtExpa} /></dd>
-              </div>
-            </dl>
-          </div>
+          <dl className="px-4 pb-3 space-y-1.5 text-[12px]">
+            {lead.email && <Row label="Email" value={lead.email} />}
+            {lead.phone && <Row label="Phone" value={lead.phone} />}
+            {lead.university && <Row label="University" value={lead.university} />}
+            {lead.source && <Row label="Source" value={lead.source} />}
+          </dl>
         </div>
       </div>
+    </li>
+  );
+}
+
+/*
+  Key/value row. Label sits above the value so long strings (email, hashed
+  addresses, full university names) get the full card width instead of being
+  crushed to half. Truncated with an ellipsis when they still overflow.
+*/
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-foreground truncate">{value}</dd>
     </div>
   );
 }
@@ -158,19 +146,18 @@ export function LeadCardList({
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <ul className="rounded-xl border bg-card overflow-hidden">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rounded-2xl border bg-card p-4 space-y-3">
-            <div className="flex items-center gap-3">
-               <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-               <div className="space-y-1.5 flex-1">
-                 <Skeleton className="h-4 w-32" />
-                 <Skeleton className="h-3 w-20" />
-               </div>
+          <li key={i} className="flex items-center gap-3 border-b border-border/70 px-4 py-3 last:border-b-0">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-3 w-20" />
             </div>
-          </div>
+            <Skeleton className="h-5 w-16 rounded-sm" />
+          </li>
         ))}
-      </div>
+      </ul>
     );
   }
 
@@ -183,9 +170,9 @@ export function LeadCardList({
   }
 
   return (
-    <div className="space-y-3">
+    <ul className="rounded-xl border bg-card overflow-hidden [&>li:last-child]:border-b-0">
       {leads.map((lead) => (
-        <LeadMobileCard 
+        <LeadRow
           key={lead.id}
           lead={lead}
           canDispatch={canDispatch}
@@ -194,11 +181,11 @@ export function LeadCardList({
             onSelectionChange(
               selectedSet.has(lead.id)
                 ? selectedIds.filter((id) => id !== lead.id)
-                : [...selectedIds, lead.id]
+                : [...selectedIds, lead.id],
             );
           }}
         />
       ))}
-    </div>
+    </ul>
   );
 }

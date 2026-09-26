@@ -10,6 +10,7 @@ import { PieChart as PieChartIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { PhaseCount } from '@/types/dashboard';
+import { TOOLTIP_STYLE } from './chartTokens';
 
 // Human-readable phase labels — mirrors TrackingPhaseCell
 const PHASE_LABELS: Record<string, string> = {
@@ -24,10 +25,19 @@ const PHASE_LABELS: Record<string, string> = {
   NOT_INTERESTED_ANYMORE:    'Not Interested',
 };
 
-// color palette for slices
+// Slice colours pulled from the shared chart palette. Same hues the funnel
+// uses (cold -> warm -> green), no rose — red never carries meaning on this
+// dashboard.
 const COLORS = [
-  '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981',
-  '#ef4444', '#6366f1', '#f97316', '#14b8a6', '#ec4899',
+  'var(--chart-blue)',
+  'var(--chart-violet)',
+  'var(--chart-amber)',
+  'var(--chart-teal)',
+  'var(--chart-emerald)',
+  'var(--gv)',
+  'var(--gta)',
+  'var(--gte)',
+  'var(--color-muted-foreground)',
 ];
 
 interface PhaseBreakdownChartProps {
@@ -72,14 +82,14 @@ export function PhaseBreakdownChart({ data, isLoading }: PhaseBreakdownChartProp
             </p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="45%"
-                innerRadius={60}
-                outerRadius={90}
+                cy="42%"
+                innerRadius={55}
+                outerRadius={85}
                 paddingAngle={3}
                 dataKey="value"
                 nameKey="name"
@@ -88,20 +98,12 @@ export function PhaseBreakdownChart({ data, isLoading }: PhaseBreakdownChartProp
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--card))',
-                color: 'hsl(var(--foreground))',
-              }}
-              formatter={(value, name) => [value, name]}
-            />
+              <Tooltip contentStyle={TOOLTIP_STYLE} />
               <Legend
+                verticalAlign="bottom"
                 iconType="circle"
                 iconSize={8}
-                wrapperStyle={{ fontSize: 11 }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'var(--color-muted-foreground)' }}
               />
             </PieChart>
           </ResponsiveContainer>

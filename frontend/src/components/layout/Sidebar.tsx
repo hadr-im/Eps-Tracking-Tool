@@ -5,20 +5,33 @@ import {
   Users,
   Users2,
   ArrowRightLeft,
-  Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   BadgeCheck,
   Hourglass,
   LayoutDashboard,
   Send,
+  UserCheck,
+  UserCog,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { UserAvatar } from '@/components/layout/UserAvatar';
+import { brandForDepartment } from '@/lib/productBrand';
 import { cn } from '@/lib/utils';
+
+const ROLE_LABELS: Record<string, string> = {
+  MEMBER: 'Member',
+  TEAM_LEADER: 'Team Leader',
+  VP: 'Vice President',
+};
+
+// Compact codes for the sidebar, where there is no room for the full title.
+const ROLE_CODES: Record<string, string> = {
+  MEMBER: 'TM',
+  TEAM_LEADER: 'TL',
+  VP: 'VP',
+};
 
 // Nav section definitions (Team section gated by role in the render)
 
@@ -34,10 +47,6 @@ const TEAM_NAV = [
   { to: '/team/under-process', icon: Hourglass,      label: 'Under Process'   },
   { to: '/team/transitioned-eps', icon: ArrowRightLeft, label: 'Transitioned EPs' },
   { to: '/dispatch',           icon: Send,           label: 'Dispatch'        },
-];
-
-const BOTTOM_NAV = [
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 // NavItem 
@@ -61,10 +70,11 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
       id={`nav-${to.replace('/', '')}`}
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        // Hover uses the same filled treatment as the selected state, so the
+        // preview lands on exactly the colour the click will produce.
         isActive
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-          : 'text-sidebar-foreground/70',
+          ? 'bg-(--nav-active)/15 text-(--nav-active)'
+          : 'text-sidebar-foreground/70 hover:bg-(--nav-active)/10 hover:text-(--nav-active)',
         collapsed && 'justify-center px-2',
       )}
     >
@@ -87,6 +97,43 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
   return link;
 }
 
+// Logout — same shape as NavItem, red only on hover.
+
+function LogoutItem({
+  collapsed,
+  onLogout,
+}: {
+  collapsed: boolean;
+  onLogout: () => void;
+}) {
+  const button = (
+    <button
+      id="nav-logout"
+      type="button"
+      onClick={onLogout}
+      aria-label="Logout"
+      className={cn(
+        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+        'text-sidebar-foreground/70 hover:bg-destructive/15 hover:text-destructive',
+        collapsed && 'justify-center px-2',
+      )}
+    >
+      <LogOut size={18} className="shrink-0" />
+      {!collapsed && <span>Logout</span>}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger>{button}</TooltipTrigger>
+        <TooltipContent side="right" className="text-xs">Logout</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return button;
+}
+
 // Section label (hidden when collapsed)
 
 function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
@@ -102,31 +149,51 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
 
 interface SidebarBodyProps {
   collapsed: boolean;
-  onToggleCollapse?: () => void;
   onNavClick?: () => void;
 }
 
-export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: SidebarBodyProps) {
+export function SidebarBody({ collapsed, onNavClick }: SidebarBodyProps) {
   const { logout, user } = useAuth();
   const isTeam = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const brand = brandForDepartment(user?.departmentId);
 
   return (
     <TooltipProvider>
       <div
         className={cn(
           'flex h-full flex-col bg-sidebar text-sidebar-foreground transition-all duration-200',
-          collapsed ? 'w-15' : 'w-55',
+          collapsed ? 'w-16' : 'w-64',
         )}
+        /* The active nav colour follows the department, so GV/GTA/GTE each
+           get their own accent without branching in every NavItem. */
+        style={
+          {
+            '--nav-active': brand?.color ?? 'var(--sidebar-primary)',
+          } as React.CSSProperties
+        }
       >
-        {/* Logo */}
-        <div className={cn('flex items-center gap-2.5 px-4 py-5', collapsed && 'justify-center px-2')}>
-          <div className="h-8 w-8 shrink-0 rounded-full bg-sidebar-primary flex items-center justify-center text-white text-sm font-bold">
-            E
-          </div>
-          {!collapsed && (
-            <span className="font-bold text-sm tracking-tight leading-none">
-              EPs Tracker
-            </span>
+        {/* Logo: the department's own mark, sized to fill the sidebar width.
+            The programme is already obvious from the artwork, so no caption. */}
+        <div className={cn('px-4 py-4', collapsed && 'px-2')}>
+          {brand ? (
+            /*
+              Two artworks: the wordmark for the expanded rail, the compact
+              signup mark for the collapsed rail — a wordmark shrunk to 36px
+              is unreadable. Kept aligned left so the mark lines up with the
+              nav icons below.
+            */
+            <img
+              src={collapsed ? brand.logo : brand.homeLogo}
+              alt={brand.label}
+              className={cn(
+                'object-contain',
+                collapsed ? 'h-9 w-9 mx-auto' : 'h-11 w-auto object-left',
+              )}
+            />
+          ) : (
+            <div className="h-10 w-full rounded-lg bg-sidebar-primary flex items-center justify-center text-white text-sm font-bold">
+              EPs Tracking Tool
+            </div>
           )}
         </div>
 
@@ -151,70 +218,89 @@ export function SidebarBody({ collapsed, onToggleCollapse, onNavClick }: Sidebar
               ))}
               {/* VP-only items */}
               {user?.role === 'VP' && (
-                <NavItem
-                  to="/global-dashboard"
-                  icon={LayoutDashboard}
-                  label="Global Dashboard"
-                  collapsed={collapsed}
-                  onClick={onNavClick}
-                />
+                <>
+                  <NavItem
+                    to="/global-dashboard"
+                    icon={LayoutDashboard}
+                    label="Global Dashboard"
+                    collapsed={collapsed}
+                    onClick={onNavClick}
+                  />
+                  <NavItem
+                    to="/approvals"
+                    icon={UserCheck}
+                    label="Requests"
+                    collapsed={collapsed}
+                    onClick={onNavClick}
+                  />
+                  <NavItem
+                    to="/members"
+                    icon={UserCog}
+                    label="Members"
+                    collapsed={collapsed}
+                    onClick={onNavClick}
+                  />
+                </>
               )}
             </>
           )}
 
-          {/* Settings section */}
-          {!collapsed && <Separator className="bg-sidebar-border my-2" />}
-          <SectionLabel label="Other" collapsed={collapsed} />
-          {BOTTOM_NAV.map((item) => (
-            <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
-          ))}
-
         </nav>
 
-        <Separator className="bg-sidebar-border" />
-
-        {/* User + Logout */}
-        <div className={cn('px-2 py-3 space-y-1', collapsed && 'flex flex-col items-center')}>
-          {!collapsed && user && (
-            <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50">
-              <p className="text-xs font-semibold truncate">{user.fullName}</p>
-              <p className="text-[10px] text-sidebar-foreground/50 truncate">{user.email}</p>
-            </div>
+        {/* Who is signed in — clickable, opens the profile — then the way out. */}
+        <div className="px-2 pb-3 space-y-1">
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger>
+                <NavLink
+                  to="/settings"
+                  onClick={onNavClick}
+                  className="flex justify-center py-1 rounded-lg hover:bg-sidebar-accent/60 transition-colors"
+                >
+                  <UserAvatar
+                    fullName={user?.fullName}
+                    email={user?.email}
+                    avatarUrl={user?.avatarUrl}
+                    className="h-9 w-9"
+                  />
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                {user?.fullName} · {ROLE_LABELS[user?.role ?? ''] ?? ''}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <NavLink
+              to="/settings"
+              onClick={onNavClick}
+              className="flex items-center gap-2.5 rounded-lg bg-sidebar-accent/40 hover:bg-sidebar-accent/70 transition-colors px-2.5 py-2 min-w-0"
+            >
+              <UserAvatar
+                fullName={user?.fullName}
+                email={user?.email}
+                avatarUrl={user?.avatarUrl}
+                className="h-9 w-9"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-sm font-semibold truncate">{user?.fullName}</p>
+                  {/* Short code beside the name: the sidebar is narrow, and
+                      "Vice President" pushed the email onto a third line. */}
+                  <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none bg-(--nav-active)/15 text-(--nav-active)">
+                    {ROLE_CODES[user?.role ?? ''] ?? ''}
+                  </span>
+                </div>
+                <p className="text-[10px] text-sidebar-foreground/50 truncate">
+                  {user?.email}
+                </p>
+              </div>
+            </NavLink>
           )}
 
-          <Tooltip>
-            <TooltipTrigger>
-              <Button
-                id="nav-logout"
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className={cn(
-                  'w-full justify-start gap-2 text-xs text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10',
-                  collapsed && 'justify-center px-2',
-                )}
-              >
-                <LogOut size={15} />
-                {!collapsed && 'Logout'}
-              </Button>
-            </TooltipTrigger>
-            {collapsed && (
-              <TooltipContent side="right" className="text-xs">Logout</TooltipContent>
-            )}
-          </Tooltip>
+          {/* Logout: shaped exactly like a nav link, so the sidebar reads as
+              one list. Only the hover colour marks it out as destructive. */}
+          <LogoutItem collapsed={collapsed} onLogout={logout} />
         </div>
-
-        {/* Collapse toggle (desktop only) */}
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 hidden md:flex h-6 w-6 items-center justify-center rounded-full border bg-card shadow-sm text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-          </button>
-        )}
       </div>
     </TooltipProvider>
   );

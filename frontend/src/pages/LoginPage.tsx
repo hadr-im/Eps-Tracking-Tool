@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+import axios from 'axios'
 
 import { loginSchema, type LoginFormValues } from '@/schemas/loginSchema'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields'
 import { GoogleButton } from '@/components/auth/GoogleButton'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import type { AuthTokens } from '@/types/auth'
 
 // LoginPage
@@ -20,9 +24,23 @@ export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const passwordReset = searchParams.get('passwordReset') === 'true'
+  const accountCreated = searchParams.get('created') === '1'
+  const oauthError = searchParams.get('error')
+
+  // Surface the redirect banners as toasts once, on arrival.
+  useEffect(() => {
+    if (passwordReset) toast.success('Password updated. Please sign in.')
+    if (accountCreated) {
+      toast.success('Your VP account is ready. Sign in with Google to continue.')
+    }
+    if (oauthError && oauthError !== 'oauth_failed') {
+      toast.info(oauthError, { duration: 8000 })
+    } else if (oauthError === 'oauth_failed') {
+      toast.error("Couldn't sign in with Google. Please try again.")
+    }
+  }, [passwordReset, accountCreated, oauthError])
 
   const {
     register,
@@ -34,15 +52,25 @@ export default function LoginPage() {
   })
 
   async function onSubmit(values: LoginFormValues) {
-    setServerError(null)
     try {
       const { data } = await apiClient.post<AuthTokens>('/auth/login', values)
       login(data)
       navigate('/', { replace: true })
     } catch (err: unknown) {
-      setServerError(getFriendlyError(err, {
+      // A 403 means the account exists but cannot sign in yet — awaiting
+      // approval, declined, or disabled. The server explains which, and that
+      // message is more useful than anything generic, so show it verbatim.
+      if (axios.isAxiosError(err) && err.response?.status === 403) {
+        const message = (err.response.data as { message?: unknown })?.message
+        if (typeof message === 'string' && message.trim() !== '') {
+          toast.error(message)
+          return
+        }
+      }
+
+      toast.error(getFriendlyError(err, {
         401: 'Incorrect email or password.',
-        403: 'Your account is not yet approved. Please contact your team leader.',
+        403: 'Your account is not yet approved. Please contact your VP.',
         429: 'Too many attempts. Please wait a moment and try again.',
       }, 'Something went wrong. Please try again.'))
     }
@@ -56,25 +84,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-sm">
-
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to your account
-          </p>
-        </div>
-
-        {/* Password reset success banner */}
-        {passwordReset && (
-          <div className="mb-6 flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground">
-            <CheckCircle2 size={16} className="shrink-0 text-green-600 dark:text-green-400" />
-            Password updated successfully. Please sign in.
-          </div>
-        )}
-
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Sign in to your account"
+      footerLink={
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{' '}
+          <Link
+            to="/signup"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Create one
+          </Link>
+        </p>
+      }
+    >
+      <>
         {/* Form */}
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -113,13 +138,6 @@ export default function LoginPage() {
             </div>
           </Field>
 
-          {/* Server-side error */}
-          {serverError && (
-            <p role="alert" className="text-sm text-destructive text-center">
-              {serverError}
-            </p>
-          )}
-
           <Button
             id="login-submit"
             type="submit"
@@ -144,26 +162,14 @@ export default function LoginPage() {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-background px-3 text-xs text-muted-foreground">
+            <span className="bg-card px-3 text-xs text-muted-foreground">
               or
             </span>
           </div>
         </div>
 
         <GoogleButton label="Sign in with Google" />
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link
-            to="/signup"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Create one
-          </Link>
-        </p>
-
-      </div>
-    </div>
+      </>
+    </AuthLayout>
   )
 }

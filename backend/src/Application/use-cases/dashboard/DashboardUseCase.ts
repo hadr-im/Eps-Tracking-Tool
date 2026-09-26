@@ -6,6 +6,7 @@ import {
   StatusChangeTrend,
   TransitionStat,
 } from '../../../Domain/abstracts/IDashboardRepository';
+import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { UserRole } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 
@@ -13,6 +14,7 @@ export interface DashboardCaller {
   id: string;
   role: UserRole;
   departmentId: string | null;
+  isDispatcher?: boolean;
 }
 
 export interface BaseDashboardStats {
@@ -44,14 +46,13 @@ export interface VpDashboardDto extends BaseDashboardStats {
 }
 
 export class DashboardUseCase {
-  constructor(private readonly repo: IDashboardRepository) {}
+  constructor(
+    private readonly repo: IDashboardRepository,
+    private readonly authRepo: IAuthRepository,
+  ) {}
 
   async getMemberDashboard(caller: DashboardCaller, targetUserId: string): Promise<MemberDashboardDto> {
-    // If a TL/VP is viewing a member's dashboard, ensure they are in the same department
-    if (caller.role !== UserRole.MEMBER && caller.departmentId) {
-    } else if (caller.role === UserRole.MEMBER && targetUserId !== caller.id) {
-      throw new AppError('Members can only view their own dashboard', 403);
-    }
+    await this.assertCanViewDashboardOf(caller, targetUserId);
 
     const scope = {
       ownerId: targetUserId,
@@ -76,8 +77,13 @@ export class DashboardUseCase {
     const statusCounts = await this.repo.getStatusCounts(scope);
     const phaseCounts = await this.repo.getPhaseCounts(scope);
     
-    // Fetch the member breakdown for the entire department
-    const breakdown = await this.repo.getMemberBreakdown(caller.departmentId);
+    /*
+      A Team Leader's dashboard covers their own team, not the whole
+      department — the breakdown is there to show how THEIR members are doing.
+      A VP hitting this endpoint still sees everyone.
+    */
+    const teamLeaderId = caller.role === UserRole.TEAM_LEADER ? caller.id : undefined;
+    const breakdown = await this.repo.getMemberBreakdown(caller.departmentId, teamLeaderId);
 
     const base = this.buildBaseStats(statusCounts, phaseCounts);
 
@@ -95,9 +101,22 @@ export class DashboardUseCase {
     if (caller.role !== UserRole.VP) {
       throw new AppError('Only VPs can view VP dashboards', 403);
     }
-    
-    const departmentId = requestedDepartmentId || caller.departmentId;
-    if (!departmentId) throw new AppError('No department specified', 400);
+
+    /*
+      A VP only ever sees their own department.
+
+      This used to accept any departmentId from the query string, which would
+      have returned another department's numbers to anyone who asked. The UI
+      never sent it, so honouring it was an open door nobody walked through.
+      A request for someone else's department is now refused outright rather
+      than silently ignored, so a wrong caller finds out.
+    */
+    const departmentId = caller.departmentId;
+    if (!departmentId) throw new AppError('No department assigned to your account', 400);
+
+    if (requestedDepartmentId && requestedDepartmentId !== departmentId) {
+      throw new AppError('You can only view your own department', 403);
+    }
 
     const scope = { departmentId };
 
@@ -122,7 +141,42 @@ export class DashboardUseCase {
     };
   }
 
-  // Helpers 
+  // Helpers
+
+  /*
+    Who may read someone else's numbers.
+
+    Replaces an empty `if` block that left this endpoint with no check at all:
+    any TL or VP could read any user's dashboard, in any department. Mirrors
+    the EP visibility rules so the two cannot drift apart.
+  */
+  private async assertCanViewDashboardOf(
+    caller: DashboardCaller,
+    targetUserId: string,
+  ): Promise<void> {
+    if (targetUserId === caller.id) return;
+
+    if (caller.role === UserRole.MEMBER) {
+      throw new AppError('Members can only view their own dashboard', 403);
+    }
+    if (!caller.departmentId) {
+      throw new AppError('No department assigned to your account', 400);
+    }
+
+    const target = await this.authRepo.findById(targetUserId);
+    if (!target) throw new AppError('Member not found', 404);
+
+    if (target.departmentId !== caller.departmentId) {
+      throw new AppError('That member is not in your department', 403);
+    }
+
+    // A VP oversees the department; the dispatcher TL works across all members.
+    if (caller.role === UserRole.VP || caller.isDispatcher) return;
+
+    if (target.teamLeaderId !== caller.id) {
+      throw new AppError('That member is not on your team', 403);
+    }
+  }
 
   private buildBaseStats(statusCounts: StatusCount[], phaseCounts: PhaseCount[]): BaseDashboardStats {
     let totalAssigned = 0;

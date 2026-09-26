@@ -21,6 +21,12 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
 enum EpStatus {
   LEAD
   CONTACTED
@@ -94,12 +100,32 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  /// Accounts start PENDING and hold no privileges until a VP approves them.
+  /// The fields above (role, departmentId, teamLeaderId, isDispatcher) are the
+  /// GRANTED values and are only written on approval — never at signup.
+  status       AccountStatus @default(PENDING)
+
+  /// What the user claimed during signup. Kept after approval as an audit trail
+  /// of what was asked for versus what was actually granted.
+  requestedRole         UserRole?
+  requestedDepartmentId String?
+  requestedTeamLeaderId String?
+  requestedIsDispatcher Boolean   @default(false)
+
+  reviewedById    String?
+  reviewedBy      User?     @relation("UserReviews", fields: [reviewedById], references: [id])
+  reviewedUsers   User[]    @relation("UserReviews")
+  reviewedAt      DateTime?
+  rejectionReason String?
+
   refreshTokens      RefreshToken[]
   passwordResetOtps  PasswordResetOtp[]
   ownedEps           Ep[]               @relation("EpOwner")
   comments           Comment[]
   triggeredTransitions TransitionHistory[]
   statusChanges      StatusHistory[]
+
+  @@index([status])
 }
 
 model RefreshToken {

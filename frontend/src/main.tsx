@@ -21,9 +21,12 @@ import EpsUnderProcessPage    from './pages/EpsUnderProcessPage.tsx'
 import GlobalDashboardPage    from './pages/GlobalDashboardPage.tsx'
 import ProfilePage            from './pages/ProfilePage.tsx'
 import TransitionedEpsPage    from './pages/TransitionedEpsPage.tsx'
+import ApprovalsPage          from './pages/ApprovalsPage.tsx'
+import MembersPage            from './pages/MembersPage.tsx'
 
 // Pages: public 
 import SignupPage             from './pages/SignupPage.tsx'
+import CompleteGoogleSignupPage from './pages/CompleteGoogleSignupPage.tsx'
 import LoginPage              from './pages/LoginPage.tsx'
 import ForgotPasswordPage     from './pages/ForgotPasswordPage.tsx'
 import VerifyOtpPage          from './pages/VerifyOtpPage.tsx'
@@ -64,6 +67,8 @@ createRoot(document.getElementById('root')!).render(
                 {/* VP-only routes */}
                 <Route element={<RoleRoute allowed={['VP']} />}>
                   <Route path="/global-dashboard" element={<GlobalDashboardPage />} />
+                  <Route path="/approvals"        element={<ApprovalsPage />} />
+                  <Route path="/members"          element={<MembersPage />} />
                 </Route>
                 <Route path="/settings"  element={<ProfilePage />} />
               </Route>
@@ -72,6 +77,8 @@ createRoot(document.getElementById('root')!).render(
             {/*  Public routes (auth flow)  */}
             <Route path="/login"           element={<LoginPage />} />
             <Route path="/signup"          element={<SignupPage />} />
+            {/* Step 2 of the Google flow */}
+            <Route path="/signup/complete" element={<CompleteGoogleSignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/verify-otp"      element={<VerifyOtpPage />} />
             <Route path="/reset-password"  element={<ResetPasswordPage />} />

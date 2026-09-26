@@ -13,7 +13,7 @@ export function GoogleButton({ label = 'Continue with Google' }: GoogleButtonPro
       id="google-auth-btn"
       className="
         inline-flex w-full items-center justify-center gap-3
-        h-10 rounded-4xl border border-border bg-input/30
+        h-10 rounded-lg border border-border bg-input/30
         px-4 text-sm font-medium text-foreground
         transition-colors hover:bg-input/50
         focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50
