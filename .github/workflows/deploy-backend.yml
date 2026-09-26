@@ -1,0 +1,54 @@
+name: Deploy Backend
+
+# Vercel's GitHub integration cannot be used here: the Vercel project lives on a
+# different account than the one that owns this repo, so Vercel has no write
+# access to install webhooks. This workflow deploys through the CLI instead,
+# authenticating with a token rather than the Git integration.
+#
+# Required repository secret:
+#   VERCEL_TOKEN - https://vercel.com/account/settings/tokens
+#
+# The org and project IDs are not secrets; they identify the target project and
+# are useless without the token, so they are inlined for easier maintenance.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      VERCEL_ORG_ID: team_dxiLICUI7sQ00JPR14BVjJRD
+      VERCEL_PROJECT_ID: prj_n2VtQqCklDSIelBnOfnRpg5J8pvv
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify token is present
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set on this repository."
+            exit 1
+          fi
+
+      - name: Deploy to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"

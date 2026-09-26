@@ -1,0 +1,51 @@
+name: Deploy Frontend
+
+# See deploy-backend.yml for why the Vercel Git integration is not used.
+#
+# Required repository secret:
+#   VERCEL_TOKEN - https://vercel.com/account/settings/tokens
+#
+# VITE_* values are read from the Vercel project's own environment variables at
+# build time, so they are not duplicated here.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VERCEL_ORG_ID: team_dxiLICUI7sQ00JPR14BVjJRD
+      VERCEL_PROJECT_ID: prj_KDOLgwHyxhu6wM6ali4g2xNf1NiH
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify token is present
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set on this repository."
+            exit 1
+          fi
+
+      - name: Deploy to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
