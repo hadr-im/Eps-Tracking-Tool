@@ -25,7 +25,7 @@ export async function fetchLeads(filters: LeadFilters = {}): Promise<Lead[]> {
 }
 
 // POST /dispatch
-// Dispatcher TL only (assigns one or more EPs to a member)
+// Team Leaders and VPs only (assigns one or more EPs to a member)
 export async function dispatchLeads(payload: DispatchPayload): Promise<DispatchApiResponse> {
   const { data } = await apiClient.post<DispatchApiResponse>('/dispatch', payload);
   return data;

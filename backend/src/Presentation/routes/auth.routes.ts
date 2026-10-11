@@ -61,7 +61,6 @@ router.post('/signup', authRateLimiter, AuthController.signupValidation, AuthCon
  *               requestedRole: { type: string, enum: [MEMBER, TEAM_LEADER, VP] }
  *               requestedDepartmentId: { type: string }
  *               requestedTeamLeaderId: { type: string, nullable: true }
- *               requestedIsDispatcher: { type: boolean }
  *     responses:
  *       201:
  *         description: Request submitted, awaiting VP approval

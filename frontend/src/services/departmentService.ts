@@ -9,7 +9,6 @@ export interface DepartmentMember {
   fullName: string;
   email: string;
   role: string;
-  isDispatcher: boolean;
 }
 
 interface MembersApiResponse {

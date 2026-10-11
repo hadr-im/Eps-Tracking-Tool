@@ -8,9 +8,8 @@ export interface Department {
   id: string;
   name: string;
   product: string;
-  // Single-holder roles already taken in this department
+  // Whether this department already has a VP
   hasVp: boolean;
-  hasDispatcher: boolean;
 }
 
 export interface TeamLeaderOption {
@@ -28,7 +27,6 @@ export interface PlacementValue {
   requestedRole: UserRole | '';
   // null = "I don't know yet", filled in by the approving VP
   requestedTeamLeaderId: string | null;
-  requestedIsDispatcher: boolean;
   /*
     Required when requestedRole is VP. Only a VP can approve an account, so a
     VP request has nobody to approve it — this shared code stands in for that
@@ -41,7 +39,6 @@ export const EMPTY_PLACEMENT: PlacementValue = {
   requestedDepartmentId: '',
   requestedRole: '',
   requestedTeamLeaderId: null,
-  requestedIsDispatcher: false,
   vpSetupCode: '',
 };
 
@@ -53,7 +50,6 @@ export interface SignupPayload {
   requestedRole: UserRole;
   requestedDepartmentId: string;
   requestedTeamLeaderId?: string | null;
-  requestedIsDispatcher?: boolean;
   vpSetupCode?: string;
 }
 
@@ -63,7 +59,6 @@ export interface CompleteGoogleSignupPayload {
   requestedRole: UserRole;
   requestedDepartmentId: string;
   requestedTeamLeaderId?: string | null;
-  requestedIsDispatcher?: boolean;
   vpSetupCode?: string;
 }
 
@@ -85,7 +80,6 @@ export interface RequestedAccess {
   role: UserRole | null;
   departmentId: string | null;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
 }
 
 // A row in GET /users/pending
@@ -103,5 +97,4 @@ export interface PendingAccount {
 export interface ApprovalOverrides {
   role?: UserRole;
   teamLeaderId?: string | null;
-  isDispatcher?: boolean;
 }

@@ -1,5 +1,5 @@
 // Modal for assigning one or more lead EPs to a department member
-// Visible only when the caller is a dispatcher TL (user.isDispatcher = true)
+// Visible only to Team Leaders and VPs, who may assign leads to any member.
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';

@@ -133,7 +133,6 @@ export class DispatchRepository implements IDispatchRepository {
       row.provider as unknown as AuthProvider,
       row.googleId,
       row.departmentId,
-      row.isDispatcher,
       row.isDisabled,
       row.createdAt,
       row.updatedAt,

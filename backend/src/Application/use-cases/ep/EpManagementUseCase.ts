@@ -14,7 +14,6 @@ export interface EpManagementCaller {
   id: string;
   role: UserRole;
   departmentId: string | null;
-  isDispatcher?: boolean;
 }
 
 // Full CRM-aware DTO returned by all EP management endpoints
@@ -128,11 +127,10 @@ export class EpManagementUseCase {
       throw new AppError('That member is not in your department', 403);
     }
 
-    // A VP oversees the whole department, and so does the dispatcher TL, who
-    // has to assign leads across every member.
-    if (caller.role === UserRole.VP || caller.isDispatcher) return;
+    // A VP oversees the whole department, and every Team Leader can now assign
+    // leads across it, so both need to see any member's EPs.
+    if (caller.role === UserRole.VP || caller.role === UserRole.TEAM_LEADER) return;
 
-    // Any other Team Leader sees only their own team.
     if (target.teamLeaderId !== caller.id) {
       throw new AppError('That member is not on your team', 403);
     }

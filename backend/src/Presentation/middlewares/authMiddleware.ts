@@ -27,7 +27,6 @@ export const authMiddleware: RequestHandler = (
       id: payload.userId,
       role: payload.role,
       departmentId: payload.departmentId,
-      isDispatcher: payload.isDispatcher,
     };
 
     next();

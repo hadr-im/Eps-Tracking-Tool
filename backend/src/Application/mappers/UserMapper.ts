@@ -15,7 +15,6 @@ export interface UserResponse {
   provider: AuthProvider;
   departmentId: string | null;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
   isDisabled: boolean;
   avatarUrl: string | null;
   status: AccountStatus;
@@ -49,7 +48,6 @@ export class UserMapper {
       AuthProvider.LOCAL,
       null,
       null,  // granted department — none until approved
-      false, // granted dispatcher — never at signup
       false,
       now,
       now,
@@ -78,7 +76,6 @@ export class UserMapper {
       setup.googleId,
       null,
       false,
-      false,
       now,
       now,
       setup.avatarUrl,
@@ -93,7 +90,6 @@ export class UserMapper {
     requestedRole: UserRole;
     requestedDepartmentId: string;
     requestedTeamLeaderId?: string | null;
-    requestedIsDispatcher?: boolean;
   }): RequestedAccess {
     return {
       role: dto.requestedRole,
@@ -101,9 +97,6 @@ export class UserMapper {
       // Only members belong to a Team Leader
       teamLeaderId:
         dto.requestedRole === UserRole.MEMBER ? (dto.requestedTeamLeaderId ?? null) : null,
-      // Only Team Leaders can be the dispatcher
-      isDispatcher:
-        dto.requestedRole === UserRole.TEAM_LEADER ? (dto.requestedIsDispatcher ?? false) : false,
     };
   }
 
@@ -117,7 +110,6 @@ export class UserMapper {
       provider: user.provider,
       departmentId: user.departmentId,
       teamLeaderId: user.teamLeaderId,
-      isDispatcher: user.isDispatcher,
       isDisabled: user.isDisabled,
       avatarUrl: user.avatarUrl ?? null,
       status: user.status,

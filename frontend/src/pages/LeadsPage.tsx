@@ -1,6 +1,6 @@
 // Leads & Sign-ups pool for TL / VP oversight
 // - All leads browsable by TL and VP
-// - Dispatch button visible only for isDispatcher TLs
+// - Dispatch button visible to Team Leaders and VPs
 // - Server-side filtered (name search + product)
 // - Dispatched rows disappear without a manual refresh (React Query cache invalidation)
 
@@ -21,8 +21,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 export default function LeadsPage() {
   const { user } = useAuth();
 
-  // Only dispatcher TLs may trigger a dispatch (VPs and non dispatcher TLs can browse but not assign)
-  const canDispatch = user?.isDispatcher === true;
+  // Team Leaders and VPs may assign leads; members can browse but not assign.
+  const canDispatch = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
   const departmentId = user?.departmentId ?? null;
 
   const [filters, setFilters] = useState<LeadFilters>({});

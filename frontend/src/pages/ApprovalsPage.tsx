@@ -8,7 +8,6 @@ import { useMemo, useState } from 'react';
 import {
   Check,
   MoreHorizontal,
-  Send,
   ShieldCheck,
   UserCog,
   X,
@@ -245,7 +244,6 @@ function RequestCard({
           <span className="text-muted-foreground">Requested</span>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <span className="font-medium">{ROLE_LABELS[requestedRole]}</span>
-            {account.requested?.isDispatcher && <SoftBadge tone="dispatcher">Dispatcher</SoftBadge>}
           </div>
         </div>
         {requestedRole === 'MEMBER' && (
@@ -284,14 +282,11 @@ function RequestCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuLabel>Approve as</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => approveAs({ role: 'MEMBER', isDispatcher: false })}>
+            <DropdownMenuItem onClick={() => approveAs({ role: 'MEMBER' })}>
               <UserCog /> Member
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => approveAs({ role: 'TEAM_LEADER' })}>
               <UserCog /> Team Leader
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => approveAs({ role: 'TEAM_LEADER', isDispatcher: true })}>
-              <Send /> Team Leader + dispatcher
             </DropdownMenuItem>
             {teamLeaders.length > 0 && (
               <>
@@ -368,9 +363,6 @@ function RequestRow({
       <TableCell>
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm">{ROLE_LABELS[requestedRole]}</span>
-          {account.requested?.isDispatcher && (
-            <SoftBadge tone="dispatcher">Dispatcher</SoftBadge>
-          )}
         </div>
       </TableCell>
 
@@ -411,7 +403,7 @@ function RequestRow({
             <DropdownMenuContent>
               <DropdownMenuLabel>Approve as</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => approveAs({ role: 'MEMBER', isDispatcher: false })}
+                onClick={() => approveAs({ role: 'MEMBER' })}
               >
                 <UserCog />
                 Member
@@ -419,12 +411,6 @@ function RequestRow({
               <DropdownMenuItem onClick={() => approveAs({ role: 'TEAM_LEADER' })}>
                 <UserCog />
                 Team Leader
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => approveAs({ role: 'TEAM_LEADER', isDispatcher: true })}
-              >
-                <Send />
-                Team Leader + dispatcher
               </DropdownMenuItem>
 
               {teamLeaders.length > 0 && (

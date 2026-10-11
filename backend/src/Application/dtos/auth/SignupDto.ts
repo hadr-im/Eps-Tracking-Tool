@@ -50,11 +50,6 @@ export class SignupDto {
   @IsString()
   requestedTeamLeaderId?: string | null;
 
-  // Only meaningful when requestedRole is TEAM_LEADER. One dispatcher per department.
-  @IsOptional()
-  @IsBoolean()
-  requestedIsDispatcher?: boolean;
-
   /*
     Required when requestedRole is VP.
 

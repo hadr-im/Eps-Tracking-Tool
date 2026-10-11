@@ -1,13 +1,12 @@
 // MembersPage (VP only) — managing people after they have joined.
 //
 // Signup and approval only cover day one. Roles move every term: members
-// become Team Leaders, the dispatcher hands over, people switch teams and
+// become Team Leaders, people switch teams and
 // leave. This is where all of that happens.
 
 import { useMemo, useState } from 'react';
 import {
   MoreHorizontal,
-  Send,
   ShieldCheck,
   UserCog,
   UserMinus,
@@ -66,7 +65,7 @@ export default function MembersPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Manage Your Department"
-        subtitle="Change roles, move people between teams, hand over the dispatcher"
+        subtitle="Change roles, move people between teams, and disable accounts"
         actions={
           !isLoading && (
             <SoftBadge tone="green" className="px-3 py-1 text-xs">
@@ -205,11 +204,6 @@ function MemberCard({
           <UserMinus /> Make a Member
         </DropdownMenuItem>
       )}
-      {member.role === 'TEAM_LEADER' && (
-        <DropdownMenuItem onClick={() => apply({ isDispatcher: !member.isDispatcher })}>
-          <Send /> {member.isDispatcher ? 'Remove as dispatcher' : 'Make dispatcher'}
-        </DropdownMenuItem>
-      )}
       {member.role === 'MEMBER' && assignableLeaders.length > 0 && (
         <>
           <DropdownMenuSeparator />
@@ -272,7 +266,6 @@ function MemberCard({
           <span className="text-muted-foreground">Position</span>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <span className="font-medium">{ROLE_LABELS[member.role]}</span>
-            {member.isDispatcher && <SoftBadge tone="dispatcher">Dispatcher</SoftBadge>}
           </div>
         </div>
         {member.role === 'MEMBER' && (
@@ -352,9 +345,6 @@ function MemberRow({
       <TableCell>
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm">{ROLE_LABELS[member.role]}</span>
-          {member.isDispatcher && (
-            <SoftBadge tone="dispatcher">Dispatcher</SoftBadge>
-          )}
         </div>
       </TableCell>
 
@@ -410,15 +400,6 @@ function MemberRow({
                 <DropdownMenuItem onClick={() => apply({ role: 'MEMBER' })}>
                   <UserMinus />
                   Make a Member
-                </DropdownMenuItem>
-              )}
-
-              {member.role === 'TEAM_LEADER' && (
-                <DropdownMenuItem
-                  onClick={() => apply({ isDispatcher: !member.isDispatcher })}
-                >
-                  <Send />
-                  {member.isDispatcher ? 'Remove as dispatcher' : 'Make dispatcher'}
                 </DropdownMenuItem>
               )}
 

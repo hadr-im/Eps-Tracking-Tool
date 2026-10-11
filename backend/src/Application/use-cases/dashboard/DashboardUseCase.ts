@@ -14,7 +14,6 @@ export interface DashboardCaller {
   id: string;
   role: UserRole;
   departmentId: string | null;
-  isDispatcher?: boolean;
 }
 
 export interface BaseDashboardStats {
@@ -170,8 +169,9 @@ export class DashboardUseCase {
       throw new AppError('That member is not in your department', 403);
     }
 
-    // A VP oversees the department; the dispatcher TL works across all members.
-    if (caller.role === UserRole.VP || caller.isDispatcher) return;
+    // A VP oversees the department, and every Team Leader can now dispatch to
+    // any member in it, so both need to see any member's numbers.
+    if (caller.role === UserRole.VP || caller.role === UserRole.TEAM_LEADER) return;
 
     if (target.teamLeaderId !== caller.id) {
       throw new AppError('That member is not on your team', 403);

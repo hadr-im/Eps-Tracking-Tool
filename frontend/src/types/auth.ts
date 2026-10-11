@@ -23,7 +23,6 @@ export interface AuthUser {
   provider: AuthProvider;
   departmentId: string | null;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
   avatarUrl: string | null;
   // Only ACTIVE accounts can reach an authenticated screen, but the field is
   // carried so the UI never has to guess.

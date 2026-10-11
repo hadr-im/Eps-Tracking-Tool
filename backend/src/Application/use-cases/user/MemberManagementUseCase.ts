@@ -15,7 +15,6 @@ export interface MemberManagementCaller {
 export interface AccessChanges {
   role?: UserRole;
   teamLeaderId?: string | null;
-  isDispatcher?: boolean;
   isDisabled?: boolean;
 }
 
@@ -87,18 +86,15 @@ export class MemberManagementUseCase {
       role: changes.role ?? user.role,
       teamLeaderId:
         changes.teamLeaderId !== undefined ? changes.teamLeaderId : user.teamLeaderId,
-      isDispatcher: changes.isDispatcher ?? user.isDispatcher,
       isDisabled: changes.isDisabled ?? user.isDisabled,
     };
 
-    // Same normalisation as approval: a Member holds no dispatcher flag, a
-    // Team Leader reports to nobody.
-    if (next.role !== UserRole.TEAM_LEADER) next.isDispatcher = false;
+    // Same normalisation as approval: a Team Leader reports to nobody.
     if (next.role !== UserRole.MEMBER) next.teamLeaderId = null;
 
     /*
       A disabled account holds no slot, so the uniqueness rules do not apply to
-      it — that is what lets a departing dispatcher be switched off and their
+      it — that is what lets a departing VP be switched off and their
       replacement appointed.
     */
     if (!next.isDisabled) {
@@ -107,7 +103,6 @@ export class MemberManagementUseCase {
           role: next.role,
           departmentId,
           teamLeaderId: next.teamLeaderId,
-          isDispatcher: next.isDispatcher,
         },
         userId,
       );

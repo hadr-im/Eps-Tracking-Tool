@@ -12,17 +12,15 @@ export interface GrantedAccess {
   role: UserRole;
   departmentId: string;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
 }
 
 /*
   What a VP can change on an existing account after approval — people get
-  promoted, hand over the dispatcher role, move between teams and leave.
+  promoted, move between teams and leave.
 */
 export interface ManagedAccess {
   role: UserRole;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
   isDisabled: boolean;
 }
 
@@ -31,12 +29,11 @@ export interface DepartmentSummary {
   name: string;
   product: string;
   /*
-    Whether the single-holder roles are already taken. The signup form uses
-    these to stop offering a position that cannot be granted, instead of
+    Whether the department's single VP slot is already taken. The signup form
+    uses this to stop offering a position that cannot be granted, instead of
     letting someone fill in the whole form only to be rejected.
   */
   hasVp: boolean;
-  hasDispatcher: boolean;
 }
 
 /*
@@ -73,11 +70,9 @@ export interface IAuthRepository {
   // Applies a role/team/dispatcher/enabled change to an already-approved account
   updateUserAccess(userId: string, access: ManagedAccess): Promise<User>;
   /*
-    The department's current dispatcher, or null. Used to give a friendly error
-    naming the existing holder before the DB unique index would reject it.
+    The department's current VP, or null. Used to give a friendly error naming
+    the existing holder before the DB unique index would reject it.
   */
-  findActiveDispatcher(departmentId: string): Promise<User | null>;
-  // The department's current VP, or null. Same purpose as findActiveDispatcher.
   findActiveVp(departmentId: string): Promise<User | null>;
   // Active Team Leaders in a department, for the member's "who is your TL" picker
   findTeamLeadersByDepartment(departmentId: string): Promise<User[]>;

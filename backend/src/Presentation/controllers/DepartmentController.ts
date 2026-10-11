@@ -31,12 +31,9 @@ export class DepartmentController {
         return;
       }
 
-      // TL callers see only their own members, UNLESS they are a dispatcher
-      // VPs and dispatchers see everyone
-      const teamLeaderId = (caller.role === UserRole.TEAM_LEADER && !caller.isDispatcher) 
-        ? caller.id 
-        : undefined;
-      const members = await dispatchUseCase.getDepartmentMembers(requestedDeptId, teamLeaderId);
+      // Every TL and VP can dispatch to anyone in the department, so they all
+      // need the full member list to choose from.
+      const members = await dispatchUseCase.getDepartmentMembers(requestedDeptId);
 
       res.status(200).json({ data: members, count: members.length });
     } catch (err) {

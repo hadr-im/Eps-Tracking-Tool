@@ -47,10 +47,6 @@ function parseOverrides(body: Record<string, unknown>): ApprovalOverrides {
     overrides.teamLeaderId = (teamLeaderId as string | null) || null;
   }
 
-  if ('isDispatcher' in body) {
-    overrides.isDispatcher = Boolean(body['isDispatcher']);
-  }
-
   return overrides;
 }
 
@@ -75,8 +71,8 @@ export class AccountApprovalController {
 
   /*
     POST /users/:id/approve
-    VP only. Body may override any of role, departmentId, teamLeaderId,
-    isDispatcher; anything omitted keeps what the applicant requested.
+    VP only. Body may override any of role, departmentId or teamLeaderId;
+    anything omitted keeps what the applicant requested.
   */
   static async approve(req: Request, res: Response): Promise<void> {
     try {

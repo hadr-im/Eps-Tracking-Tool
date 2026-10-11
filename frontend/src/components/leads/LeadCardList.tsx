@@ -1,6 +1,6 @@
 // LeadCardList — mobile view of the dispatch lead pool.
 //
-// One row per lead. Everything the dispatcher needs to scan (name, product,
+// One row per lead. Everything needed to scan a lead (name, product,
 // status, when it came in) is visible without expanding; the extras open in
 // place when the caret is tapped.
 

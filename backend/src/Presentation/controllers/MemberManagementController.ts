@@ -38,7 +38,6 @@ function parseChanges(body: Record<string, unknown>): AccessChanges {
     changes.teamLeaderId = (teamLeaderId as string | null) || null;
   }
 
-  if ('isDispatcher' in body) changes.isDispatcher = Boolean(body['isDispatcher']);
   if ('isDisabled' in body) changes.isDisabled = Boolean(body['isDisabled']);
 
   return changes;
@@ -60,7 +59,7 @@ export class MemberManagementController {
 
   /*
     PATCH /users/:id/access
-    VP only. Body may carry any of role, teamLeaderId, isDispatcher, isDisabled.
+    VP only. Body may carry any of role, teamLeaderId, isDisabled.
   */
   static async updateAccess(req: Request, res: Response): Promise<void> {
     try {

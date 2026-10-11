@@ -6,16 +6,15 @@ import { AccountStatus } from '../enums/AccountStatus';
   What a user asked for during signup.
 
   Deliberately kept separate from the granted fields on User (role,
-  departmentId, teamLeaderId, isDispatcher). Signup writes here; only approval
-  copies these across. If a status check is ever missed somewhere, an
-  unapproved account still reads as a MEMBER with no department, which the
-  existing authorisation code already rejects.
+  departmentId, teamLeaderId). Signup writes here; only approval copies these
+  across. If a status check is ever missed somewhere, an unapproved account
+  still reads as a MEMBER with no department, which the existing authorisation
+  code already rejects.
 */
 export interface RequestedAccess {
   role: UserRole | null;
   departmentId: string | null;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
 }
 
 /*
@@ -35,7 +34,6 @@ export class User {
     public googleId: string | null,
     // Optional department assignment.
     public departmentId: string | null,
-    public isDispatcher: boolean,
     public isDisabled: boolean,
     public readonly createdAt: Date,
     public updatedAt: Date,

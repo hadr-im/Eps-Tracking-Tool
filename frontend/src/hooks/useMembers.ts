@@ -18,7 +18,7 @@ export function useMembers() {
 }
 
 // The server explains refusals precisely ("This department already has a
-// dispatcher"), so surface its message rather than a generic one.
+// VP"), so surface its message rather than a generic one.
 function serverMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
     const message = (err.response?.data as { message?: unknown } | undefined)?.message;

@@ -11,7 +11,6 @@ export interface CallerContext {
   id: string;
   role: UserRole;
   departmentId: string | null;
-  isDispatcher: boolean;
 }
 
 export class DispatchUseCase {
@@ -29,9 +28,8 @@ export class DispatchUseCase {
     Dispatches a batch of EPs to a member
 
     Permission rules:
-      - Caller must be a TEAM_LEADER with isDispatcher = true
+      - Caller must be a TEAM_LEADER or a VP
       - Target member must belong to the same department as the dispatcher
-      - Target member must be assigned to this dispatcher TL (teamLeaderId === dispatcher.id)
 
     Auto-dates:
       - assignedAt is stamped by the SERVER, never trusted from the client
@@ -42,8 +40,8 @@ export class DispatchUseCase {
     dispatcher: CallerContext,
     members: User[],
   ): Promise<Ep[]> {
-    if (dispatcher.role !== UserRole.TEAM_LEADER || !dispatcher.isDispatcher) {
-      throw new AppError('Only a dispatcher Team Leader can assign leads', 403);
+    if (dispatcher.role !== UserRole.TEAM_LEADER && dispatcher.role !== UserRole.VP) {
+      throw new AppError('Only Team Leaders and VPs can assign leads', 403);
     }
 
     if (epIds.length === 0) {

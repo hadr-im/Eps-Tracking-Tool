@@ -32,10 +32,6 @@ export class CompleteGoogleSignupDto {
   @IsString()
   requestedTeamLeaderId?: string | null;
 
-  @IsOptional()
-  @IsBoolean()
-  requestedIsDispatcher?: boolean;
-
   // Required when requestedRole is VP. See SignupDto.vpSetupCode.
   @IsOptional()
   @IsString()

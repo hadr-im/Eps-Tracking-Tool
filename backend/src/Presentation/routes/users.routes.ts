@@ -24,7 +24,7 @@ router.get('/me', UserController.getMe);
  *     description: |
  *       VP only. Returns PENDING accounts that applied to the caller's own
  *       department, oldest first. Each carries a `requested` object describing
- *       the role, department, Team Leader and dispatcher flag the applicant
+ *       the role, department and Team Leader the applicant
  *       asked for — none of which has been granted.
  *     security:
  *       - bearerAuth: []
@@ -58,14 +58,14 @@ router.get('/members', roleMiddleware(UserRole.VP), MemberManagementController.l
  * /users/{id}/access:
  *   patch:
  *     tags: [Users]
- *     summary: Change an approved member's role, team, dispatcher flag or status
+ *     summary: Change an approved member's role, team or status
  *     description: |
  *       VP only. Covers what happens after someone joins: promotions, handing
- *       over the dispatcher role, moving between teams, and disabling people
+ *       moving between teams, and disabling people
  *       who have left.
  *
  *       Every field is optional; omitting one leaves it unchanged. The
- *       one-dispatcher and one-VP rules are enforced here too. A VP cannot
+ *       one-VP rule is enforced here too. A VP cannot
  *       change their own access, and nobody can be promoted to VP here — the
  *       incoming VP signs up with the VP setup code.
  *     security:
@@ -84,7 +84,6 @@ router.get('/members', roleMiddleware(UserRole.VP), MemberManagementController.l
  *             properties:
  *               role:         { type: string, enum: [MEMBER, TEAM_LEADER] }
  *               teamLeaderId: { type: string, nullable: true }
- *               isDispatcher: { type: boolean }
  *               isDisabled:   { type: boolean }
  *     responses:
  *       200:
@@ -130,7 +129,6 @@ router.patch('/:id/access', roleMiddleware(UserRole.VP), MemberManagementControl
  *               role:         { type: string, enum: [MEMBER, TEAM_LEADER, VP] }
  *               departmentId: { type: string }
  *               teamLeaderId: { type: string, nullable: true }
- *               isDispatcher: { type: boolean }
  *     responses:
  *       200:
  *         description: Account approved

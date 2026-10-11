@@ -33,8 +33,8 @@ function parseDispatchFilters(query: Request['query']): DispatchFilters {
 export class DispatchController {
   /*
    GET /leads
-   Returns unassigned leads for the dispatcher's department
-   TL (isDispatcher) only
+   Returns unassigned leads for the caller's department
+   TL and VP only
    */
   static async getLeadsPool(req: Request, res: Response): Promise<void> {
     try {
@@ -57,7 +57,7 @@ export class DispatchController {
    POST /dispatch
    Assigns one or more EPs to a member
    Body: { epIds: string[], memberId: string }
-   TL (isDispatcher) only 
+   TL and VP only
    */
   static async dispatch(req: Request, res: Response): Promise<void> {
     try {

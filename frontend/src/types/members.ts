@@ -11,7 +11,6 @@ export interface ManagedMember {
   role: UserRole;
   departmentId: string | null;
   teamLeaderId: string | null;
-  isDispatcher: boolean;
   isDisabled: boolean;
   avatarUrl: string | null;
 }
@@ -23,6 +22,5 @@ export interface ManagedMember {
 export interface AccessChanges {
   role?: UserRole;
   teamLeaderId?: string | null;
-  isDispatcher?: boolean;
   isDisabled?: boolean;
 }

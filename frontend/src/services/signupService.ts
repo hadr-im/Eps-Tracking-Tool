@@ -43,7 +43,7 @@ export async function completeGoogleSignup(
 
 /*
   Signup errors are written to be read by the applicant — "Ahmed is already the
-  dispatcher for this department" is far more useful than a generic 409 blurb,
+  VP for this department" is far more useful than a generic 409 blurb,
   so prefer the server's message and fall back only when there isn't one.
 */
 export function getSignupError(err: unknown, fallback: string): string {

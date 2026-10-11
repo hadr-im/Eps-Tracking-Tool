@@ -13,6 +13,9 @@ import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function TransitionedEpsPage() {
   const { user } = useAuth();
+
+  // Team Leaders and VPs can assign transitioned EPs to a member.
+  const canAssign = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
   const [search, setSearch] = useState('');
   
   const { data: transitions = [], isLoading } = useTransitions();
@@ -39,7 +42,7 @@ export default function TransitionedEpsPage() {
     <div className="flex flex-col h-full bg-background">
       <PageHeader
         title="Transitioned EPs"
-        subtitle="View EPs transitioned in or out of your department"
+        subtitle="EPs transitioned into your department"
       />
 
       {/* Search + count bar */}
@@ -88,7 +91,7 @@ export default function TransitionedEpsPage() {
           transitions={filtered}
           isLoading={isLoading}
           departmentMembers={members}
-          onAssignEp={user?.isDispatcher ? handleAssignEp : undefined}
+          onAssignEp={canAssign ? handleAssignEp : undefined}
           isAssigningId={isAssigningId}
         />
       </div>
@@ -99,7 +102,7 @@ export default function TransitionedEpsPage() {
           transitions={filtered}
           isLoading={isLoading}
           departmentMembers={members}
-          onAssignEp={user?.isDispatcher ? handleAssignEp : undefined}
+          onAssignEp={canAssign ? handleAssignEp : undefined}
           isAssigningId={isAssigningId}
         />
       </div>

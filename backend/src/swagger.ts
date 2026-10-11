@@ -64,7 +64,6 @@ const options: swaggerJsdoc.Options = {
             role: { type: 'string', enum: ['MEMBER', 'TEAM_LEADER', 'VP'] },
             provider: { type: 'string', enum: ['LOCAL', 'GOOGLE'] },
             departmentId: { type: 'string', nullable: true },
-            isDispatcher: { type: 'boolean' },
             isDisabled: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },

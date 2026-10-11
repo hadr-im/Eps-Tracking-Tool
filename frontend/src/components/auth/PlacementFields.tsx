@@ -1,7 +1,7 @@
 // PlacementFields — step 2 of signup, shared by the email and Google flows.
 //
 // Collects where the applicant says they belong: department, position, and
-// then either their Team Leader (members) or the dispatcher flag (TLs).
+// then their Team Leader (members only).
 // Nothing selected here is granted; a VP confirms it before it takes effect.
 
 import { Loader2 } from 'lucide-react';
@@ -14,8 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields';
 import { useDepartments, useTeamLeaders } from '@/hooks/useSignupOptions';
 import { cn } from '@/lib/utils';
@@ -72,7 +70,6 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
   const availableRoles = ROLE_ORDER.filter(
     (role) => role !== 'VP' || !selectedDepartment?.hasVp,
   );
-  const dispatcherTaken = selectedDepartment?.hasDispatcher ?? false;
 
   // Changing department invalidates the Team Leader picked under the old one,
   // and may invalidate the position itself if the new one already has a VP.
@@ -86,8 +83,6 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
       requestedTeamLeaderId: null,
       requestedRole: roleStillValid ? value.requestedRole : '',
       vpSetupCode: roleStillValid ? value.vpSetupCode : '',
-      // The slot is gone, so never carry a dispatcher request into it.
-      requestedIsDispatcher: department?.hasDispatcher ? false : value.requestedIsDispatcher,
     });
   }
 
@@ -97,7 +92,6 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
       ...value,
       requestedRole: role,
       requestedTeamLeaderId: role === 'MEMBER' ? value.requestedTeamLeaderId : null,
-      requestedIsDispatcher: role === 'TEAM_LEADER' ? value.requestedIsDispatcher : false,
     });
   }
 
@@ -230,42 +224,6 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
             </>
           )}
         </Field>
-      )}
-
-      {/* Team Leader: the one dispatcher per department */}
-      {value.requestedRole === 'TEAM_LEADER' && (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-start gap-2.5 rounded-lg border p-3">
-            <Checkbox
-              id="isDispatcher"
-              checked={value.requestedIsDispatcher}
-              onCheckedChange={(checked) =>
-                onChange({ ...value, requestedIsDispatcher: checked === true })
-              }
-              disabled={dispatcherTaken}
-              className="mt-0.5"
-            />
-            <div className="flex flex-col gap-0.5">
-              <Label
-                htmlFor="isDispatcher"
-                className={cn(
-                  'text-sm font-medium',
-                  dispatcherTaken ? 'text-muted-foreground' : 'cursor-pointer',
-                )}
-              >
-                I am the dispatcher
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {dispatcherTaken
-                  ? `${selectedDepartment?.name ?? 'This department'} already has a dispatcher, so this cannot be requested.`
-                  : 'The dispatcher assigns incoming EPs to members. Only one Team Leader per department can hold this.'}
-              </p>
-            </div>
-          </div>
-          {errors.requestedIsDispatcher && (
-            <p className="text-xs text-destructive">{errors.requestedIsDispatcher}</p>
-          )}
-        </div>
       )}
 
       {/* VP: the setup code stands in for the approval a VP cannot give themselves */}

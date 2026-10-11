@@ -53,7 +53,6 @@ export class AuthRepository implements IAuthRepository {
       googleId: user.googleId,
       departmentId: user.departmentId,
       teamLeaderId: user.teamLeaderId,
-      isDispatcher: user.isDispatcher,
       isDisabled: user.isDisabled,
       avatarUrl: user.avatarUrl,
       updatedAt: user.updatedAt,
@@ -61,7 +60,6 @@ export class AuthRepository implements IAuthRepository {
       requestedRole: user.requested?.role ?? null,
       requestedDepartmentId: user.requested?.departmentId ?? null,
       requestedTeamLeaderId: user.requested?.teamLeaderId ?? null,
-      requestedIsDispatcher: user.requested?.isDispatcher ?? false,
     };
 
     const row = await this.db.user.upsert({
@@ -193,18 +191,15 @@ export class AuthRepository implements IAuthRepository {
         where: {
           isDisabled: false,
           departmentId: { not: null },
-          OR: [{ role: UserRole.VP }, { isDispatcher: true }],
+          role: UserRole.VP,
         },
-        select: { departmentId: true, role: true, isDispatcher: true },
+        select: { departmentId: true },
       }),
     ]);
 
     const vpTaken = new Set<string>();
-    const dispatcherTaken = new Set<string>();
     for (const h of holders) {
-      if (!h.departmentId) continue;
-      if (h.role === UserRole.VP) vpTaken.add(h.departmentId);
-      if (h.isDispatcher) dispatcherTaken.add(h.departmentId);
+      if (h.departmentId) vpTaken.add(h.departmentId);
     }
 
     return rows.map((r) => ({
@@ -212,7 +207,6 @@ export class AuthRepository implements IAuthRepository {
       name: r.name,
       product: String(r.product),
       hasVp: vpTaken.has(r.id),
-      hasDispatcher: dispatcherTaken.has(r.id),
     }));
   }
 
@@ -246,18 +240,10 @@ export class AuthRepository implements IAuthRepository {
       data: {
         role: access.role,
         teamLeaderId: access.teamLeaderId,
-        isDispatcher: access.isDispatcher,
         isDisabled: access.isDisabled,
       },
     });
     return this.toUserEntity(row);
-  }
-
-  async findActiveDispatcher(departmentId: string): Promise<User | null> {
-    const row = await this.db.user.findFirst({
-      where: { departmentId, isDispatcher: true, isDisabled: false },
-    });
-    return row ? this.toUserEntity(row) : null;
   }
 
   async findActiveVp(departmentId: string): Promise<User | null> {
@@ -293,7 +279,6 @@ export class AuthRepository implements IAuthRepository {
         role: grant.role,
         departmentId: grant.departmentId,
         teamLeaderId: grant.teamLeaderId,
-        isDispatcher: grant.isDispatcher,
         status: AccountStatus.ACTIVE,
         reviewedById: reviewerId,
         reviewedAt: new Date(),
@@ -328,7 +313,6 @@ export class AuthRepository implements IAuthRepository {
       row.provider as AuthProvider,
       row.googleId,
       row.departmentId,
-      row.isDispatcher,
       row.isDisabled,
       row.createdAt,
       row.updatedAt,
@@ -339,7 +323,6 @@ export class AuthRepository implements IAuthRepository {
         role: (row.requestedRole as UserRole | null) ?? null,
         departmentId: row.requestedDepartmentId,
         teamLeaderId: row.requestedTeamLeaderId,
-        isDispatcher: row.requestedIsDispatcher,
       },
       row.rejectionReason,
     );

@@ -8,7 +8,7 @@ export function useDepartments() {
   return useQuery({
     queryKey: ['signup-options', 'departments'],
     queryFn: fetchDepartments,
-    // The departments themselves never change, but hasVp / hasDispatcher do,
+    // The departments themselves never change, but hasVp does,
     // and a stale value would offer a position that is no longer available.
     staleTime: 30_000,
   });

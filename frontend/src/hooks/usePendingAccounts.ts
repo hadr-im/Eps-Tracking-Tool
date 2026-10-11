@@ -23,7 +23,7 @@ export function usePendingAccounts(status: 'PENDING' | 'REJECTED' = 'PENDING') {
 
 /*
   Approval can fail for a reason the VP needs to read in full — another VP may
-  have taken the dispatcher slot while this request sat in the queue — so the
+  have taken the VP slot while this request sat in the queue — so the
   server's message is surfaced rather than a generic one.
 */
 function serverMessage(err: unknown, fallback: string): string {

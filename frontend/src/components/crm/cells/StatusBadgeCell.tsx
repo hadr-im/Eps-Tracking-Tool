@@ -2,7 +2,7 @@ import type { EpStatus } from '@/types/ep';
 import { SoftBadge, type SoftBadgeTone } from '@/components/ui/soft-badge';
 
 /*
-  Status pills — soft-badge style, same shape as the dispatcher chip.
+  Status pills — the shared SoftBadge shape used for every chip in the app.
 
   The tone climbs the funnel:
     LEAD -> neutral

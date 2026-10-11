@@ -39,15 +39,48 @@ const FETCH_LEADS_QUERY = `
 `;
 
 /*
- Fetches a single person's approved applications by their EXPA ID
+ Fetches the committee's applications in bulk, one page at a time.
+
+ ApplicationFilter only accepts a single person_id (Int, not a list), so asking
+ per person meant one request per EP — ~1500 requests, which overran the
+ serverless request timeout. Filtering by person_committee returns the same
+ data for everyone at once.
+
+ The status list is what matters: unfiltered this committee has ~22k
+ applications, but only ~800 are approved or beyond, and the sync ignores
+ everything below that threshold. Narrowing here turns 91 pages into 4.
+ Statuses are inlined rather than passed as a variable to avoid depending on
+ the exact nullability of the schema's String list type.
 */
-const FETCH_PERSON_APPLICATION_QUERY = `
-  query FetchPersonApplications($personId: Int!) {
+const APPROVED_STATUSES = ['approved', 'realized', 'completed', 'finished'];
+
+// Position along the funnel. Only the approved-and-beyond entries can occur in
+// the filtered results; the earlier ones are kept so the ranking still reads
+// correctly against EpStatus and survives a widening of APPROVED_STATUSES.
+const APPLICATION_STATUS_RANK: Record<string, number> = {
+  lead:       0,
+  contacted:  1,
+  interested: 2,
+  approved:   3,
+  realized:   4,
+  completed:  5,
+  finished:   6,
+};
+
+const FETCH_COMMITTEE_APPLICATIONS_QUERY = `
+  query FetchCommitteeApplications($page: Int!, $perPage: Int!, $committeeId: Int!) {
     allOpportunityApplication(
-      filters: { person_id: $personId }
-      per_page: 10
-      page: 1
+      filters: {
+        person_committee: $committeeId
+        statuses: [${APPROVED_STATUSES.map((s) => `"${s}"`).join(', ')}]
+      }
+      per_page: $perPage
+      page: $page
     ) {
+      paging {
+        total_pages
+        total_items
+      }
       data {
         id
         current_status
@@ -91,8 +124,9 @@ interface RawPerson {
   lc_alignment: { keywords: string | null } | null;
 }
 
-interface PersonApplicationsResponse {
+interface ApplicationsResponse {
   allOpportunityApplication: {
+    paging: { total_pages: number; total_items: number };
     data: RawApplication[];
   };
 }
@@ -121,6 +155,9 @@ export class ExpaRepository implements IExpaRepository {
   private readonly client: GraphQLClient;
   private readonly committeeId: number;
   private readonly perPage = 50;
+  // Applications are far more numerous than people, so they page in larger
+  // chunks: ~800 approved rows land in 4 requests rather than 17.
+  private readonly appsPerPage = 250;
 
   constructor() {
     const apiUrl = process.env.EXPA_API_URL;
@@ -179,69 +216,59 @@ export class ExpaRepository implements IExpaRepository {
   async fetchEpStatus(epIds: string[]): Promise<EpStatusResult[]> {
     if (epIds.length === 0) return [];
 
-    const CONCURRENCY = 10;
+    const wanted = new Set(epIds);
 
-    const appStatusRank: Record<string, number> = {
-      lead:       0,
-      contacted:  1,
-      interested: 2,
-      approved:   3,
-      realized:   4,
-      completed:  5,
-      finished:   6,
-    };
+    // A person can hold several approved applications; the sync acts on the
+    // furthest one along the funnel, so keep the highest-ranked per person.
+    const bestByPerson = new Map<string, RawApplication>();
 
-    const APPROVED_RANK_THRESHOLD = 3; // approved or beyond
+    let page = 1;
+    let totalPages = 1;
+    let scanned = 0;
 
-    const results: EpStatusResult[] = [];
+    console.log(`[ExpaRepository] Checking application status for ${epIds.length} EPs...`);
 
-    console.log(`[ExpaRepository] Checking application status for ${epIds.length} EPs (batch size ${CONCURRENCY})...`);
-
-    for (let i = 0; i < epIds.length; i += CONCURRENCY) {
-      const batch = epIds.slice(i, i + CONCURRENCY);
-
-      const batchResults = await Promise.all(
-        batch.map(async (epId): Promise<EpStatusResult | null> => {
-          try {
-            const data = await this.withRetry<PersonApplicationsResponse>(() =>
-              this.client.request(FETCH_PERSON_APPLICATION_QUERY, {
-                personId: parseInt(epId, 10),
-              }),
-            );
-
-            const bestApp = data.allOpportunityApplication.data
-              .sort((a, b) =>
-                (appStatusRank[b.current_status.toLowerCase()] ?? 0) -
-                (appStatusRank[a.current_status.toLowerCase()] ?? 0),
-              )[0];
-
-            if (!bestApp || (appStatusRank[bestApp.current_status.toLowerCase()] ?? 0) < APPROVED_RANK_THRESHOLD) {
-              return null;
-            }
-
-            return {
-              epId,
-              status: bestApp.current_status,
-              approvedDetail: this.mapToApprovedDetail(bestApp),
-            };
-          } catch {
-            return null; 
-          }
+    while (page <= totalPages) {
+      const data = await this.withRetry<ApplicationsResponse>(() =>
+        this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
+          page,
+          perPage: this.appsPerPage,
+          committeeId: this.committeeId,
         }),
       );
 
-      for (const r of batchResults) {
-        if (r) results.push(r);
+      const { paging, data: applications } = data.allOpportunityApplication;
+      totalPages = paging.total_pages;
+      scanned += applications.length;
+
+      for (const app of applications) {
+        const personId = String(app.person?.id ?? '');
+        if (!personId || !wanted.has(personId)) continue;
+
+        const incoming = APPLICATION_STATUS_RANK[app.current_status.toLowerCase()] ?? 0;
+        const existing = bestByPerson.get(personId);
+        const existingRank = existing
+          ? APPLICATION_STATUS_RANK[existing.current_status.toLowerCase()] ?? 0
+          : -1;
+
+        if (incoming > existingRank) bestByPerson.set(personId, app);
       }
 
-      if ((i + CONCURRENCY) % 100 === 0 || i + CONCURRENCY >= epIds.length) {
-        console.log(
-          `[ExpaRepository] Progress: ${Math.min(i + CONCURRENCY, epIds.length)}/${epIds.length} EPs checked, ${results.length} approved+ found`,
-        );
-      }
+      console.log(
+        `[ExpaRepository] Page ${page}/${totalPages} — ${applications.length} applications, ${bestByPerson.size} matched so far`,
+      );
+      page++;
     }
 
-    console.log(`[ExpaRepository] Done. ${results.length} EPs with approved+ applications found.`);
+    const results: EpStatusResult[] = [...bestByPerson].map(([epId, app]) => ({
+      epId,
+      status: app.current_status,
+      approvedDetail: this.mapToApprovedDetail(app),
+    }));
+
+    console.log(
+      `[ExpaRepository] Done. Scanned ${scanned} applications, ${results.length} EPs with approved+ applications found.`,
+    );
     return results;
   }
 

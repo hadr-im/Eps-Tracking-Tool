@@ -20,7 +20,6 @@ export interface ApprovalOverrides {
   role?: UserRole;
   departmentId?: string;
   teamLeaderId?: string | null;
-  isDispatcher?: boolean;
 }
 
 /*
@@ -80,7 +79,6 @@ export class AccountApprovalUseCase {
         overrides.teamLeaderId !== undefined
           ? overrides.teamLeaderId
           : (user.requested?.teamLeaderId ?? null),
-      isDispatcher: overrides.isDispatcher ?? user.requested?.isDispatcher ?? false,
     };
 
     // A VP may only place people inside their own department, however the
@@ -89,10 +87,8 @@ export class AccountApprovalUseCase {
       throw new AppError('You can only approve accounts into your own department', 403);
     }
 
-    // Normalise combinations that cannot coexist before validating, so a VP
-    // switching someone from TEAM_LEADER to MEMBER does not trip the
-    // "only a Team Leader can be the dispatcher" rule on a leftover flag.
-    if (grant.role !== UserRole.TEAM_LEADER) grant.isDispatcher = false;
+    // Only a Member reports to a Team Leader, so drop a leftover assignment
+    // when a VP switches someone to another role before validating.
     if (grant.role !== UserRole.MEMBER) grant.teamLeaderId = null;
 
     await this.validator.validate(grant, userId);

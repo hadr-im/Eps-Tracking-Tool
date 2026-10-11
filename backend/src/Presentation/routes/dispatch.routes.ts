@@ -21,8 +21,8 @@ const router = Router();
  *     summary: Get unassigned leads pool for the caller's department
  *     description: |
  *       Returns EPs that have not yet been assigned to any member (ownerId = null).
- *       Scoped to the dispatcher's department. All filters run server-side.
- *       **TL with isDispatcher = true only.**
+ *       Scoped to the caller's department. All filters run server-side.
+ *       **Team Leaders and VPs only.**
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -38,7 +38,7 @@ const router = Router();
  *       401:
  *         description: Missing or invalid token
  *       403:
- *         description: Not a dispatcher TL
+ *         description: Caller is not a Team Leader or VP
  */
 router.get(
   '/pool',
@@ -56,7 +56,7 @@ router.get(
  *     description: |
  *       Dispatches one or more unassigned EPs to a member of the same department.
  *       `assignedAt` is stamped by the server — do not send it in the body.
- *       **TL with isDispatcher = true only.**
+ *       **Team Leaders and VPs only.**
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -80,7 +80,7 @@ router.get(
  *       400:
  *         description: Validation error (empty epIds, missing memberId)
  *       403:
- *         description: Caller is not a dispatcher TL, or member is from another department
+ *         description: Caller is not a Team Leader or VP, or member is from another department
  *       404:
  *         description: Member not found in department
  */

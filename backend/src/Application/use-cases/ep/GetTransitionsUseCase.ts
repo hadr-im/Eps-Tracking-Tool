@@ -10,14 +10,11 @@ export class GetTransitionsUseCase {
       throw new Error('User has no department assigned');
     }
 
-    // Fetch transitions where the department is either the source or destination
+    // Inbound only: EPs transitioned INTO the caller's department. An EP that
+    // left is now another department's to work, and showing it here made the
+    // page read as a log rather than a list of EPs you have been handed.
     const transitions = await this.db.transitionHistory.findMany({
-      where: {
-        OR: [
-          { fromDepartment: caller.departmentId },
-          { toDepartment: caller.departmentId },
-        ],
-      },
+      where: { toDepartment: caller.departmentId },
       include: {
         ep: {
           include: {

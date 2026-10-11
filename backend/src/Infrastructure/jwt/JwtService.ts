@@ -11,7 +11,6 @@ export interface TokenPayload {
   userId: string;
   role: UserRole;
   departmentId: string | null;
-  isDispatcher: boolean;
 }
 
 /*
@@ -72,7 +71,6 @@ export class JwtService {
       userId: decoded.userId,
       role: decoded.role,
       departmentId: decoded.departmentId,
-      isDispatcher: decoded.isDispatcher ?? false,
     };
   }
 
@@ -93,7 +91,6 @@ export class JwtService {
       userId: decoded.userId,
       role: decoded.role,
       departmentId: decoded.departmentId,
-      isDispatcher: decoded.isDispatcher ?? false,
     };
   }
 

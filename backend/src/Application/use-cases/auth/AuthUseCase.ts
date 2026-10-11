@@ -68,9 +68,8 @@ export class AuthUseCase {
     userId: string,
     role: import('../../../Domain/enums/UserRole').UserRole,
     departmentId: string | null,
-    isDispatcher: boolean,
   ): Promise<AuthTokens> {
-    const payload = { userId, role, departmentId, isDispatcher };
+    const payload = { userId, role, departmentId };
     const accessToken = this.jwt.generateAccessToken(payload);
     const rawRefreshToken = this.jwt.generateRefreshToken(payload);
 
@@ -190,7 +189,6 @@ export class AuthUseCase {
       role: dto.requestedRole,
       departmentId: dto.requestedDepartmentId,
       teamLeaderId: requested.teamLeaderId,
-      isDispatcher: requested.isDispatcher,
     });
 
     const passwordHash = await this.bcrypt.hash(dto.password);
@@ -220,7 +218,7 @@ export class AuthUseCase {
   */
   private async sessionIfActive(user: User): Promise<AuthTokens | null> {
     if (user.status !== AccountStatus.ACTIVE || user.isDisabled) return null;
-    return this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
+    return this.issueTokenPair(user.id, user.role, user.departmentId);
   }
 
   // Login
@@ -243,7 +241,7 @@ export class AuthUseCase {
     // enumerate which addresses have accounts.
     this.assertCanSignIn(user);
 
-    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
+    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId);
     return { ...tokens, user: UserMapper.toResponse(user) };
   }
 
@@ -269,7 +267,7 @@ export class AuthUseCase {
     if (!user) throw new AppError('User not found', 401);
     this.assertCanSignIn(user);
 
-    return this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
+    return this.issueTokenPair(user.id, user.role, user.departmentId);
   }
 
   // Logout 
@@ -341,7 +339,7 @@ export class AuthUseCase {
 
     this.assertCanSignIn(user);
 
-    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId, user.isDispatcher);
+    const tokens = await this.issueTokenPair(user.id, user.role, user.departmentId);
     return { kind: 'login', ...tokens, user: UserMapper.toResponse(user) };
   }
 
@@ -374,7 +372,6 @@ export class AuthUseCase {
       role: dto.requestedRole,
       departmentId: dto.requestedDepartmentId,
       teamLeaderId: requested.teamLeaderId,
-      isDispatcher: requested.isDispatcher,
     });
 
     const user = UserMapper.fromGoogleSignup(setup, requested);

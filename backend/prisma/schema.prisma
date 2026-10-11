@@ -97,15 +97,14 @@ model User {
   teamLeaderId String?
   teamLeader   User?        @relation("MemberTL", fields: [teamLeaderId], references: [id])
   managedMembers User[]     @relation("MemberTL")
-  isDispatcher Boolean      @default(false)
   isDisabled   Boolean      @default(false)
   avatarUrl    String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   /// Accounts start PENDING and hold no privileges until a VP approves them.
-  /// The fields above (role, departmentId, teamLeaderId, isDispatcher) are the
-  /// GRANTED values and are only written on approval — never at signup.
+  /// The fields above (role, departmentId, teamLeaderId) are the GRANTED
+  /// values and are only written on approval — never at signup.
   status       AccountStatus @default(PENDING)
 
   /// What the user claimed during signup. Kept after approval as an audit trail
@@ -113,7 +112,6 @@ model User {
   requestedRole         UserRole?
   requestedDepartmentId String?
   requestedTeamLeaderId String?
-  requestedIsDispatcher Boolean   @default(false)
 
   reviewedById    String?
   reviewedBy      User?     @relation("UserReviews", fields: [reviewedById], references: [id])

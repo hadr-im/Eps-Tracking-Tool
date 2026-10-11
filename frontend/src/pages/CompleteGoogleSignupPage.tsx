@@ -72,7 +72,6 @@ export default function CompleteGoogleSignupPage() {
         requestedRole: placement.requestedRole as UserRole,
         requestedDepartmentId: placement.requestedDepartmentId,
         requestedTeamLeaderId: placement.requestedTeamLeaderId,
-        requestedIsDispatcher: placement.requestedIsDispatcher,
         vpSetupCode: placement.vpSetupCode.trim() || undefined,
       });
 
