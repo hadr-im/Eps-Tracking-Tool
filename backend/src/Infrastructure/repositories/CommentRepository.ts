@@ -1,9 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 import type { Comment as PrismaComment } from '@prisma/client';
 
-import { ICommentRepository } from '../../Domain/abstracts/ICommentRepository';
+import {
+  ICommentRepository,
+  CommentWithAuthor,
+} from '../../Domain/abstracts/ICommentRepository';
 import { Comment } from '../../Domain/entities/Comment';
 import { prisma } from '../Database/PrismaService';
+
+// Only the fields a rendered comment needs — not the whole user row.
+const AUTHOR_SELECT = {
+  author: { select: { id: true, fullName: true, avatarUrl: true } },
+} as const;
+
+type RowWithAuthor = PrismaComment & {
+  author: { id: string; fullName: string; avatarUrl: string | null } | null;
+};
 
 export class CommentRepository implements ICommentRepository {
   private readonly db: PrismaClient;
@@ -18,7 +30,7 @@ export class CommentRepository implements ICommentRepository {
     authorId: string,
     fieldName: string | null,
     content: string,
-  ): Promise<Comment> {
+  ): Promise<CommentWithAuthor> {
     const row = await this.db.comment.create({
       data: {
         epId,
@@ -26,17 +38,20 @@ export class CommentRepository implements ICommentRepository {
         fieldName,
         content,
       },
+      include: AUTHOR_SELECT,
     });
-    return this.toEntity(row);
+    return this.toEntityWithAuthor(row);
   }
 
-  // Returns all comments for a given EP, ordered oldest-first
-  async findByEpId(epId: string): Promise<Comment[]> {
+  // Returns all comments for a given EP, ordered oldest-first, each joined to
+  // its author so the caller does not have to resolve names separately.
+  async findByEpId(epId: string): Promise<CommentWithAuthor[]> {
     const rows = await this.db.comment.findMany({
       where: { epId },
       orderBy: { createdAt: 'asc' },
+      include: AUTHOR_SELECT,
     });
-    return rows.map((r) => this.toEntity(r));
+    return rows.map((r) => this.toEntityWithAuthor(r));
   }
 
   // Updates the text content of an existing comment
@@ -53,7 +68,7 @@ export class CommentRepository implements ICommentRepository {
     await this.db.comment.delete({ where: { id: commentId } });
   }
 
-  // Private mapper
+  // Private mappers
   // Prisma row -> domain entity
   private toEntity(row: PrismaComment): Comment {
     return new Comment(
@@ -64,5 +79,18 @@ export class CommentRepository implements ICommentRepository {
       row.content,
       row.createdAt,
     );
+  }
+
+  private toEntityWithAuthor(row: RowWithAuthor): CommentWithAuthor {
+    return {
+      comment: this.toEntity(row),
+      author: row.author
+        ? {
+            id: row.author.id,
+            fullName: row.author.fullName,
+            avatarUrl: row.author.avatarUrl,
+          }
+        : null,
+    };
   }
 }

@@ -1,5 +1,5 @@
 import { IEpRepository } from '../../../Domain/abstracts/IEpRepository';
-import { ICommentRepository } from '../../../Domain/abstracts/ICommentRepository';
+import { ICommentRepository, CommentAuthor } from '../../../Domain/abstracts/ICommentRepository';
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { Comment } from '../../../Domain/entities/Comment';
@@ -234,10 +234,8 @@ export class EpManagementUseCase {
       throw new AppError('EP does not belong to your department', 403);
     }
 
-    const comment = await this.commentRepo.create(epId, caller.id, fieldName, content);
-    const author = caller.id ? await this.authRepo.findById(caller.id) : null;
-    const authorMap = author ? new Map([[author.id, author]]) : new Map();
-    return this.toCommentDto(comment, authorMap);
+    const created = await this.commentRepo.create(epId, caller.id, fieldName, content);
+    return this.toCommentDto(created.comment, created.author);
   }
 
   /*
@@ -247,18 +245,20 @@ export class EpManagementUseCase {
   async getComments(epId: string, caller: EpManagementCaller): Promise<CommentDto[]> {
     if (!caller.departmentId) throw new AppError('No department assigned to your account', 400);
 
-    const ep = await this.epRepo.findById(epId);
+    // The comments query does not depend on the EP lookup, so both go out at
+    // once; the permission check below still runs before anything is returned.
+    const [ep, comments] = await Promise.all([
+      this.epRepo.findById(epId),
+      this.commentRepo.findByEpId(epId),
+    ]);
+
     if (!ep) throw new AppError('EP not found', 404);
 
     if (ep.departmentId !== caller.departmentId) {
       throw new AppError('EP does not belong to your department', 403);
     }
 
-    const comments = await this.commentRepo.findByEpId(epId);
-    const authorIds = [...new Set(comments.map((c) => c.authorId).filter((id): id is string => !!id))];
-    const authors = await Promise.all(authorIds.map((id) => this.authRepo.findById(id)));
-    const authorMap = new Map(authors.filter(Boolean).map((u) => [u!.id, u!]));
-    return comments.map((c) => this.toCommentDto(c, authorMap));
+    return comments.map((c) => this.toCommentDto(c.comment, c.author));
   }
 
   /*
@@ -305,8 +305,7 @@ export class EpManagementUseCase {
     };
   }
 
-  private toCommentDto(comment: Comment, authorMap: Map<string, import('../../../Domain/entities/User').User> = new Map()): CommentDto {
-    const author = comment.authorId ? authorMap.get(comment.authorId) : undefined;
+  private toCommentDto(comment: Comment, author: CommentAuthor | null): CommentDto {
     return {
       id: comment.id,
       epId: comment.epId,
