@@ -27,10 +27,24 @@ export class DispatchRepository implements IDispatchRepository {
    All filters are applied at the DB level 
    */
   async getUnassignedLeads(departmentId: string, filters?: DispatchFilters): Promise<Ep[]> {
+    return this.queryPool(departmentId, false, filters);
+  }
+
+  // Same pool, restricted to hand-entered leads.
+  async getManualLeads(departmentId: string, filters?: DispatchFilters): Promise<Ep[]> {
+    return this.queryPool(departmentId, true, filters);
+  }
+
+  private async queryPool(
+    departmentId: string,
+    addedManually: boolean,
+    filters?: DispatchFilters,
+  ): Promise<Ep[]> {
     const rows = await this.db.ep.findMany({
       where: {
         departmentId,
         ownerId: null,
+        addedManually,
         ...(filters?.product    && { product: filters.product as any }),
         ...(filters?.status     && { statusOnExpa: filters.status as any }),
         ...(filters?.university && { university: { contains: filters.university, mode: 'insensitive' } }),
@@ -95,6 +109,34 @@ export class DispatchRepository implements IDispatchRepository {
 
   // Private mappers (Prisma row -> Domain entity)
 
+  async existsById(epId: string): Promise<boolean> {
+    const found = await this.db.ep.findUnique({ where: { id: epId }, select: { id: true } });
+    return found !== null;
+  }
+
+  async createManualLead(ep: Ep): Promise<Ep> {
+    const row = await this.db.ep.create({
+      data: {
+        id: ep.id,
+        fullName: ep.fullName,
+        email: ep.email,
+        phone: ep.phone,
+        university: ep.university,
+        fieldOfStudy: ep.fieldOfStudy,
+        yearOfStudy: ep.yearOfStudy,
+        product: ep.product as never,
+        departmentId: ep.departmentId,
+        statusOnExpa: ep.statusOnExpa as never,
+        createdAtExpa: ep.createdAtExpa,
+        source: ep.source,
+        cvLink: ep.cvLink,
+        notes: ep.notes,
+        addedManually: true,
+      },
+    });
+    return this.toEpEntity(row);
+  }
+
   private toEpEntity(row: PrismaEp): Ep {
     return new Ep(
       row.id,
@@ -120,6 +162,7 @@ export class DispatchRepository implements IDispatchRepository {
       row.notes,
       row.duration as unknown as Duration | null,
       row.availability as unknown as Availability | null,
+      row.addedManually,
     );
   }
 

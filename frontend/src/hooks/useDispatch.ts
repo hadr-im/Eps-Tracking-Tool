@@ -13,6 +13,9 @@ export function useDispatch() {
     mutationFn: (payload: DispatchPayload) => dispatchLeads(payload),
     onSuccess: (_data, payload) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Manual leads are dispatched through this same mutation, so their list
+      // has to drop the assigned rows too.
+      queryClient.invalidateQueries({ queryKey: ['manual-leads'] });
       queryClient.invalidateQueries({ queryKey: ['transitions'] });
       const count = payload.epIds.length;
       toast.success(`${count} lead${count !== 1 ? 's' : ''} dispatched successfully`);

@@ -52,6 +52,28 @@ const FETCH_LEADS_QUERY = `
  Statuses are inlined rather than passed as a variable to avoid depending on
  the exact nullability of the schema's String list type.
 */
+/*
+ Single person by id, for the manual leads page. Mirrors the field set of
+ FETCH_LEADS_QUERY so the same mapper can be reused.
+*/
+const FETCH_PERSON_QUERY = `
+  query FetchPerson($id: ID!) {
+    person(id: $id) {
+      id
+      full_name
+      email
+      created_at
+      status
+      contact_detail { phone }
+      person_profile {
+        backgrounds { name }
+        selected_programmes
+      }
+      lc_alignment { keywords }
+    }
+  }
+`;
+
 const APPROVED_STATUSES = ['approved', 'realized', 'completed', 'finished'];
 
 // Position along the funnel. Only the approved-and-beyond entries can occur in
@@ -122,6 +144,17 @@ interface RawPerson {
     selected_programmes: number[];
   } | null;
   lc_alignment: { keywords: string | null } | null;
+}
+
+interface PersonResponse {
+  person: RawPerson | null;
+}
+
+// graphql-request wraps the GraphQL error list on the thrown error's response.
+function isRecordNotFound(err: unknown): boolean {
+  const errors = (err as { response?: { errors?: { extensions?: { code?: string } }[] } })
+    ?.response?.errors;
+  return Array.isArray(errors) && errors.some((e) => e?.extensions?.code === 'record_not_found');
 }
 
 interface ApplicationsResponse {
@@ -275,12 +308,19 @@ export class ExpaRepository implements IExpaRepository {
   // Private helpers
 
   /*
-   Executes a GraphQL request and retries once after 2 s on failure
+   Executes a GraphQL request and retries once after 2 s on failure.
+
+   `isFatal` marks errors that are a definitive answer rather than a transient
+   fault — retrying those only wastes two seconds before failing the same way.
    */
-  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    isFatal?: (err: unknown) => boolean,
+  ): Promise<T> {
     try {
       return await fn();
     } catch (firstError) {
+      if (isFatal?.(firstError)) throw firstError;
       console.warn('[ExpaRepository] Request failed, retrying in 2 s...', firstError);
       await new Promise((res) => setTimeout(res, 2_000));
       try {
@@ -289,6 +329,25 @@ export class ExpaRepository implements IExpaRepository {
         console.error('[ExpaRepository] Retry also failed:', secondError);
         throw secondError;
       }
+    }
+  }
+
+  async fetchPersonById(expaId: string): Promise<ExpaLead | null> {
+    const numeric = Number(expaId);
+    if (!Number.isInteger(numeric) || numeric <= 0) return null;
+
+    try {
+      const data = await this.withRetry<PersonResponse>(
+        () => this.client.request(FETCH_PERSON_QUERY, { id: String(numeric) }),
+        isRecordNotFound,
+      );
+      return data.person ? this.mapToExpaLead(data.person) : null;
+    } catch (err) {
+      // EXPA answers an unknown id with a GraphQL error rather than a null
+      // person, which graphql-request throws. That is a definitive answer, not
+      // a transient failure, so it must not be retried or raised as a 500.
+      if (isRecordNotFound(err)) return null;
+      throw err;
     }
   }
 

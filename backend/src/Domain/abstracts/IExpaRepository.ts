@@ -23,4 +23,12 @@ export interface IExpaRepository {
     @param epIds  EXPA person IDs to check
    */
   fetchEpStatus(epIds: string[]): Promise<EpStatusResult[]>;
+
+  /*
+    Fetch one person by their EXPA id, for the manual leads page's autofill.
+    Returns null when EXPA has no such person, which the caller surfaces as a
+    "not found" rather than an error.
+    @param expaId  EXPA person id as typed by the user
+   */
+  fetchPersonById(expaId: string): Promise<ExpaLead | null>;
 }

@@ -40,5 +40,9 @@ export class Ep {
     public notes: string | null,
     public duration: Duration | null,
     public availability: Availability | null,
+
+    // Entered on the manual leads page rather than fetched by the EXPA sync.
+    // Defaulted so every existing construction site still reads as synced.
+    public addedManually: boolean = false,
   ) {}
 }

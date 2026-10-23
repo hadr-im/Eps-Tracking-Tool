@@ -16,6 +16,7 @@ import MyDashboardPage        from './pages/MyDashboardPage.tsx'
 import TeamCrmPage            from './pages/TeamCrmPage.tsx'
 import TeamDashboardPage      from './pages/TeamDashboardPage.tsx'
 import LeadsPage              from './pages/LeadsPage.tsx'
+import ManualLeadsPage        from './pages/ManualLeadsPage.tsx'
 import ApprovedEpsPage        from './pages/ApprovedEpsPage.tsx'
 import EpsUnderProcessPage    from './pages/EpsUnderProcessPage.tsx'
 import GlobalDashboardPage    from './pages/GlobalDashboardPage.tsx'
@@ -59,6 +60,7 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="/team/crm"           element={<TeamCrmPage />} />
                   <Route path="/team/dashboard"     element={<TeamDashboardPage />} />
                   <Route path="/dispatch"           element={<LeadsPage />} />
+                  <Route path="/manual-leads"       element={<ManualLeadsPage />} />
                   <Route path="/team/approved-eps"  element={<ApprovedEpsPage />} />
                   <Route path="/team/under-process" element={<EpsUnderProcessPage />} />
                   <Route path="/team/transitioned-eps" element={<TransitionedEpsPage />} />

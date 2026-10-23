@@ -12,6 +12,7 @@ import {
   Send,
   UserCheck,
   UserCog,
+  UserPlus,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -47,6 +48,7 @@ const TEAM_NAV = [
   { to: '/team/under-process', icon: Hourglass,      label: 'Under Process'   },
   { to: '/team/transitioned-eps', icon: ArrowRightLeft, label: 'Transitioned EPs' },
   { to: '/dispatch',           icon: Send,           label: 'Dispatch'        },
+  { to: '/manual-leads',       icon: UserPlus,       label: 'Manual Leads'    },
 ];
 
 // NavItem 

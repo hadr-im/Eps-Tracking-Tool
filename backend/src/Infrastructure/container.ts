@@ -56,6 +56,7 @@ export const getLeadsUseCase                = expaFactory.makeGetLeadsUseCase();
 
 const dispatchFactory = new DispatchFactory();
 export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
+export const manualLeadUseCase = dispatchFactory.makeManualLeadUseCase();
 
 const epManagementFactory = new EpManagementFactory();
 export const epManagementUseCase = epManagementFactory.makeEpManagementUseCase();

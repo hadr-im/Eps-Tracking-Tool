@@ -183,6 +183,11 @@ model Ep {
   syncedAt      DateTime       @default(now()) @updatedAt
   updatedAt     DateTime       @updatedAt
 
+  /// Added by a TL/VP through the manual leads page rather than the EXPA sync.
+  /// These are kept out of the normal dispatch pool so each page has one
+  /// meaning. A manual lead carrying a real EXPA id is still status-synced.
+  addedManually Boolean        @default(false)
+
   approvedDetail     ApprovedDetail?
   statusHistory      StatusHistory[]
   transitionHistory  TransitionHistory[]
@@ -191,6 +196,7 @@ model Ep {
   @@index([departmentId])
   @@index([statusOnExpa])
   @@index([ownerId])
+  @@index([addedManually])
 }
 
 model ApprovedDetail {
