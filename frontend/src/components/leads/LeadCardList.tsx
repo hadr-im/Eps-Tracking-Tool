@@ -37,7 +37,14 @@ function LeadRow({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const hasExtras = !!(lead.email || lead.phone || lead.university || lead.source);
+  const hasExtras = !!(
+    lead.email ||
+    lead.phone ||
+    lead.university ||
+    lead.fieldOfStudy ||
+    lead.yearOfStudy !== null ||
+    lead.source
+  );
 
   return (
     <li
@@ -75,7 +82,7 @@ function LeadRow({
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
             <span className="tabular-nums">#{lead.id}</span>
             <span className="mx-1.5">·</span>
-            <DateCell value={lead.createdAtExpa} />
+            <DateCell value={lead.createdAtExpa} withTime />
           </p>
         </div>
 
@@ -113,6 +120,10 @@ function LeadRow({
             {lead.email && <Row label="Email" value={lead.email} />}
             {lead.phone && <Row label="Phone" value={lead.phone} />}
             {lead.university && <Row label="University" value={lead.university} />}
+            {lead.fieldOfStudy && <Row label="Field of Study" value={lead.fieldOfStudy} />}
+            {lead.yearOfStudy !== null && (
+              <Row label="Year" value={String(lead.yearOfStudy)} />
+            )}
             {lead.source && <Row label="Source" value={lead.source} />}
           </dl>
         </div>

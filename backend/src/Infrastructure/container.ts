@@ -56,7 +56,18 @@ export const getLeadsUseCase                = expaFactory.makeGetLeadsUseCase();
 
 const dispatchFactory = new DispatchFactory();
 export const dispatchUseCase = dispatchFactory.makeDispatchUseCase();
-export const manualLeadUseCase = dispatchFactory.makeManualLeadUseCase();
+
+/*
+  Built on first use, not at import. ManualLeadUseCase needs an ExpaRepository,
+  whose constructor throws when the EXPA settings are absent — eagerly
+  constructing it here would take down every route in the app, not just the
+  manual leads page, in any environment where EXPA is not configured.
+*/
+let manualLeadUseCaseInstance: ReturnType<DispatchFactory['makeManualLeadUseCase']> | null = null;
+export function getManualLeadUseCase() {
+  manualLeadUseCaseInstance ??= dispatchFactory.makeManualLeadUseCase();
+  return manualLeadUseCaseInstance;
+}
 
 const epManagementFactory = new EpManagementFactory();
 export const epManagementUseCase = epManagementFactory.makeEpManagementUseCase();

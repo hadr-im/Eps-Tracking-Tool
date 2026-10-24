@@ -44,5 +44,15 @@ export class Ep {
     // Entered on the manual leads page rather than fetched by the EXPA sync.
     // Defaulted so every existing construction site still reads as synced.
     public addedManually: boolean = false,
+
+    /*
+      The EXPA person id, which is what EXPA and the sign-up sheet key on.
+      For the first department a person lands in this equals `id`; a second
+      copy of the same person in another department has a generated `id` and
+      only this field in common. Null for a hand-entered lead not on EXPA.
+
+      Defaulted to `id` so older construction sites keep the previous meaning.
+    */
+    public expaId: string | null = id,
   ) {}
 }

@@ -3,11 +3,16 @@
 
 export interface Lead {
   id: string;
+  // EXPA person id — what the UI shows. Differs from `id` on the second copy
+  // of someone who belongs to two departments; null for a hand-entered lead.
+  expaId: string | null;
   fullName: string;
   email: string | null;
   phone: string | null;
   university: string | null;
   fieldOfStudy: string | null;
+  // Both come from the sign-up sheet — EXPA knows neither.
+  yearOfStudy: number | null;
   product: string;
   statusOnExpa: string;
   createdAtExpa: string;   // ISO date string

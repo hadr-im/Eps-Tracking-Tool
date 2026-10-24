@@ -8,8 +8,9 @@ import {
   flexRender,
   createColumnHelper,
   type ColumnDef,
+  type Row,
 } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -38,17 +39,31 @@ interface LeadTableProps {
 
 const col = createColumnHelper<Lead>();
 
-function buildColumns(
-  canDispatch: boolean,
-  selectedIds: string[],
-  onSelectionChange: (ids: string[]) => void,
-  allIds: string[],
-): ColumnDef<Lead, any>[] {
-  const selectedSet = new Set(selectedIds);
+/*
+  Selection lives in the table's `meta` rather than being captured by the
+  column closures.
 
+  Closing over it meant every tick rebuilt all 14 column definitions, which
+  makes TanStack throw away and rebuild its whole column model and re-render
+  every row — around 5,600 cells on a 400-lead department, hence the delay
+  before a checkbox appeared ticked. `meta` is read at render time, so the
+  columns can stay referentially stable for the life of the table.
+*/
+interface LeadTableMeta {
+  selectedSet: Set<string>;
+  allIds: string[];
+  onSelectionChange: (ids: string[]) => void;
+}
+
+function metaOf(table: { options: { meta?: unknown } }): LeadTableMeta {
+  return table.options.meta as LeadTableMeta;
+}
+
+function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
   const checkboxCol = col.display({
     id: 'select',
-    header: () => {
+    header: ({ table }) => {
+      const { selectedSet, allIds, onSelectionChange } = metaOf(table);
       const allSelected = allIds.length > 0 && allIds.every((id) => selectedSet.has(id));
       const someSelected = allIds.some((id) => selectedSet.has(id));
       return (
@@ -67,16 +82,16 @@ function buildColumns(
     },
     cell: (info) => {
       const id = info.row.original.id;
+      const { selectedSet, onSelectionChange } = metaOf(info.table);
       return (
         <div className="flex justify-center">
           <Checkbox
             checked={selectedSet.has(id)}
             onCheckedChange={(checked) => {
-              onSelectionChange(
-                checked
-                  ? [...selectedIds, id]
-                  : selectedIds.filter((s) => s !== id),
-              );
+              const next = new Set(selectedSet);
+              if (checked) next.add(id);
+              else next.delete(id);
+              onSelectionChange([...next]);
             }}
             aria-label={`Select ${info.row.original.fullName}`}
           />
@@ -95,7 +110,7 @@ function buildColumns(
       ),
       meta: { sticky: 'left', minWidth: 160 },
     }),
-    col.accessor('id', {
+    col.accessor('expaId', {
       id: 'id',
       header: 'EP ID',
       cell: (info) => (
@@ -143,6 +158,30 @@ function buildColumns(
       ),
       meta: { minWidth: 140 },
     }),
+    col.accessor('fieldOfStudy', {
+      id: 'fieldOfStudy',
+      header: 'Field of Study',
+      cell: (info) => (
+        <TruncatedText
+          value={info.getValue()}
+          className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
+        />
+      ),
+      meta: { minWidth: 130 },
+    }),
+    col.accessor('yearOfStudy', {
+      id: 'yearOfStudy',
+      header: 'Year',
+      cell: (info) => {
+        const year = info.getValue();
+        return year === null ? (
+          <span className="text-muted-foreground text-xs">—</span>
+        ) : (
+          <span className="text-xs tabular-nums">{year}</span>
+        );
+      },
+      meta: { minWidth: 60 },
+    }),
     col.accessor('product', {
       id: 'product',
       header: 'Product',
@@ -165,13 +204,69 @@ function buildColumns(
     col.accessor('createdAtExpa', {
       id: 'createdAtExpa',
       header: 'Created',
-      cell: (info) => <DateCell value={info.getValue()} />,
-      meta: { minWidth: 100 },
+      // With time: sign-ups arrive in bursts during a campaign, so the day
+      // alone does not tell you which of twenty leads came in first.
+      cell: (info) => <DateCell value={info.getValue()} withTime />,
+      meta: { minWidth: 140 },
     }),
   ];
 
   return canDispatch ? [checkboxCol, ...dataCols] : dataCols;
 }
+
+/*
+  Memoised so ticking one checkbox re-renders one row instead of all of them.
+
+  `row` objects come from TanStack's memoised row model and keep their identity
+  while data and columns are unchanged, and `stickyOffsets` is memoised below,
+  so `isSelected` is the only prop that moves — which is exactly the row the
+  user clicked.
+*/
+const LeadRow = memo(function LeadRow({
+  row,
+  isSelected,
+  stickyOffsets,
+}: {
+  row: Row<Lead>;
+  isSelected: boolean;
+  stickyOffsets: Record<string, number>;
+}) {
+  return (
+    <TableRow
+      className="hover:bg-muted/60 transition-colors group"
+      data-selected={isSelected || undefined}
+    >
+      {row.getVisibleCells().map((cell) => {
+        const meta = (cell.column.columnDef.meta ?? {}) as {
+          sticky?: string;
+          minWidth?: number;
+        };
+        const isSticky = meta.sticky === 'left';
+        return (
+          <TableCell
+            key={cell.id}
+            style={{
+              minWidth: meta.minWidth ?? 90,
+              width: meta.minWidth ?? 90,
+              ...(isSticky
+                ? { position: 'sticky', left: stickyOffsets[cell.column.id] ?? 0, zIndex: 10 }
+                : {}),
+            }}
+            className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
+              isSticky
+                ? 'bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors'
+                : ''
+            }`}
+          >
+            <div className="flex items-center justify-center w-full h-full">
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </div>
+          </TableCell>
+        );
+      })}
+    </TableRow>
+  );
+});
 
 export function LeadTable({
   leads,
@@ -182,28 +277,35 @@ export function LeadTable({
 }: LeadTableProps) {
   const allIds = useMemo(() => leads.map((l) => l.id), [leads]);
 
-  const columns = useMemo(
-    () => buildColumns(canDispatch, selectedIds, onSelectionChange, allIds),
-    // rebuild whenever selection or data changes so checkbox state stays accurate
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canDispatch, selectedIds, allIds],
-  );
+  // Membership is checked once per row on every render; an array would make
+  // that O(n²) — about 165,000 comparisons on a 400-lead department.
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Only `canDispatch` can change the shape of the table, so the columns are
+  // built once and survive every selection change. See LeadTableMeta.
+  const columns = useMemo(() => buildColumns(canDispatch), [canDispatch]);
 
   const table = useReactTable({
     data: leads,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    meta: { selectedSet, allIds, onSelectionChange } satisfies LeadTableMeta,
   });
 
-  const leafColumns = table.getAllLeafColumns();
-  const stickyOffsets: Record<string, number> = {};
-  let cumulativeLeft = 0;
-  for (const c of leafColumns) {
-    const meta = (c.columnDef.meta ?? {}) as { sticky?: string; minWidth?: number };
-    if (meta.sticky !== 'left') break;
-    stickyOffsets[c.id] = cumulativeLeft;
-    cumulativeLeft += meta.minWidth ?? 90;
-  }
+  // Memoised so its identity is stable, which is what lets LeadRow skip
+  // re-rendering. It only depends on the column shape, never on selection.
+  const stickyOffsets = useMemo(() => {
+    const offsets: Record<string, number> = {};
+    let cumulativeLeft = 0;
+    for (const c of table.getAllLeafColumns()) {
+      const meta = (c.columnDef.meta ?? {}) as { sticky?: string; minWidth?: number };
+      if (meta.sticky !== 'left') break;
+      offsets[c.id] = cumulativeLeft;
+      cumulativeLeft += meta.minWidth ?? 90;
+    }
+    return offsets;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns]);
 
   return (
     <Table
@@ -254,35 +356,12 @@ export function LeadTable({
         {/* Data rows */}
         {!isLoading &&
           table.getRowModel().rows.map((row) => (
-            <TableRow
+            <LeadRow
               key={row.id}
-              className="hover:bg-muted/60 transition-colors group"
-              data-selected={selectedIds.includes(row.original.id) || undefined}
-            >
-              {row.getVisibleCells().map((cell) => {
-                const meta = cell.column.columnDef.meta ?? {};
-                const isSticky = meta.sticky === 'left';
-                return (
-                  <TableCell
-                    key={cell.id}
-                    style={{
-                      minWidth: meta.minWidth ?? 90,
-                      width: meta.minWidth ?? 90,
-                      ...(isSticky
-                        ? { position: 'sticky', left: stickyOffsets[cell.column.id] ?? 0, zIndex: 10 }
-                        : {}),
-                    }}
-                    className={`border-r border-border last:border-r-0 py-2 text-center align-middle ${
-                      isSticky ? 'bg-card group-hover:bg-[color-mix(in_srgb,var(--muted)_60%,var(--card))] transition-colors' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-center w-full h-full">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </div>
-                  </TableCell>
-                );
-              })}
-            </TableRow>
+              row={row}
+              isSelected={selectedSet.has(row.original.id)}
+              stickyOffsets={stickyOffsets}
+            />
           ))}
 
         {/* Empty state */}

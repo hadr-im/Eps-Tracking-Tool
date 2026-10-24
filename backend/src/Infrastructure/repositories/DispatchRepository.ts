@@ -109,8 +109,16 @@ export class DispatchRepository implements IDispatchRepository {
 
   // Private mappers (Prisma row -> Domain entity)
 
-  async existsById(epId: string): Promise<boolean> {
-    const found = await this.db.ep.findUnique({ where: { id: epId }, select: { id: true } });
+  async existsInDepartment(expaId: string, departmentId: string): Promise<boolean> {
+    const found = await this.db.ep.findFirst({
+      where: { expaId, departmentId },
+      select: { id: true },
+    });
+    return found !== null;
+  }
+
+  async idExists(id: string): Promise<boolean> {
+    const found = await this.db.ep.findUnique({ where: { id }, select: { id: true } });
     return found !== null;
   }
 
@@ -118,6 +126,7 @@ export class DispatchRepository implements IDispatchRepository {
     const row = await this.db.ep.create({
       data: {
         id: ep.id,
+        expaId: ep.expaId,
         fullName: ep.fullName,
         email: ep.email,
         phone: ep.phone,
@@ -163,6 +172,7 @@ export class DispatchRepository implements IDispatchRepository {
       row.duration as unknown as Duration | null,
       row.availability as unknown as Availability | null,
       row.addedManually,
+      row.expaId,
     );
   }
 

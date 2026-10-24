@@ -6,9 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadgeCell } from "@/components/crm/cells/StatusBadgeCell";
 import { DateCell } from "@/components/crm/cells/DateCell";
 import { TruncatedText } from "@/components/crm/cells/TruncatedText";
-import { MemberPicker } from "@/components/team/MemberPicker";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { TransitionHistoryDto } from "@/types/ep";
-import type { DepartmentMember } from "@/services/departmentService";
 import { BAND_CLASS, bandStyle, type BandTone, TABLE_CONTAINER_CLASS } from "@/components/ui/data-table";
 
 // Column group metadata
@@ -25,7 +24,6 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     columnIds: [
       "statusOnExpa",
       "epId",
-      "product",
       "createdAtExpa",
       "email",
       "phone",
@@ -34,23 +32,20 @@ const COLUMN_GROUPS: ColumnGroup[] = [
       "yearOfStudy",
     ],
   },
+  /*
+    Only the CRM fields that still mean something once an EP has moved
+    department. Phase, notes, contacted and the rest describe work done by the
+    team that handed them over, which the receiving team does not inherit.
+  */
   {
     label: "CRM",
     tone: 2 as BandTone,
-    columnIds: [
-      "memberName",
-      "source",
-      "cvLink",
-      "contacted",
-      "interested",
-      "trackingPhase",
-      "notes",
-    ],
+    columnIds: ["source"],
   },
   {
     label: "Interests",
     tone: 3 as BandTone,
-    columnIds: ["duration", "availability"],
+    columnIds: ["availability"],
   },
   {
     label: "Transition",
@@ -62,19 +57,76 @@ const COLUMN_GROUPS: ColumnGroup[] = [
 interface TransitionedEpsTableProps {
   transitions: TransitionHistoryDto[];
   isLoading: boolean;
-  departmentMembers: DepartmentMember[];
-  onAssignEp?: (epId: string, memberId: string) => void;
-  isAssigningId?: string | null;
+  /** Shows the selection checkboxes. Team Leaders and VPs only. */
+  canDispatch?: boolean;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
+}
+
+/*
+  Selection is read from the table's `meta` rather than captured by the column
+  closures, so ticking a box does not rebuild every column definition. Same
+  reasoning as LeadTable — see the note there.
+*/
+interface TransitionsTableMeta {
+  selectedSet: Set<string>;
+  selectableIds: string[];
+  onSelectionChange: (ids: string[]) => void;
+}
+
+function metaOf(table: { options: { meta?: unknown } }): TransitionsTableMeta {
+  return table.options.meta as TransitionsTableMeta;
 }
 
 const col = createColumnHelper<TransitionHistoryDto>();
 
-function buildColumns(
-  departmentMembers: DepartmentMember[],
-  onAssignEp?: (epId: string, memberId: string) => void,
-  isAssigningId?: string | null,
-): ColumnDef<TransitionHistoryDto, any>[] {
-  return [
+function buildColumns(canDispatch: boolean): ColumnDef<TransitionHistoryDto, any>[] {
+  const checkboxCol = col.display({
+    id: "select",
+    header: ({ table }) => {
+      const { selectedSet, selectableIds, onSelectionChange } = metaOf(table);
+      const allSelected =
+        selectableIds.length > 0 && selectableIds.every((id) => selectedSet.has(id));
+      const someSelected = selectableIds.some((id) => selectedSet.has(id));
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={allSelected}
+            data-state={someSelected && !allSelected ? "indeterminate" : undefined}
+            onCheckedChange={(checked) => onSelectionChange(checked ? selectableIds : [])}
+            className="border-2 border-foreground/40"
+            aria-label="Select all"
+          />
+        </div>
+      );
+    },
+    cell: (info) => {
+      const ep = info.row.original.ep;
+      const { selectedSet, onSelectionChange } = metaOf(info.table);
+
+      // An EP already assigned to a member is not in the pool to dispatch.
+      if (!ep || ep.ownerId) return null;
+
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={selectedSet.has(ep.id)}
+            onCheckedChange={(checked) => {
+              const next = new Set(selectedSet);
+              if (checked) next.add(ep.id);
+              else next.delete(ep.id);
+              onSelectionChange([...next]);
+            }}
+            className="border-2 border-foreground/40"
+            aria-label={`Select ${ep.fullName}`}
+          />
+        </div>
+      );
+    },
+    meta: { sticky: "left", minWidth: 44 },
+  });
+
+  const dataCols: ColumnDef<TransitionHistoryDto, any>[] = [
 
     col.accessor((row) => row.ep?.fullName ?? "Unknown", {
       id: "fullName",
@@ -86,42 +138,6 @@ function buildColumns(
       ),
       meta: { sticky: "left", minWidth: 160 },
     }),
-
-    ...(onAssignEp
-      ? [
-          col.display({
-            id: "toWhom",
-            header: () => <div className="text-center w-full">To Whom?</div>,
-            cell: (info) => {
-              const t = info.row.original;
-              const isInbound = t.direction === "INBOUND";
-              const epId = t.ep?.id;
-
-              if (!isInbound || !epId) {
-                return <span className="text-muted-foreground text-xs">—</span>;
-              }
-
-              return (
-                <div
-                  className="flex items-center justify-center w-full px-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MemberPicker
-                    members={departmentMembers}
-                    selectedId={t.ep?.ownerId ?? null}
-                    onSelect={(id) => onAssignEp(epId, id)}
-                    placeholder="Assign..."
-                    disabled={isAssigningId === epId}
-                    variant="outline"
-                    className="h-8 w-36 mx-auto text-xs rounded-full"
-                  />
-                </div>
-              );
-            },
-            meta: { sticky: "left", minWidth: 160 },
-          }),
-        ]
-      : []),
 
     // General Info
     col.accessor((row) => row.ep?.statusOnExpa ?? "LEAD", {
@@ -205,16 +221,6 @@ function buildColumns(
     }),
 
     // CRM
-    col.accessor("memberName", {
-      id: "memberName",
-      header: "Member Name",
-      cell: (info) => (
-        <span className="text-xs whitespace-nowrap">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
-      ),
-      meta: { minWidth: 120 },
-    }),
     col.accessor((row) => row.ep?.source ?? null, {
       id: "source",
       header: "Source",
@@ -226,94 +232,7 @@ function buildColumns(
       ),
       meta: { minWidth: 120 },
     }),
-    col.accessor((row) => row.ep?.cvLink ?? null, {
-      id: "cvLink",
-      header: "CV Link",
-      cell: (info) => {
-        const link = info.getValue() as string | null;
-        if (link) {
-          return (
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline truncate block max-w-30 mx-auto"
-            >
-              {link}
-            </a>
-          );
-        }
-        return <span className="text-muted-foreground text-xs">—</span>;
-      },
-      meta: { minWidth: 120 },
-    }),
-    col.accessor((row) => row.ep?.contacted ?? false, {
-      id: "contacted",
-      header: "Contacted",
-      cell: (info) => (
-        <span
-          className={`text-xs font-medium ${info.getValue() ? "text-emerald-600" : "text-muted-foreground"}`}
-        >
-          {info.getValue() ? "Yes" : "No"}
-        </span>
-      ),
-      meta: { minWidth: 80 },
-    }),
-    col.accessor((row) => row.ep?.interested ?? false, {
-      id: "interested",
-      header: "Interested",
-      cell: (info) => (
-        <span
-          className={`text-xs font-medium ${info.getValue() ? "text-emerald-600" : "text-muted-foreground"}`}
-        >
-          {info.getValue() ? "Yes" : "No"}
-        </span>
-      ),
-      meta: { minWidth: 80 },
-    }),
-    col.accessor((row) => row.ep?.trackingPhase ?? null, {
-      id: "trackingPhase",
-      header: "Phase",
-      cell: (info) => (
-        <span className="text-xs">
-          {info.getValue() ? (
-            (info.getValue() as string)
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (c: string) => c.toUpperCase())
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </span>
-      ),
-      meta: { minWidth: 190 },
-    }),
-    col.accessor((row) => row.ep?.notes ?? null, {
-      id: "notes",
-      header: "Notes",
-      cell: (info) => (
-        <TruncatedText
-          value={info.getValue() as string | null}
-          className="text-xs max-w-50 block truncate whitespace-nowrap overflow-hidden mx-auto text-left"
-        />
-      ),
-      meta: { minWidth: 200 },
-    }),
-
     // Interests
-    col.accessor((row) => row.ep?.duration ?? null, {
-      id: "duration",
-      header: "Duration",
-      cell: (info) => {
-        const v = info.getValue() as string | null;
-        if (!v) return <span className="text-muted-foreground text-xs">—</span>;
-        return (
-          <span className="text-xs">
-            {v.charAt(0) + v.slice(1).toLowerCase()}
-          </span>
-        );
-      },
-      meta: { minWidth: 120 },
-    }),
     col.accessor((row) => row.ep?.availability ?? null, {
       id: "availability",
       header: "Availability",
@@ -329,16 +248,6 @@ function buildColumns(
     }),
 
     // Transition Details
-    col.accessor((row) => row.ep?.product ?? null, {
-      id: "product",
-      header: "Product",
-      cell: (info) => (
-        <span className="text-xs font-semibold">
-          {info.getValue() ?? <span className="text-muted-foreground">—</span>}
-        </span>
-      ),
-      meta: { minWidth: 90 },
-    }),
     col.display({
       id: "fromProduct",
       header: "Transition",
@@ -382,6 +291,8 @@ function buildColumns(
       meta: { minWidth: 200 },
     }),
   ];
+
+  return canDispatch ? [checkboxCol, ...dataCols] : dataCols;
 }
 
 // Helpers
@@ -398,19 +309,33 @@ function buildGroupSpans(
 export function TransitionedEpsTable({
   transitions,
   isLoading,
-  departmentMembers,
-  onAssignEp,
-  isAssigningId,
+  canDispatch = false,
+  selectedIds = [],
+  onSelectionChange,
 }: TransitionedEpsTableProps) {
-  const columns = useMemo(
-    () => buildColumns(departmentMembers, onAssignEp, isAssigningId),
-    [departmentMembers, onAssignEp, isAssigningId],
+  const columns = useMemo(() => buildColumns(canDispatch), [canDispatch]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Only unassigned EPs can be dispatched, so "select all" means those.
+  const selectableIds = useMemo(
+    () =>
+      transitions
+        .map((t) => t.ep)
+        .filter((ep): ep is NonNullable<typeof ep> => !!ep && !ep.ownerId)
+        .map((ep) => ep.id),
+    [transitions],
   );
 
   const table = useReactTable({
     data: transitions,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    meta: {
+      selectedSet,
+      selectableIds,
+      onSelectionChange: onSelectionChange ?? (() => {}),
+    } satisfies TransitionsTableMeta,
   });
 
   const allIds = table.getAllLeafColumns().map((c) => c.id);

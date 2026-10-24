@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { manualLeadUseCase } from '../../Infrastructure/container';
+import { getManualLeadUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { ManualLeadInput } from '../../Application/use-cases/dispatch/ManualLeadUseCase';
 
@@ -49,7 +49,7 @@ export class ManualLeadController {
   */
   static async list(req: Request, res: Response): Promise<void> {
     try {
-      const leads = await manualLeadUseCase.list(req.user!);
+      const leads = await getManualLeadUseCase().list(req.user!);
       res.status(200).json({ data: leads, count: leads.length });
     } catch (err) {
       handleError(res, err);
@@ -63,7 +63,7 @@ export class ManualLeadController {
   static async lookupExpa(req: Request, res: Response): Promise<void> {
     try {
       const expaId = typeof req.params['expaId'] === 'string' ? req.params['expaId'] : '';
-      const result = await manualLeadUseCase.lookupExpa(expaId, req.user!);
+      const result = await getManualLeadUseCase().lookupExpa(expaId, req.user!);
       res.status(200).json({ data: result });
     } catch (err) {
       handleError(res, err);
@@ -77,7 +77,7 @@ export class ManualLeadController {
   static async create(req: Request, res: Response): Promise<void> {
     try {
       const input = parseInput((req.body ?? {}) as Record<string, unknown>);
-      const lead = await manualLeadUseCase.create(input, req.user!);
+      const lead = await getManualLeadUseCase().create(input, req.user!);
       res.status(201).json({ data: lead });
     } catch (err) {
       handleError(res, err);

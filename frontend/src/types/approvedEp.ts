@@ -23,6 +23,8 @@ export interface ApprovedEpDetail {
 
 export interface ApprovedEp {
   id: string;
+  // EXPA person id — what the UI shows. See lead.ts for the full note.
+  expaId: string | null;
   fullName: string;
   email: string | null;
   phone: string | null;

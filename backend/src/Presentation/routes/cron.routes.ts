@@ -81,4 +81,43 @@ router.all('/sync-status', async (req: Request, res: Response) => {
   }
 });
 
+/*
+  Reconciles the committee's approved applications from EXPA, filing each under
+  the department that owns its programme.
+
+  Separate from sync-status, which can only update leads already held here.
+  Most approved EPs applied in earlier campaigns and never passed through this
+  app's lead window, so they have to be fetched from the EXPA side instead.
+*/
+router.all('/sync-approvals', async (_req: Request, res: Response) => {
+  try {
+    const result = await factory.makeSyncApprovalsUseCase().execute();
+    res.json({ job: 'sync-approvals', result });
+  } catch (err) {
+    console.error('[Cron] sync-approvals failed:', err);
+    res.status(500).json({ job: 'sync-approvals', error: 'Approvals sync failed' });
+  }
+});
+
+/*
+  Fills in the real email and phone number from the sign-up sheet, which EXPA
+  does not return. Built lazily so a missing Google Sheets configuration fails
+  only this endpoint rather than the whole router.
+
+  ?dryRun=1 reports what would change without writing anything.
+*/
+router.all('/enrich-leads', async (req: Request, res: Response) => {
+  try {
+    const dryRun = req.query['dryRun'] === '1' || req.query['dryRun'] === 'true';
+    const result = await factory.makeEnrichLeadsUseCase().execute(dryRun);
+    res.json({ job: 'enrich-leads', dryRun, result });
+  } catch (err) {
+    console.error('[Cron] enrich-leads failed:', err);
+    res.status(500).json({
+      job: 'enrich-leads',
+      error: err instanceof Error ? err.message : 'Enrichment failed',
+    });
+  }
+});
+
 export default router;

@@ -43,7 +43,7 @@ const router = Router();
 router.get(
   '/pool',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
   DispatchController.getLeadsPool,
 );
 
@@ -87,7 +87,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
   DispatchController.dispatch,
 );
 

@@ -1,5 +1,6 @@
 import { ExpaLead } from '../types/ExpaLead';
 import { EpStatusResult } from '../types/EpStatusResult';
+import { ExpaApproval } from '../types/ExpaApproval';
 
 /*
  Repository contract for fetching data from the EXPA external API
@@ -23,6 +24,13 @@ export interface IExpaRepository {
     @param epIds  EXPA person IDs to check
    */
   fetchEpStatus(epIds: string[]): Promise<EpStatusResult[]>;
+
+  /*
+    Every approved-or-beyond application in our committee, with the person and
+    owning programme attached, so approvals can be reconciled independently of
+    what is already stored.
+  */
+  fetchCommitteeApprovals(): Promise<ExpaApproval[]>;
 
   /*
     Fetch one person by their EXPA id, for the manual leads page's autofill.

@@ -10,6 +10,9 @@ import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
 // Lightweight projection (only what SyncStatusUseCase needs for comparison)
 export interface EpStatusSnapshot {
   id: string;
+  // What EXPA keys on. Several snapshots can share one expaId when a person
+  // selected more than one programme, and a status change applies to them all.
+  expaId: string | null;
   statusOnExpa: EpStatus;
   hasApprovedDetail: boolean;
 }
@@ -32,6 +35,21 @@ export interface TransitionInput {
   note?: string;
 }
 
+/*
+  A single row's worth of sheet-sourced contact details. Only the keys present
+  are written, so a blank cell in the sheet never wipes something already known.
+*/
+export interface EpContactEnrichment {
+  // The EP row id, not the EXPA id — one person may have several rows.
+  id: string;
+  email?: string;
+  phone?: string;
+  university?: string;
+  fieldOfStudy?: string;
+  yearOfStudy?: number;
+  source?: string;
+}
+
 export interface IEpRepository {
   // Queries 
 
@@ -49,8 +67,18 @@ export interface IEpRepository {
   // Returns approved EPs (APPROVED or beyond) for a department
   findApprovedByDepartment(departmentId: string): Promise<Ep[]>;
 
-  // Looks up a single EP by EXPA person ID
-  findByExpaId(epId: string): Promise<Ep | null>;
+  /*
+    Every EP row matching any of these EXPA person ids, across all departments.
+    One person can hold a row in several departments, and the sign-up sheet
+    describes the person, so enrichment has to reach all of their rows.
+  */
+  findByExpaIds(expaIds: string[]): Promise<Ep[]>;
+
+  /*
+    Writes the contact details that only the sign-up sheet knows. Separate from
+    updateEp, which deliberately refuses EXPA-owned fields like email.
+  */
+  enrichMany(updates: EpContactEnrichment[]): Promise<number>;
 
   // Looks up a single EP by internal ID 
   findById(epId: string): Promise<Ep | null>;

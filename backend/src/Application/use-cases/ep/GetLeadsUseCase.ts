@@ -9,11 +9,16 @@ import { UserRole } from '../../../Domain/enums/UserRole';
 */
 export interface LeadDto {
   id: string;
+  // EXPA person id shown in the UI; see EpDto.expaId.
+  expaId: string | null;
   fullName: string;
   email: string | null;
   phone: string | null;
   university: string | null;
   fieldOfStudy: string | null;
+  // Both come from the sign-up sheet — EXPA knows neither.
+  yearOfStudy: number | null;
+  source: string | null;
   product: string;
   statusOnExpa: string;
   createdAtExpa: string;
@@ -45,11 +50,14 @@ export class GetLeadsUseCase {
 
     return rows.map(({ ep }) => ({
       id: ep.id,
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,
       university: ep.university,
       fieldOfStudy: ep.fieldOfStudy,
+      yearOfStudy: ep.yearOfStudy,
+      source: ep.source,
       product: ep.product,
       statusOnExpa: ep.statusOnExpa,
       createdAtExpa: ep.createdAtExpa.toISOString(),

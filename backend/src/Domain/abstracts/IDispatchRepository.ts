@@ -21,8 +21,15 @@ export interface IDispatchRepository {
    */
   createManualLead(ep: Ep): Promise<Ep>;
 
-  // Whether an EP id is already present, used to give a clear error before insert.
-  existsById(epId: string): Promise<boolean>;
+  /*
+   Whether this EXPA person already has a lead in this department. Scoped to
+   the department on purpose: the same person may legitimately be a lead for
+   two departments when they chose two internship types.
+  */
+  existsInDepartment(expaId: string, departmentId: string): Promise<boolean>;
+
+  // Whether a row id is taken, so a second copy knows to generate its own.
+  idExists(id: string): Promise<boolean>;
 
   /*
    Assigns EPs to a member

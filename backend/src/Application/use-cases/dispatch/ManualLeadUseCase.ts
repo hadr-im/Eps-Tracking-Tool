@@ -87,7 +87,12 @@ export class ManualLeadUseCase {
       fieldOfStudy: person.fieldOfStudy,
       createdAtExpa: person.creationDate,
       statusOnExpa: person.statusOnExpa,
-      alreadyExists: await this.dispatchRepo.existsById(person.epId),
+      // Scoped to the caller's department: this person may already be a lead
+      // elsewhere and still be a valid addition here.
+      alreadyExists: await this.dispatchRepo.existsInDepartment(
+        person.epId,
+        caller.departmentId!,
+      ),
     };
   }
 
@@ -100,17 +105,25 @@ export class ManualLeadUseCase {
     const departmentId = caller.departmentId!;
     const product = this.productForDepartment(departmentId);
 
-    // An EXPA id is kept as the record id so the status sync can find the
-    // person; without one a prefixed id keeps the key space separate.
-    const expaId = input.expaId?.trim();
-    const id = expaId ? expaId : `${MANUAL_ID_PREFIX}${crypto.randomUUID()}`;
+    const expaId = input.expaId?.trim() || null;
 
     if (expaId) {
       if (!/^\d+$/.test(expaId)) throw new AppError('An EXPA ID must be numeric', 400);
-      if (await this.dispatchRepo.existsById(expaId)) {
-        throw new AppError(`EP ${expaId} is already in the system`, 409);
+      if (await this.dispatchRepo.existsInDepartment(expaId, departmentId)) {
+        throw new AppError(`EP ${expaId} is already a lead in your department`, 409);
       }
     }
+
+    /*
+      Prefer the EXPA id as the row id, matching how the sync stores a person's
+      first copy. When that id is already taken — because another department
+      added this person first — fall back to a generated one; expaId is what
+      ties the copies together, not the row id.
+    */
+    const id =
+      expaId && !(await this.dispatchRepo.idExists(expaId))
+        ? expaId
+        : `${MANUAL_ID_PREFIX}${crypto.randomUUID()}`;
 
     const ep = new Ep(
       id,
@@ -139,6 +152,7 @@ export class ManualLeadUseCase {
       null,  // duration
       null,  // availability
       true,  // addedManually
+      expaId,
     );
 
     return this.dispatchRepo.createManualLead(ep);

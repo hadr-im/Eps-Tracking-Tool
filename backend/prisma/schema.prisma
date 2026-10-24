@@ -156,7 +156,15 @@ model PasswordResetOtp {
 }
 
 model Ep {
+  /// Internal row id. For the first department a person lands in this is their
+  /// EXPA person id, which is why existing rows did not have to be rewritten.
+  /// A second copy of the same person, in another department, gets a generated
+  /// id instead — only expaId ties the two together.
   id            String         @id
+  /// The EXPA person id. Null for a lead typed in by hand that is not on EXPA.
+  /// Deliberately not unique on its own: someone who ticked two internship
+  /// types exists once per department.
+  expaId        String?
   fullName      String
   email         String?
   phone         String?
@@ -193,10 +201,14 @@ model Ep {
   transitionHistory  TransitionHistory[]
   comments           Comment[]
 
+  /// One person per department, never twice in the same one. Postgres treats
+  /// NULLs as distinct, so hand-entered leads without an EXPA id are unaffected.
+  @@unique([expaId, departmentId])
   @@index([departmentId])
   @@index([statusOnExpa])
   @@index([ownerId])
   @@index([addedManually])
+  @@index([expaId])
 }
 
 model ApprovedDetail {

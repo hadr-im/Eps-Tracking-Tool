@@ -10,6 +10,8 @@ import { AppError } from '../../errors/AppError';
   Merges Ep fields with the joined ApprovedDetail 
 */
 export interface EpDetailDto {
+  // EXPA person id shown in the UI; see EpDto.expaId.
+  expaId: string | null;
   // Core EP fields
   id: string;
   fullName: string;
@@ -96,6 +98,7 @@ export class GetApprovedEpsWithDetailUseCase {
   private toDto({ ep, approvedDetail, memberName }: EpWithDetail): EpDetailDto {
     return {
       id: ep.id,
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,

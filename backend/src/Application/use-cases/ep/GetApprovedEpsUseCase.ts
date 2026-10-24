@@ -11,6 +11,8 @@ export interface CallerContext {
 
 // Shape returned to the Presentation layer
 export interface ApprovedEpDto {
+  // EXPA person id shown in the UI; see EpDto.expaId.
+  expaId: string | null;
   id: string;
   fullName: string;
   email: string | null;
@@ -69,6 +71,7 @@ export class GetApprovedEpsUseCase {
   private toDto(ep: Ep): ApprovedEpDto {
     return {
       id: ep.id,
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,

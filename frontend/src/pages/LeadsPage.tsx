@@ -6,7 +6,6 @@
 
 
 import { useState, useCallback, useMemo } from 'react';
-import { ChevronRight }     from 'lucide-react';
 import { useAuth }          from '@/hooks/useAuth';
 import { useLeads }         from '@/hooks/useLeads';
 import { LeadFiltersBar }   from '@/components/leads/LeadFiltersBar';
@@ -14,7 +13,6 @@ import { LeadTable }        from '@/components/leads/LeadTable';
 import { LeadCardList }     from '@/components/leads/LeadCardList';
 import { DispatchDialog }   from '@/components/leads/DispatchDialog';
 import { SoftBadge }        from '@/components/ui/soft-badge';
-import { Button }           from '@/components/ui/button';
 import type { LeadFilters } from '@/types/lead';
 import { PageHeader } from '@/components/layout/PageHeader';
 
@@ -69,21 +67,11 @@ export default function LeadsPage() {
 
       {/* Filters & Dispatch Action */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
-        <LeadFiltersBar 
-          onFiltersChange={setFilters} 
-          dispatchButton={
-            canDispatch ? (
-              <Button
-                size="sm"
-                onClick={handleDispatchClick}
-                disabled={selectedLeadIds.length === 0}
-                className="h-8 gap-1.5 text-xs ml-1"
-              >
-                Dispatch {selectedLeadIds.length > 0 ? `(${selectedLeadIds.length})` : ''}
-                <ChevronRight size={14} className="ml-1" />
-              </Button>
-            ) : undefined
-          }
+        <LeadFiltersBar
+          onFiltersChange={setFilters}
+          canDispatch={canDispatch}
+          selectedCount={selectedLeadIds.length}
+          onDispatch={handleDispatchClick}
         />
       </div>
 

@@ -3,6 +3,8 @@ import { IExpaRepository } from '../../Domain/abstracts/IExpaRepository';
 import { ExpaLead } from '../../Domain/types/ExpaLead';
 import { ExpaApprovedDetail } from '../../Domain/types/ExpaApprovedDetail';
 import { EpStatusResult } from '../../Domain/types/EpStatusResult';
+import { ExpaApproval } from '../../Domain/types/ExpaApproval';
+import { PROGRAMME_FROM_EXPA_CODE } from '../../Domain/enums/Product';
 
 
 // GraphQL Queries
@@ -11,7 +13,7 @@ const FETCH_LEADS_QUERY = `
   query FetchLeads($page: Int!, $perPage: Int!, $programmeCode: [Int]!) {
     people(
       filters: {
-        registered: { from: "2026-08-01", to: "2027-01-31" }
+        registered: { from: "2026-09-01", to: "2027-01-31" }
         selected_programmes: $programmeCode
       }
       per_page: $perPage
@@ -109,13 +111,15 @@ const FETCH_COMMITTEE_APPLICATIONS_QUERY = `
         date_approved
         date_realized
         experience_end_date
-        person { id full_name phone }
+        person { id full_name email contact_detail { phone } }
         host_lc { parent { name } }
         host_lc_name
         opportunity {
           id
           title
           project_fee
+          # Decides which department owns the approval.
+          programme { id }
         }
       }
     }
@@ -170,7 +174,12 @@ interface RawApplication {
   date_approved: string | null;
   date_realized: string | null;
   experience_end_date: string | null;
-  person: { id: number | string; full_name: string; phone: string | null };
+  person: {
+    id: number | string;
+    full_name: string;
+    email: string | null;
+    contact_detail: { phone: string | null } | null;
+  };
   host_lc: { parent: { name: string } | null } | null;
   host_lc_name: string | null;
   opportunity: {
@@ -178,6 +187,7 @@ interface RawApplication {
     title: string;
     // EXPA returns project_fee as an object not a plain number
     project_fee: { fee: number; currency: string } | number | null;
+    programme: { id: number | string } | null;
   } | null;
 }
 
@@ -357,13 +367,64 @@ export class ExpaRepository implements IExpaRepository {
       fullName: person.full_name,
       email: person.email ?? null,
       phone: person.contact_detail?.phone ?? null,
-      university: person.lc_alignment?.keywords ?? null,
+      // EXPA pads this with leading whitespace, which then shows up in the UI
+      // and makes a sheet value look like a change when it is only trimmed.
+      university: person.lc_alignment?.keywords?.trim() || null,
       fieldOfStudy: person.person_profile?.backgrounds?.[0]?.name ?? null,
       yearOfStudy: null, // not sure if EXPA exposes this field via GraphQL
       creationDate: person.created_at,
       statusOnExpa: person.status ?? 'open',
       selectedProgrammes: person.person_profile?.selected_programmes ?? [],
     };
+  }
+
+  /*
+    Every approved-or-beyond application in our committee, with the person and
+    the owning programme attached.
+
+    Unlike fetchEpStatus this asks nothing about what is already in the
+    database — it reports what EXPA holds, and the caller reconciles. That is
+    what lets an approved EP who was never a lead here still appear under their
+    department.
+  */
+  async fetchCommitteeApprovals(): Promise<ExpaApproval[]> {
+    const approvals: ExpaApproval[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    while (page <= totalPages) {
+      const data = await this.withRetry<ApplicationsResponse>(() =>
+        this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
+          page,
+          perPage: this.appsPerPage,
+          committeeId: this.committeeId,
+        }),
+      );
+
+      const { paging, data: applications } = data.allOpportunityApplication;
+      totalPages = paging.total_pages;
+
+      for (const app of applications) {
+        const programmeId = app.opportunity?.programme?.id;
+        approvals.push({
+          expaId: String(app.person.id),
+          fullName: app.person.full_name,
+          email: app.person.email ?? null,
+          phone: app.person.contact_detail?.phone ?? null,
+          status: app.current_status,
+          product: programmeId ? PROGRAMME_FROM_EXPA_CODE[Number(programmeId)] ?? null : null,
+          detail: this.mapToApprovedDetail(app),
+        });
+      }
+
+      console.log(
+        `[ExpaRepository] Approvals page ${page}/${totalPages} — ${applications.length} applications`,
+      );
+      page++;
+    }
+
+    console.log(`[ExpaRepository] Done. ${approvals.length} committee approvals.`);
+    return approvals;
   }
 
   private mapToApprovedDetail(app: RawApplication): ExpaApprovedDetail {
@@ -374,7 +435,7 @@ export class ExpaRepository implements IExpaRepository {
       appId: String(app.id),
       personExpaId: String(app.person.id),
       fullName: app.person.full_name,
-      phone: app.person.phone ?? null,
+      phone: app.person.contact_detail?.phone ?? null,
       opportunityId: app.opportunity ? String(app.opportunity.id) : null,
       opportunityTitle: app.opportunity?.title ?? null,
       hostingMC: app.host_lc?.parent?.name ?? null,

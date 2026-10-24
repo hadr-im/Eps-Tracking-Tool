@@ -207,7 +207,7 @@ function buildColumns(
       enableSorting: true,
       meta: { minWidth: 110 },
     }),
-    col.accessor('id', {
+    col.accessor('expaId', {
       id: 'id',
       header: 'EP ID',
       cell: (info) => <TextCell value={info.getValue()} mono />,

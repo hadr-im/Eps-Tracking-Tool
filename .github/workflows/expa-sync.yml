@@ -85,3 +85,45 @@ jobs:
             echo "::endgroup::"
           done
           exit $failed
+
+      # Runs straight after the leads sync, because the two only make sense
+      # together: the sync brings a person in from EXPA with a relay address
+      # and no phone, and this fills both from the sign-up sheet. Left to run
+      # separately, every freshly synced lead sat there with a blank Source and
+      # an unusable email until someone triggered it by hand.
+      #
+      # Only after sync-leads — the hourly status sync adds no new people.
+      # Hourly, alongside the status sync. Approvals change slowly — someone is
+      # approved once — and this walks the committee's whole application list,
+      # so running it every 5 minutes would be wasteful.
+      - name: Sync approvals
+        if: steps.cfg.outputs.ready == 'true' && steps.pick.outputs.job == 'sync-status'
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          code=$(curl -sS -o /tmp/appr.json -w '%{http_code}' \
+            --max-time 120 --retry 2 --retry-delay 10 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BACKEND_URL/api/cron/sync-approvals") || code=000
+          echo "HTTP $code"
+          cat /tmp/appr.json 2>/dev/null || true
+          echo
+          [ "$code" = "200" ]
+
+      - name: Enrich from the sign-up sheet
+        if: steps.cfg.outputs.ready == 'true' && steps.pick.outputs.job == 'sync-leads'
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          code=$(curl -sS -o /tmp/enrich.json -w '%{http_code}' \
+            --max-time 120 --retry 2 --retry-delay 10 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BACKEND_URL/api/cron/enrich-leads") || code=000
+          echo "HTTP $code"
+          cat /tmp/enrich.json 2>/dev/null || true
+          echo
+          [ "$code" = "200" ]

@@ -10,7 +10,6 @@ import {
 } from "@tanstack/react-table";
 import { useState, useMemo } from "react";
 import {
-  ExternalLink,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -131,11 +130,6 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     columnIds: ["approvalDate", "reaDate", "finishedDate", "completedDate"],
   },
   {
-    label: "Financials & Docs",
-    tone: 5 as BandTone,
-    columnIds: ["projectFees", "contractLink", "auditFolder"],
-  },
-  {
     label: "Actions",
     tone: 5 as BandTone,
     columnIds: ["comments"],
@@ -162,28 +156,6 @@ const STICKY_OFFSET: Record<string, number> = {
 };
 
 // Helpers
-
-function ExternalLinkCell({
-  href,
-  label,
-}: {
-  href: string | null;
-  label?: string;
-}) {
-  if (!href) return <span className="text-muted-foreground text-xs">—</span>;
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline truncate max-w-30"
-      title={href}
-    >
-      {label ?? href}
-      <ExternalLink size={10} className="shrink-0" />
-    </a>
-  );
-}
 
 function SortIcon({ isSorted }: { isSorted: false | "asc" | "desc" }) {
   if (!isSorted)
@@ -268,7 +240,7 @@ function buildColumns(
       enableSorting: true,
       meta: { minWidth: 100 },
     }),
-    col.accessor("id", {
+    col.accessor("expaId", {
       id: "id",
       header: "EP ID",
       cell: (info) => (
@@ -376,38 +348,6 @@ function buildColumns(
       header: "Completed",
       cell: (info) => <DateCell value={info.getValue()} />,
       enableSorting: true,
-      meta: { minWidth: 110 },
-    }),
-
-    // Financials & Docs
-    col.accessor((row) => row.approvedDetail?.projectFees ?? null, {
-      id: "projectFees",
-      header: "Project Fees",
-      cell: (info) => {
-        const v = info.getValue() as number | null;
-        if (v == null)
-          return <span className="text-muted-foreground text-xs">—</span>;
-        return (
-          <span className="text-xs tabular-nums">{v.toLocaleString()}</span>
-        );
-      },
-      enableSorting: true,
-      meta: { minWidth: 110 },
-    }),
-    col.accessor((row) => row.approvedDetail?.contractLink ?? null, {
-      id: "contractLink",
-      header: "Contract",
-      cell: (info) => (
-        <ExternalLinkCell href={info.getValue()} label="Contract" />
-      ),
-      enableSorting: false,
-      meta: { minWidth: 110 },
-    }),
-    col.accessor((row) => row.approvedDetail?.auditFolder ?? null, {
-      id: "auditFolder",
-      header: "Audit Folder",
-      cell: (info) => <ExternalLinkCell href={info.getValue()} label="Audit" />,
-      enableSorting: false,
       meta: { minWidth: 110 },
     }),
 

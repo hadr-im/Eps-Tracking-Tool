@@ -48,6 +48,7 @@ export class GetRealisedEpsUseCase {
   private toDto({ ep, approvedDetail, memberName }: EpWithDetail): EpDetailDto {
     return {
       id: ep.id,
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,

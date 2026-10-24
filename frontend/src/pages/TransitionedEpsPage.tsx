@@ -1,14 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTransitions } from '@/hooks/useTransitions';
-import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useDispatch } from '@/hooks/useDispatch';
 import { TransitionedEpsTable } from '@/components/transitions/TransitionedEpsTable';
 import { TransitionedEpsCardList } from '@/components/transitions/TransitionedEpsCardList';
+import { DispatchDialog } from '@/components/leads/DispatchDialog';
+import { LeadsToolbar } from '@/components/leads/LeadsToolbar';
+import { SoftBadge } from '@/components/ui/soft-badge';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function TransitionedEpsPage() {
@@ -32,10 +31,30 @@ export default function TransitionedEpsPage() {
     );
   }, [transitions, search]);
 
-  const handleAssignEp = useCallback((epId: string, memberId: string) => {
-    dispatchMutate({ epIds: [epId], memberId });
-  }, [dispatchMutate]);
-  
+  /*
+    Selection drives a single Dispatch button in the toolbar, the same shape as
+    the Dispatch page: tick rows, dispatch the batch. Assigning goes through
+    the shared DispatchDialog so there is one way to assign a lead anywhere in
+    the app.
+  */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDispatchOpen, setIsDispatchOpen] = useState(false);
+
+  // An Ep carries every field a Lead has, so the shared DispatchDialog takes
+  // these as-is.
+  const selectedLeads = useMemo(
+    () =>
+      filtered
+        .map((t) => t.ep)
+        .filter((ep): ep is NonNullable<typeof ep> => !!ep && selectedIds.includes(ep.id)),
+    [filtered, selectedIds],
+  );
+
+  const handleDispatchSuccess = useCallback(() => {
+    setIsDispatchOpen(false);
+    setSelectedIds([]);
+  }, []);
+
   const isAssigningId = isAssigning && dispatchVariables ? dispatchVariables.epIds[0] : null;
 
   return (
@@ -43,69 +62,57 @@ export default function TransitionedEpsPage() {
       <PageHeader
         title="Transitioned EPs"
         subtitle="EPs transitioned into your department"
+        actions={
+          !isLoading && (
+            <SoftBadge tone="blue" className="px-3 py-1 text-xs">
+              {filtered.length} EP{filtered.length !== 1 ? 's' : ''}
+            </SoftBadge>
+          )
+        }
       />
 
-      {/* Search + count bar */}
-      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">
-        <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            id="transitions-search"
-            type="search"
-            placeholder="Search EP name or ID…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 w-52 text-xs border-0"
-            aria-label="Search transitioned EPs"
-          />
-        </div>
-        <div
-          className={cn(
-            "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
-            search ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
-          )}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setSearch('')}
-            aria-label="Clear search"
-            title="Clear search"
-            tabIndex={search ? 0 : -1}
-          >
-            <X size={16} />
-          </Button>
-        </div>
-        <span className="ml-auto text-xs text-muted-foreground shrink-0">
-          {filtered.length} EP{filtered.length !== 1 ? 's' : ''}
-        </span>
+      {/* Search & dispatch — same bar as Dispatch */}
+      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
+        <LeadsToolbar
+          idPrefix="transitions"
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Search EP name or ID…"
+          canDispatch={canAssign}
+          selectedCount={selectedIds.length}
+          onDispatch={() => setIsDispatchOpen(true)}
+        />
       </div>
 
       {/* Desktop Content */}
-      <div className="hidden md:block flex-1 min-h-0 px-6 py-6 overflow-auto">
+      <div className="hidden md:flex flex-col flex-1 min-h-0 px-4 md:px-6 py-4">
         <TransitionedEpsTable
           transitions={filtered}
           isLoading={isLoading}
-          departmentMembers={members}
-          onAssignEp={canAssign ? handleAssignEp : undefined}
-          isAssigningId={isAssigningId}
+          canDispatch={canAssign}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
         />
       </div>
 
       {/* Mobile Content */}
-      <div className="md:hidden flex-1 min-h-0 px-4 py-4 overflow-auto">
+      <div className="md:hidden flex-1 overflow-auto px-4 py-4">
         <TransitionedEpsCardList
           transitions={filtered}
           isLoading={isLoading}
           departmentMembers={members}
-          onAssignEp={canAssign ? handleAssignEp : undefined}
+          onAssignEp={canAssign ? (epId, memberId) => dispatchMutate({ epIds: [epId], memberId }) : undefined}
           isAssigningId={isAssigningId}
         />
       </div>
+
+      <DispatchDialog
+        open={isDispatchOpen}
+        leads={selectedLeads}
+        departmentId={user?.departmentId ?? null}
+        onClose={() => setIsDispatchOpen(false)}
+        onSuccess={handleDispatchSuccess}
+      />
     </div>
   );
 }

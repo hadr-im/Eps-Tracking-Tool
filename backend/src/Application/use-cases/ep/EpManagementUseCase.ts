@@ -19,6 +19,10 @@ export interface EpManagementCaller {
 // Full CRM-aware DTO returned by all EP management endpoints
 export interface EpDto {
   id: string;
+  // The EXPA person id shown in the UI. Differs from `id` on the second copy
+  // of someone who belongs to two departments, and is null for a lead typed
+  // in by hand that is not on EXPA.
+  expaId: string | null;
   fullName: string;
   email: string | null;
   phone: string | null;
@@ -280,6 +284,7 @@ export class EpManagementUseCase {
   private toDto(ep: Ep): EpDto {
     return {
       id: ep.id,
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,

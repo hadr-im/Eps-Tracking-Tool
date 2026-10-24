@@ -36,6 +36,7 @@ export class GetTransitionsUseCase {
       // Full EP DTO inline
       const epDto = ep ? {
         id: ep.id,
+        expaId: ep.expaId,
         fullName: ep.fullName,
         email: ep.email,
         phone: ep.phone,

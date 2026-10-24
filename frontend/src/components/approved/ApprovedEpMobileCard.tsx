@@ -2,17 +2,14 @@
 // EP page's mobile view reads the same way.
 
 import {
-  ExternalLink,
   MessageSquare,
   User,
   Phone,
   Building,
   MapPin,
   Briefcase,
-  DollarSign,
   Hash,
   Calendar,
-  FileText,
 } from 'lucide-react';
 import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
 import { DateCell }        from '@/components/crm/cells/DateCell';
@@ -28,21 +25,6 @@ interface ApprovedEpMobileCardProps {
   ep: ApprovedEp;
   canComment: boolean;
   onCommentClick: (ep: ApprovedEp) => void;
-}
-
-function ExternalLinkValue({ href, label }: { href: string | null | undefined; label: string }) {
-  if (!href) return null;
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-aiesec-blue hover:underline"
-    >
-      {label}
-      <ExternalLink size={10} />
-    </a>
-  );
 }
 
 export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: ApprovedEpMobileCardProps) {
@@ -75,11 +57,6 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
 
       <EpSection label="Opportunity" icon={Briefcase}>
         <EpInfoRow label="Opportunity" icon={Briefcase} value={d?.opportunityTitle} />
-        <EpInfoRow
-          label="Project Fees"
-          icon={DollarSign}
-          value={d?.projectFees != null ? d.projectFees.toLocaleString() : null}
-        />
         <EpInfoRow label="App ID" icon={Hash} value={d?.expaAppId} />
       </EpSection>
 
@@ -95,12 +72,6 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
         <EpInfoRow label="Finished" icon={Calendar} value={d?.finishedDate ? <DateCell value={d.finishedDate} /> : null} />
       </EpSection>
 
-      {(d?.contractLink || d?.auditFolder) && (
-        <EpSection label="Documents" icon={FileText}>
-          <EpInfoRow label="Contract" icon={FileText} value={<ExternalLinkValue href={d?.contractLink} label="Open" />} />
-          <EpInfoRow label="Audit Folder" icon={FileText} value={<ExternalLinkValue href={d?.auditFolder} label="Open" />} />
-        </EpSection>
-      )}
     </EpMobileCard>
   );
 }

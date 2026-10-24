@@ -8,6 +8,9 @@ import { GetApprovedEpsUseCase } from '../../Application/use-cases/ep/GetApprove
 import { GetApprovedEpsWithDetailUseCase } from '../../Application/use-cases/ep/GetApprovedEpsWithDetailUseCase';
 import { GetRealisedEpsUseCase } from '../../Application/use-cases/ep/GetRealisedEpsUseCase';
 import { GetLeadsUseCase } from '../../Application/use-cases/ep/GetLeadsUseCase';
+import { SyncApprovalsUseCase } from '../../Application/use-cases/expa/SyncApprovalsUseCase';
+import { EnrichLeadsUseCase } from '../../Application/use-cases/expa/EnrichLeadsUseCase';
+import { SheetLeadRepository } from '../sheets/SheetLeadRepository';
 
 /*
   Factory that constructs and wires all EXPA-related dependencies
@@ -28,6 +31,10 @@ export class ExpaFactory {
 
   makeSyncLeadsUseCase(): SyncLeadsUseCase {
     return new SyncLeadsUseCase(this.expaRepository, this.epRepository);
+  }
+
+  makeSyncApprovalsUseCase(): SyncApprovalsUseCase {
+    return new SyncApprovalsUseCase(this.expaRepository, this.epRepository);
   }
 
   makeSyncStatusUseCase(): SyncStatusUseCase {
@@ -52,5 +59,14 @@ export class ExpaFactory {
 
   makeGetLeadsUseCase(): GetLeadsUseCase {
     return new GetLeadsUseCase(this.epRepository);
+  }
+
+  /*
+    Built on demand, not in the constructor: SheetLeadRepository throws when the
+    Google Sheets settings are absent, and every other use-case here should
+    keep working in an environment where the sheet is not configured.
+  */
+  makeEnrichLeadsUseCase(): EnrichLeadsUseCase {
+    return new EnrichLeadsUseCase(new SheetLeadRepository(), this.epRepository);
   }
 }

@@ -14,6 +14,7 @@ import { DispatchDialog } from '@/components/leads/DispatchDialog';
 import { AddManualLeadDialog } from '@/components/manual-leads/AddManualLeadDialog';
 import { SoftBadge } from '@/components/ui/soft-badge';
 import { Button } from '@/components/ui/button';
+import { LeadsToolbar } from '@/components/leads/LeadsToolbar';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function ManualLeadsPage() {
@@ -23,8 +24,21 @@ export default function ManualLeadsPage() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isDispatchOpen, setIsDispatchOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { data: leads = [], isLoading } = useManualLeads();
+
+  // Filtered client-side: this list is the department's hand-entered leads,
+  // which is a short list, so a round-trip per keystroke would be wasteful.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return leads;
+    return leads.filter(
+      (l) =>
+        l.fullName.toLowerCase().includes(q) ||
+        (l.expaId ?? '').toLowerCase().includes(q),
+    );
+  }, [leads, search]);
 
   const selectedLeads = useMemo(
     () => leads.filter((l) => selectedLeadIds.includes(l.id)),
@@ -50,23 +64,27 @@ export default function ManualLeadsPage() {
         }
       />
 
-      {/* Actions */}
-      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-2 flex-wrap">
-        <Button size="sm" onClick={() => setIsAddOpen(true)}>
-          <Plus /> Add lead
-        </Button>
-
-        {selectedLeadIds.length > 0 && (
-          <Button size="sm" variant="secondary" onClick={() => setIsDispatchOpen(true)}>
-            Dispatch {selectedLeadIds.length}
-          </Button>
-        )}
+      {/* Search & actions — same bar as Dispatch */}
+      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
+        <LeadsToolbar
+          idPrefix="manual-leads"
+          search={search}
+          onSearchChange={setSearch}
+          canDispatch
+          selectedCount={selectedLeadIds.length}
+          onDispatch={() => setIsDispatchOpen(true)}
+          actions={
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setIsAddOpen(true)}>
+              <Plus size={14} /> Add lead
+            </Button>
+          }
+        />
       </div>
 
-      {/* Desktop */}
-      <div className="hidden md:block flex-1 min-h-0 px-6 py-6 overflow-auto">
+      {/* Desktop table */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0 px-4 md:px-6 py-4">
         <LeadTable
-          leads={leads}
+          leads={filtered}
           isLoading={isLoading}
           canDispatch
           selectedIds={selectedLeadIds}
@@ -74,10 +92,10 @@ export default function ManualLeadsPage() {
         />
       </div>
 
-      {/* Mobile */}
-      <div className="md:hidden flex-1 min-h-0 px-4 py-4 overflow-auto">
+      {/* Mobile card list */}
+      <div className="md:hidden flex-1 overflow-auto px-4 py-4">
         <LeadCardList
-          leads={leads}
+          leads={filtered}
           isLoading={isLoading}
           canDispatch
           selectedIds={selectedLeadIds}

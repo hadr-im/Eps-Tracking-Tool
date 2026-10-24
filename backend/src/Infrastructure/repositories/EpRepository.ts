@@ -5,7 +5,13 @@ import type {
   Product as PrismaProduct,
 } from '@prisma/client';
 
-import { IEpRepository, EpStatusSnapshot, EpWithDetail, TransitionInput } from '../../Domain/abstracts/IEpRepository';
+import {
+  IEpRepository,
+  EpStatusSnapshot,
+  EpWithDetail,
+  TransitionInput,
+  EpContactEnrichment,
+} from '../../Domain/abstracts/IEpRepository';
 import { Ep } from '../../Domain/entities/Ep';
 import { ApprovedDetail } from '../../Domain/entities/ApprovedDetail';
 import { StatusHistory } from '../../Domain/entities/StatusHistory';
@@ -31,6 +37,7 @@ export class EpRepository implements IEpRepository {
       where: { departmentId },
       select: {
         id: true,
+        expaId: true,
         statusOnExpa: true,
         approvedDetail: { select: { id: true } },
       },
@@ -38,6 +45,7 @@ export class EpRepository implements IEpRepository {
 
     return rows.map((r) => ({
       id: r.id,
+      expaId: r.expaId,
       statusOnExpa: r.statusOnExpa,
       hasApprovedDetail: r.approvedDetail !== null,
     }));
@@ -56,9 +64,36 @@ export class EpRepository implements IEpRepository {
     return rows.map((r) => this.toEpEntity(r));
   }
 
-  async findByExpaId(epId: string): Promise<Ep | null> {
-    const row = await this.db.ep.findUnique({ where: { id: epId } });
-    return row ? this.toEpEntity(row) : null;
+  async findByExpaIds(expaIds: string[]): Promise<Ep[]> {
+    if (expaIds.length === 0) return [];
+    const rows = await this.db.ep.findMany({ where: { expaId: { in: expaIds } } });
+    return rows.map((r) => this.toEpEntity(r));
+  }
+
+  async enrichMany(updates: EpContactEnrichment[]): Promise<number> {
+    if (updates.length === 0) return 0;
+
+    /*
+      One UPDATE per row, since each carries a different set of fields. Batched
+      into a transaction so a partial failure cannot leave half the leads
+      enriched. Chunked because Postgres has a parameter ceiling and this can
+      span a few thousand rows.
+    */
+    const CHUNK = 200;
+    let written = 0;
+
+    for (let i = 0; i < updates.length; i += CHUNK) {
+      const chunk = updates.slice(i, i + CHUNK);
+      await this.db.$transaction(
+        chunk.map((u) => {
+          const { id, ...fields } = u;
+          return this.db.ep.update({ where: { id }, data: fields });
+        }),
+      );
+      written += chunk.length;
+    }
+
+    return written;
   }
 
   // Alias, same lookup, clearer name for EP management use cases
@@ -289,36 +324,49 @@ export class EpRepository implements IEpRepository {
   async upsertManyApprovedDetails(details: ApprovedDetail[]): Promise<void> {
     if (details.length === 0) return;
 
-    await Promise.all(
-      details.map((d) =>
-        this.db.approvedDetail.upsert({
-          where: { expaAppId: d.expaAppId },
-          update: {
-            opportunityTitle: d.opportunityTitle,
-            hostingMC: d.hostingMC,
-            hostingLC: d.hostingLC,
-            projectFees: d.projectFees,
-            approvalDate: d.approvalDate,
-            realizedDate: d.realizedDate,
-            completedDate: d.completedDate,
-            finishedDate: d.finishedDate,
-          },
-          create: {
-            id: d.id,
-            epId: d.epId,
-            expaAppId: d.expaAppId,
-            opportunityTitle: d.opportunityTitle,
-            hostingMC: d.hostingMC,
-            hostingLC: d.hostingLC,
-            projectFees: d.projectFees,
-            approvalDate: d.approvalDate,
-            realizedDate: d.realizedDate,
-            completedDate: d.completedDate,
-            finishedDate: d.finishedDate,
-          },
-        }),
-      ),
-    );
+    /*
+      ApprovedDetail is pinned on both sides: one detail per EP (epId unique)
+      and one per EXPA application (expaAppId unique). That makes a naive
+      upsert fail two different ways.
+
+      Keying on expaAppId broke when a person held a second application, since
+      it tried to add a second detail to the same EP. Keying on epId alone
+      broke when an application had been filed against a different EP row by an
+      earlier sync — the wrong-programme-code era left plenty of those.
+
+      So each detail first releases its application from wherever else it is
+      attached, then writes against the EP.
+
+      Deliberately not wrapped in a transaction: two round-trips per detail
+      across several hundred details overruns Prisma's interactive-transaction
+      timeout. The pair is safe to run unwrapped because every expaAppId
+      appears at most once per call, so no two details contend for the same
+      row, and the sync is idempotent — a partial run simply finishes on the
+      next one.
+    */
+    for (const d of details) {
+      await this.db.approvedDetail.deleteMany({
+        where: { expaAppId: d.expaAppId, NOT: { epId: d.epId } },
+      });
+
+      const fields = {
+        expaAppId: d.expaAppId,
+        opportunityTitle: d.opportunityTitle,
+        hostingMC: d.hostingMC,
+        hostingLC: d.hostingLC,
+        projectFees: d.projectFees,
+        approvalDate: d.approvalDate,
+        realizedDate: d.realizedDate,
+        completedDate: d.completedDate,
+        finishedDate: d.finishedDate,
+      };
+
+      await this.db.approvedDetail.upsert({
+        where: { epId: d.epId },
+        update: fields,
+        create: { id: d.id, epId: d.epId, ...fields },
+      });
+    }
   }
 
   // Single createMany call, StatusHistory is append-only, no upsert needed
@@ -400,16 +448,23 @@ export class EpRepository implements IEpRepository {
       row.notes,
       row.duration as Duration | null,
       row.availability as Availability | null,
+      row.addedManually,
+      row.expaId,
     );
   }
 
   private toDbData(ep: Ep) {
     return {
+      expaId: ep.expaId,
       fullName: ep.fullName,
       email: ep.email,
       phone: ep.phone,
       university: ep.university,
       fieldOfStudy: ep.fieldOfStudy,
+      // Both only ever come from the sign-up sheet. Omitting them here meant a
+      // lead created from the sheet lost its year and referral on insert.
+      yearOfStudy: ep.yearOfStudy,
+      source: ep.source,
       product: ep.product as unknown as PrismaProduct,
       departmentId: ep.departmentId,
       statusOnExpa: ep.statusOnExpa,

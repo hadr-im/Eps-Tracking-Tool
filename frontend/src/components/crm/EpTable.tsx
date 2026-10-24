@@ -121,7 +121,7 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
       ),
       meta: { minWidth: 100 },
     }),
-    col.accessor('id', {
+    col.accessor('expaId', {
       id: 'id',
       header: 'EP ID',
       cell: (info) => (

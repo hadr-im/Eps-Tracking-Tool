@@ -76,10 +76,31 @@ export class SyncStatusUseCase {
       return { product, checked: 0, updated: 0, approvedDetailCreated: 0 };
     }
 
-    const epIds = snapshots.map((s) => s.id);
-    const snapshotMap = new Map(snapshots.map((s) => [s.id, s]));
+    /*
+      Keyed by EXPA id, not row id. A person who selected two programmes has a
+      row in each department, and only one of those rows uses the EXPA id as
+      its row id — so asking EXPA about row ids would silently miss the other
+      copy. One EXPA id can therefore map to several rows, and a status change
+      applies to every one of them.
 
-    // Single EXPA call for all epIds in this department
+      Hand-entered leads have no expaId and are skipped; EXPA knows nothing
+      about them.
+    */
+    const snapshotsByExpaId = new Map<string, typeof snapshots>();
+    for (const s of snapshots) {
+      if (!s.expaId) continue;
+      const list = snapshotsByExpaId.get(s.expaId) ?? [];
+      list.push(s);
+      snapshotsByExpaId.set(s.expaId, list);
+    }
+
+    const epIds = [...snapshotsByExpaId.keys()];
+    if (epIds.length === 0) {
+      console.log(`[SyncStatusUseCase] ${product}: no EXPA-backed EPs, skipping`);
+      return { product, checked: 0, updated: 0, approvedDetailCreated: 0 };
+    }
+
+    // Single EXPA call for all EXPA ids in this department
     const expaResults = await this.expaRepo.fetchEpStatus(epIds);
 
     const statusUpdates: { epId: string; status: EpStatus }[] = [];
@@ -87,31 +108,36 @@ export class SyncStatusUseCase {
     const historyEntries: StatusHistory[] = [];
 
     for (const result of expaResults) {
-      const snapshot = snapshotMap.get(result.epId);
-      if (!snapshot) continue;
+      const matches = snapshotsByExpaId.get(result.epId);
+      if (!matches) continue;
 
       const expaStatus = EXPA_TO_STATUS[result.status?.toLowerCase()] ?? EpStatus.LEAD;
-      const dbStatus = snapshot.statusOnExpa;
 
-      const statusAdvanced = STATUS_RANK[expaStatus] > STATUS_RANK[dbStatus];
-      // Create/upsert ApprovedDetail if: status advanced or EP is already approved+
-      // but still has no detail record (e.g seeded with APPROVED but detail never created)
-      const needsDetail = !!result.approvedDetail && !snapshot.hasApprovedDetail;
+      // Each copy is compared on its own: one department may already be up to
+      // date while the other is behind.
+      for (const snapshot of matches) {
+        const dbStatus = snapshot.statusOnExpa;
 
-      // Nothing to do for this EP
-      if (!statusAdvanced && !needsDetail) continue;
+        const statusAdvanced = STATUS_RANK[expaStatus] > STATUS_RANK[dbStatus];
+        // Create/upsert ApprovedDetail if: status advanced or EP is already approved+
+        // but still has no detail record (e.g seeded with APPROVED but detail never created)
+        const needsDetail = !!result.approvedDetail && !snapshot.hasApprovedDetail;
 
-      if (statusAdvanced) {
-        statusUpdates.push({ epId: result.epId, status: expaStatus });
-        historyEntries.push(
-          new StatusHistory(crypto.randomUUID(), result.epId, dbStatus, expaStatus, new Date()),
-        );
-      }
+        // Nothing to do for this EP
+        if (!statusAdvanced && !needsDetail) continue;
 
-      // Create ApprovedDetail if status advanced or if it was missing
-      if (result.approvedDetail && (statusAdvanced || needsDetail)) {
-        const detail = this.mapToApprovedDetail(result.epId, result.approvedDetail, expaStatus);
-        newApprovedDetails.push(detail);
+        if (statusAdvanced) {
+          statusUpdates.push({ epId: snapshot.id, status: expaStatus });
+          historyEntries.push(
+            new StatusHistory(crypto.randomUUID(), snapshot.id, dbStatus, expaStatus, new Date()),
+          );
+        }
+
+        // Create ApprovedDetail if status advanced or if it was missing
+        if (result.approvedDetail && (statusAdvanced || needsDetail)) {
+          const detail = this.mapToApprovedDetail(snapshot.id, result.approvedDetail, expaStatus);
+          newApprovedDetails.push(detail);
+        }
       }
     }
 
