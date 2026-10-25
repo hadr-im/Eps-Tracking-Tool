@@ -14,7 +14,7 @@ name: EXPA Sync
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # leads sync, every 5 minutes
+    - cron: '*/30 * * * *'  # leads sync, every 30 minutes
     - cron: '0 * * * *'     # status/approvals sync, hourly
   workflow_dispatch:
     inputs:
