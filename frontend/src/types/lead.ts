@@ -1,6 +1,8 @@
 // shape returned by GET /leads that mirrors the Ep domain entity fields exposed by GetLeadsUseCase (no ApprovedDetail)
 // Keep in sync with backend EpFilters and Ep domain entity
 
+import type { Page } from './pagination';
+
 export interface Lead {
   id: string;
   // EXPA person id — what the UI shows. Differs from `id` on the second copy
@@ -21,15 +23,15 @@ export interface Lead {
   departmentId: string;
 }
 
-export interface LeadsApiResponse {
-  data: Lead[];
-  count: number;
-}
+export type LeadsApiResponse = Page<Lead>;
 
 // Filter params accepted by GET /leads
 export interface LeadFilters {
   search?: string;        // client-side debounced full-name search
   university?: string;
+  fieldOfStudy?: string;
+  // Sent as a string because it comes from a select; the API parses it.
+  yearOfStudy?: string;
   product?: string;
   createdFrom?: string;
   createdTo?: string;

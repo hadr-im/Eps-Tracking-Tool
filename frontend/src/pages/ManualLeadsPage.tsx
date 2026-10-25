@@ -5,7 +5,7 @@
 // rows, dispatch them to a member, and they drop off this list.
 
 import { useState, useCallback, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useManualLeads } from '@/hooks/useManualLeads';
 import { LeadTable } from '@/components/leads/LeadTable';
@@ -14,7 +14,9 @@ import { DispatchDialog } from '@/components/leads/DispatchDialog';
 import { AddManualLeadDialog } from '@/components/manual-leads/AddManualLeadDialog';
 import { SoftBadge } from '@/components/ui/soft-badge';
 import { Button } from '@/components/ui/button';
-import { LeadsToolbar } from '@/components/leads/LeadsToolbar';
+import { EpFilterBar } from '@/components/filters/EpFilterBar';
+import { FilterSelect } from '@/components/filters/FilterSelect';
+import { UNIVERSITIES, FIELDS_OF_STUDY } from '@/lib/options';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function ManualLeadsPage() {
@@ -25,8 +27,12 @@ export default function ManualLeadsPage() {
   const [isDispatchOpen, setIsDispatchOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [university, setUniversity] = useState<string | undefined>();
+  const [fieldOfStudy, setFieldOfStudy] = useState<string | undefined>();
 
-  const { data: leads = [], isLoading } = useManualLeads();
+  // University and field are applied server-side; search stays local because
+  // this list is short enough that a round-trip per keystroke would be waste.
+  const { data: leads = [], isLoading } = useManualLeads({ university, fieldOfStudy });
 
   // Filtered client-side: this list is the department's hand-entered leads,
   // which is a short list, so a round-trip per keystroke would be wasteful.
@@ -66,17 +72,54 @@ export default function ManualLeadsPage() {
 
       {/* Search & actions — same bar as Dispatch */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
-        <LeadsToolbar
+        <EpFilterBar
           idPrefix="manual-leads"
           search={search}
           onSearchChange={setSearch}
-          canDispatch
-          selectedCount={selectedLeadIds.length}
-          onDispatch={() => setIsDispatchOpen(true)}
+          hasActiveFilters={!!(university || fieldOfStudy)}
+          onClearFilters={() => {
+            setSearch('');
+            setUniversity(undefined);
+            setFieldOfStudy(undefined);
+          }}
+          filters={
+            <>
+              <FilterSelect
+                value={university}
+                onChange={setUniversity}
+                options={UNIVERSITIES}
+                allLabel="All universities"
+                className="w-40"
+              />
+              <FilterSelect
+                value={fieldOfStudy}
+                onChange={setFieldOfStudy}
+                options={FIELDS_OF_STUDY}
+                allLabel="All fields"
+                className="w-36"
+              />
+            </>
+          }
           actions={
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setIsAddOpen(true)}>
-              <Plus size={14} /> Add lead
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => setIsAddOpen(true)}
+              >
+                <Plus size={14} /> Add lead
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setIsDispatchOpen(true)}
+                disabled={selectedLeadIds.length === 0}
+                className="h-8 gap-1.5 text-xs"
+              >
+                Dispatch {selectedLeadIds.length > 0 ? `(${selectedLeadIds.length})` : ''}
+                <ChevronRight size={14} />
+              </Button>
+            </>
           }
         />
       </div>

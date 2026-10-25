@@ -1,15 +1,17 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
 import { useAuth }                   from '@/hooks/useAuth';
 import { useEpsUnderProcess }        from '@/hooks/useEpsUnderProcess';
+import type { UnderProcessFilters }  from '@/hooks/useEpsUnderProcess';
 import { useDepartmentMembers }      from '@/hooks/useDepartmentMembers';
 import { useTransitionEp }           from '@/hooks/useTransitionEp';
 import { CommentPanel }              from '@/components/team/CommentPanel';
 import { EpsUnderProcessTable }      from '@/components/under-process/EpsUnderProcessTable';
 import { EpUnderProcessMobileCard }  from '@/components/under-process/EpUnderProcessMobileCard';
-import { Input }                     from '@/components/ui/input';
-import { Button }                    from '@/components/ui/button';
-import { cn }                        from '@/lib/utils';
+import { EpFilterBar }               from '@/components/filters/EpFilterBar';
+import { FilterSelect }              from '@/components/filters/FilterSelect';
+import { DateRangeFilter }           from '@/components/filters/DateRangeFilter';
+import { SoftBadge }                 from '@/components/ui/soft-badge';
+import { UNIVERSITIES, FIELDS_OF_STUDY } from '@/lib/options';
 import type { Ep }                   from '@/types/ep';
 import { PageHeader } from '@/components/layout/PageHeader';
 
@@ -19,9 +21,10 @@ export default function EpsUnderProcessPage() {
   const departmentId = user?.departmentId ?? null;
 
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<UnderProcessFilters>({});
   const [openEp, setOpenEp] = useState<Ep | null>(null);
 
-  const { data: eps = [],     isLoading: epsLoading }     = useEpsUnderProcess();
+  const { data: eps = [],     isLoading: epsLoading }     = useEpsUnderProcess(filters);
   const { data: members = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
   const { mutate: transitionMutate, isPending: transitionPending, variables: transitionVariables } = useTransitionEp();
 
@@ -57,46 +60,53 @@ export default function EpsUnderProcessPage() {
       <PageHeader
         title="EPs Under Process"
         subtitle="EPs currently looking for an opportunity match"
+        actions={
+          !isLoading && (
+            <SoftBadge tone="blue" className="px-3 py-1 text-xs">
+              {filtered.length} EP{filtered.length !== 1 ? 's' : ''}
+            </SoftBadge>
+          )
+        }
       />
 
-      {/* Search + count bar */}
-      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background flex items-center gap-3 flex-wrap">
-        <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            id="under-process-search"
-            type="search"
-            placeholder="Search EP name or ID…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 w-52 text-xs border-0"
-            aria-label="Search EPs under process"
-          />
-        </div>
-        <div
-          className={cn(
-            "transition-all duration-300 ease-in-out overflow-hidden flex items-center",
-            search ? "w-8 opacity-100 ml-1" : "w-0 opacity-0 ml-0"
-          )}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setSearch('')}
-            aria-label="Clear search"
-            title="Clear search"
-            tabIndex={search ? 0 : -1}
-          >
-            <X size={16} />
-          </Button>
-        </div>
-        <span className="ml-auto text-xs text-muted-foreground shrink-0">
-          {filtered.length} EP{filtered.length !== 1 ? 's' : ''}
-        </span>
+      {/* Search & filters — same bar as every other list page */}
+      <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
+        <EpFilterBar
+          idPrefix="under-process"
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Search EP name or ID…"
+          hasActiveFilters={Object.values(filters).some(Boolean)}
+          onClearFilters={() => {
+            setSearch('');
+            setFilters({});
+          }}
+          filters={
+            <>
+              <FilterSelect
+                value={filters.university}
+                onChange={(v) => setFilters((f) => ({ ...f, university: v }))}
+                options={UNIVERSITIES}
+                allLabel="All universities"
+                className="w-40"
+              />
+              <FilterSelect
+                value={filters.fieldOfStudy}
+                onChange={(v) => setFilters((f) => ({ ...f, fieldOfStudy: v }))}
+                options={FIELDS_OF_STUDY}
+                allLabel="All fields"
+                className="w-36"
+              />
+              <DateRangeFilter
+                from={filters.createdFrom}
+                to={filters.createdTo}
+                onChange={({ from, to }) =>
+                  setFilters((f) => ({ ...f, createdFrom: from, createdTo: to }))
+                }
+              />
+            </>
+          }
+        />
       </div>
 
       {/* Desktop table */}

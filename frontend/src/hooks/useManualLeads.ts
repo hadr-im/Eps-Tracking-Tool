@@ -8,6 +8,7 @@ import {
   createManualLead,
   lookupExpaPerson,
 } from '../services/manualLeadService';
+import type { ManualLeadFilters } from '../services/manualLeadService';
 import type { ManualLeadPayload } from '../types/manualLead';
 
 // The backend's messages are specific ("EP 123 is already in the system",
@@ -20,10 +21,11 @@ function messageFrom(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export function useManualLeads() {
+export function useManualLeads(filters: ManualLeadFilters = {}) {
   return useQuery({
-    queryKey: ['manual-leads'],
-    queryFn: fetchManualLeads,
+    queryKey: ['manual-leads', filters],
+    queryFn: () => fetchManualLeads(filters),
+    placeholderData: (prev) => prev,
   });
 }
 

@@ -1,11 +1,20 @@
 import { apiClient } from './apiClient';
+import { PAGE_SIZE } from '../types/pagination';
+import type { Page } from '../types/pagination';
 import type { Ep, EpFilters, EpUpdatePayload, EpsApiResponse } from '../types/ep';
 
 // GET /eps 
 // Server-side filtered. MEMBER role -> backend automatically scopes to caller's own assigned EPs (no memberId param needed)
 
-export async function fetchMyEps(filters: EpFilters & { memberId?: string } = {}): Promise<Ep[]> {
-  const params: Record<string, string> = {};
+export async function fetchMyEps(
+  filters: EpFilters & { memberId?: string } = {},
+  page = 1,
+  pageSize = PAGE_SIZE,
+): Promise<Page<Ep>> {
+  const params: Record<string, string> = {
+    page: String(page),
+    pageSize: String(pageSize),
+  };
 
   // All filters are applied server-side in the Prisma WHERE clause
   if (filters.trackingPhase) params['trackingPhase'] = filters.trackingPhase;
@@ -17,7 +26,7 @@ export async function fetchMyEps(filters: EpFilters & { memberId?: string } = {}
   if (filters.memberId)      params['memberId']      = filters.memberId;
 
   const { data } = await apiClient.get<EpsApiResponse>('/eps', { params });
-  return data.data;
+  return data;
 }
 
 // PATCH /eps/:id 

@@ -10,7 +10,7 @@ import {
   type ColumnDef,
   type Row,
 } from '@tanstack/react-table';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -49,10 +49,22 @@ const col = createColumnHelper<Lead>();
   before a checkbox appeared ticked. `meta` is read at render time, so the
   columns can stay referentially stable for the life of the table.
 */
+/*
+  The handlers are deliberately not derived from `selectedSet`.
+
+  Rows are memoised, so a row the user has not touched does not re-render when
+  the selection changes — and its cells keep the `selectedSet` captured the
+  last time they did render. Computing the next selection from that set means
+  ticking a second lead starts from a stale snapshot and drops the first one,
+  which read as "multi-select is broken". The toggles therefore close over a
+  ref that is always current, and only the `checked` flag reads the set — that
+  one is safe, because a row re-renders exactly when its own selection flips.
+*/
 interface LeadTableMeta {
   selectedSet: Set<string>;
   allIds: string[];
-  onSelectionChange: (ids: string[]) => void;
+  toggleOne: (id: string, checked: boolean) => void;
+  togglePage: (checked: boolean) => void;
 }
 
 function metaOf(table: { options: { meta?: unknown } }): LeadTableMeta {
@@ -63,7 +75,7 @@ function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
   const checkboxCol = col.display({
     id: 'select',
     header: ({ table }) => {
-      const { selectedSet, allIds, onSelectionChange } = metaOf(table);
+      const { selectedSet, allIds, togglePage } = metaOf(table);
       const allSelected = allIds.length > 0 && allIds.every((id) => selectedSet.has(id));
       const someSelected = allIds.some((id) => selectedSet.has(id));
       return (
@@ -72,27 +84,20 @@ function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
             checked={allSelected}
             // indeterminate state when only some rows are selected
             data-state={someSelected && !allSelected ? 'indeterminate' : undefined}
-            onCheckedChange={(checked) => {
-              onSelectionChange(checked ? allIds : []);
-            }}
-            aria-label="Select all"
+            onCheckedChange={(checked) => togglePage(Boolean(checked))}
+            aria-label="Select all on this page"
           />
         </div>
       );
     },
     cell: (info) => {
       const id = info.row.original.id;
-      const { selectedSet, onSelectionChange } = metaOf(info.table);
+      const { selectedSet, toggleOne } = metaOf(info.table);
       return (
         <div className="flex justify-center">
           <Checkbox
             checked={selectedSet.has(id)}
-            onCheckedChange={(checked) => {
-              const next = new Set(selectedSet);
-              if (checked) next.add(id);
-              else next.delete(id);
-              onSelectionChange([...next]);
-            }}
+            onCheckedChange={(checked) => toggleOne(id, Boolean(checked))}
             aria-label={`Select ${info.row.original.fullName}`}
           />
         </div>
@@ -285,11 +290,49 @@ export function LeadTable({
   // built once and survive every selection change. See LeadTableMeta.
   const columns = useMemo(() => buildColumns(canDispatch), [canDispatch]);
 
+  /*
+    Always-current mirrors of the selection and this page's ids. A memoised row
+    holds whatever meta existed when it last rendered, so the toggles read
+    through these rather than through whatever they happened to close over.
+  */
+  const selectedRef = useRef(selectedIds);
+  selectedRef.current = selectedIds;
+
+  const allIdsRef = useRef(allIds);
+  allIdsRef.current = allIds;
+
+  const toggleOne = useCallback(
+    (id: string, checked: boolean) => {
+      const next = new Set(selectedRef.current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      onSelectionChange([...next]);
+    },
+    [onSelectionChange],
+  );
+
+  /*
+    Scoped to this page. Selection survives paging, so clearing the whole list
+    here would silently discard rows ticked on a page the user has already
+    left — this adds or removes only what is on screen.
+  */
+  const togglePage = useCallback(
+    (checked: boolean) => {
+      const next = new Set(selectedRef.current);
+      for (const id of allIdsRef.current) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      onSelectionChange([...next]);
+    },
+    [onSelectionChange],
+  );
+
   const table = useReactTable({
     data: leads,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    meta: { selectedSet, allIds, onSelectionChange } satisfies LeadTableMeta,
+    meta: { selectedSet, allIds, toggleOne, togglePage } satisfies LeadTableMeta,
   });
 
   // Memoised so its identity is stable, which is what lets LeadRow skip

@@ -1,3 +1,5 @@
+import type { Page } from './pagination';
+
 // EP Types: mirrors backend Domain entities and enums
 // Keep in sync with:
 //   backend/src/Domain/entities/Ep.ts
@@ -98,10 +100,7 @@ export interface EpFilters {
 
 //  API Response 
 
-export interface EpsApiResponse {
-  data: Ep[];
-  count: number;
-}
+export type EpsApiResponse = Page<Ep>;
 
 export interface TransitionHistoryDto {
   id: string;

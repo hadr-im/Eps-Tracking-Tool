@@ -134,16 +134,21 @@ export function EpCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 py-2">
+            {/*
+              Once ticked this stops being a toggle and becomes a record of
+              what happened — same one-way rule the desktop checkbox follows.
+            */}
             <button
               type="button"
-              disabled={isPending}
+              disabled={isPending || ep.contacted}
               onClick={() => onCheckboxUpdate(ep.id, 'contacted', !ep.contacted)}
+              title={ep.contacted ? 'Contacted cannot be undone' : undefined}
               className={cn(
                 'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                 ep.contacted
-                  ? 'border-aiesec-blue bg-aiesec-blue/10 text-aiesec-blue'
+                  ? 'border-aiesec-blue bg-aiesec-blue/10 text-aiesec-blue cursor-default'
                   : 'border-border bg-transparent text-muted-foreground hover:bg-muted/50',
-                isPending && 'opacity-50 cursor-not-allowed',
+                isPending && !ep.contacted && 'opacity-50 cursor-not-allowed',
               )}
             >
               <div className={cn('h-1.5 w-1.5 rounded-full', ep.contacted ? 'bg-aiesec-blue' : 'bg-muted-foreground')} />

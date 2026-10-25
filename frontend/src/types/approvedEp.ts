@@ -1,3 +1,5 @@
+import type { Page } from './pagination';
+
 // ApprovedEp types
 // Mirrors the EpDetailDto returned by GET /approved-eps
 // Keep in sync with:
@@ -43,13 +45,17 @@ export interface ApprovedEp {
 }
 
 // Filter params sent to GET /approved-eps
+/*
+  No product filter. Approvals belong to the department the caller signs in
+  under, and the backend resolves that from the token rather than the query
+  string — a GV lead is not something the GTa tracker should be able to reach.
+*/
 export interface ApprovedEpFilters {
-  product?: string;
   status?: EpStatus;
   search?: string;
+  university?: string;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
-export interface ApprovedEpsApiResponse {
-  data: ApprovedEp[];
-  count: number;
-}
+export type ApprovedEpsApiResponse = Page<ApprovedEp>;

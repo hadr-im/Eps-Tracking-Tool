@@ -1,19 +1,24 @@
 /*
-  Search bar for the Dispatch page.
+  Filter bar for the Dispatch page.
 
-  Only search: each department has a single product, and the caller's
-  department is enforced server-side, so a product filter would either repeat
-  "current department" or expose data the caller cannot see anyway.
+  No product filter: each department has a single product and the caller's
+  department is enforced server-side, so it would either repeat "current
+  department" or offer data the caller cannot see anyway.
 
-  The layout itself lives in LeadsToolbar, shared with Manual Leads and
-  Transitioned EPs. What this adds is the URL binding — the Dispatch page keeps
-  its search in the query string so a filtered view can be linked to — plus the
-  debounce that stops a request firing on every keystroke.
+  The layout lives in EpFilterBar, shared with every other list page. What this
+  adds is the URL binding — Dispatch keeps its filters in the query string so a
+  filtered view can be linked to and survives a refresh — plus the debounce
+  that stops a request firing on every keystroke.
 */
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LeadsToolbar } from './LeadsToolbar';
+import { ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EpFilterBar } from '@/components/filters/EpFilterBar';
+import { FilterSelect } from '@/components/filters/FilterSelect';
+import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
+import { UNIVERSITIES, FIELDS_OF_STUDY, YEARS_OF_STUDY } from '@/lib/options';
 import type { LeadFilters } from '@/types/lead';
 
 interface LeadFiltersBarProps {
@@ -22,6 +27,9 @@ interface LeadFiltersBarProps {
   selectedCount?: number;
   onDispatch?: () => void;
 }
+
+// Everything except search, which is debounced separately.
+const PARAM_KEYS = ['university', 'fieldOfStudy', 'yearOfStudy', 'createdFrom', 'createdTo'] as const;
 
 export function LeadFiltersBar({
   onFiltersChange,
@@ -33,6 +41,8 @@ export function LeadFiltersBar({
 
   const [searchInput, setSearchInput] = useState(params.get('search') ?? '');
   const search = params.get('search') ?? undefined;
+
+  const read = (key: string) => params.get(key) ?? undefined;
 
   // Debounce search -> URL param after 300ms idle
   useEffect(() => {
@@ -52,18 +62,89 @@ export function LeadFiltersBar({
 
   // Notify parent whenever URL params change
   useEffect(() => {
-    onFiltersChange({ search });
+    onFiltersChange({
+      search,
+      university: read('university'),
+      fieldOfStudy: read('fieldOfStudy'),
+      yearOfStudy: read('yearOfStudy'),
+      createdFrom: read('createdFrom'),
+      createdTo: read('createdTo'),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
 
+  function setParam(patch: Record<string, string | undefined>) {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        Object.entries(patch).forEach(([k, v]) => {
+          if (v) next.set(k, v);
+          else next.delete(k);
+        });
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const hasActiveFilters = PARAM_KEYS.some((k) => !!params.get(k));
+
+  function clearAll() {
+    setSearchInput('');
+    setParams(new URLSearchParams(), { replace: true });
+  }
+
   return (
-    <LeadsToolbar
+    <EpFilterBar
       idPrefix="leads"
       search={searchInput}
       onSearchChange={setSearchInput}
-      canDispatch={canDispatch}
-      selectedCount={selectedCount}
-      onDispatch={onDispatch}
+      placeholder="Search by name…"
+      hasActiveFilters={hasActiveFilters}
+      onClearFilters={clearAll}
+      filters={
+        <>
+          <FilterSelect
+            value={read('university')}
+            onChange={(v) => setParam({ university: v })}
+            options={UNIVERSITIES}
+            allLabel="All universities"
+            className="w-40"
+          />
+          <FilterSelect
+            value={read('fieldOfStudy')}
+            onChange={(v) => setParam({ fieldOfStudy: v })}
+            options={FIELDS_OF_STUDY}
+            allLabel="All fields"
+            className="w-36"
+          />
+          <FilterSelect
+            value={read('yearOfStudy')}
+            onChange={(v) => setParam({ yearOfStudy: v })}
+            options={YEARS_OF_STUDY}
+            allLabel="All years"
+            className="w-28"
+          />
+          <DateRangeFilter
+            from={read('createdFrom')}
+            to={read('createdTo')}
+            onChange={({ from, to }) => setParam({ createdFrom: from, createdTo: to })}
+          />
+        </>
+      }
+      actions={
+        canDispatch && onDispatch ? (
+          <Button
+            size="sm"
+            onClick={onDispatch}
+            disabled={!selectedCount}
+            className="h-8 gap-1.5 text-xs"
+          >
+            Dispatch {selectedCount ? `(${selectedCount})` : ''}
+            <ChevronRight size={14} />
+          </Button>
+        ) : null
+      }
     />
   );
 }

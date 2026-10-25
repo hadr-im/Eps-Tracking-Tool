@@ -11,8 +11,19 @@ import type {
 } from '../types/manualLead';
 
 // GET /manual-leads — unassigned hand-entered leads for the caller's department
-export async function fetchManualLeads(): Promise<ManualLead[]> {
-  const { data } = await apiClient.get<ManualLeadsApiResponse>('/manual-leads');
+export interface ManualLeadFilters {
+  university?: string;
+  fieldOfStudy?: string;
+}
+
+export async function fetchManualLeads(
+  filters: ManualLeadFilters = {},
+): Promise<ManualLead[]> {
+  const params: Record<string, string> = {};
+  if (filters.university)   params['university']   = filters.university;
+  if (filters.fieldOfStudy) params['fieldOfStudy'] = filters.fieldOfStudy;
+
+  const { data } = await apiClient.get<ManualLeadsApiResponse>('/manual-leads', { params });
   return data.data;
 }
 

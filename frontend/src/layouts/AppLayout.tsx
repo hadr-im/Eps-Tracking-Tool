@@ -2,11 +2,12 @@
 // Desktop (md+): persistent collapsible sidebar + scrollable main area
 // Mobile (<md): sidebar hidden, opened as a Sheet overlay via hamburger button
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { SidebarBody } from '@/components/layout/Sidebar';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { RouteFallback } from '@/components/layout/RouteFallback';
 
 export function AppLayout() {
   // Desktop: collapsed (icon-only) vs. expanded sidebar
@@ -42,9 +43,17 @@ export function AppLayout() {
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((v) => !v)}
         />
+        {/*
+          The suspense boundary sits here rather than around the router so a
+          page still being fetched swaps out only the content area. Higher up
+          it would unmount this shell too, and every navigation would blink the
+          sidebar and header out and back.
+        */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
           <div className="h-full">
-            <Outlet />
+            <Suspense fallback={<RouteFallback />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

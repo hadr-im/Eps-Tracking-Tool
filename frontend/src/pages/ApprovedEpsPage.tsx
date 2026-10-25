@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import { useAuth }              from '@/hooks/useAuth';
 import { useApprovedEps }       from '@/hooks/useApprovedEps';
@@ -8,6 +8,8 @@ import { CommentPanel }         from '@/components/team/CommentPanel';
 import { ApprovedEpsFilters }   from '@/components/approved/ApprovedEpsFilters';
 import { ApprovedEpsTable }     from '@/components/approved/ApprovedEpsTable';
 import { ApprovedEpMobileCard } from '@/components/approved/ApprovedEpMobileCard';
+import { PaginationBar }        from '@/components/ui/pagination-bar';
+import { SoftBadge }            from '@/components/ui/soft-badge';
 import type { ApprovedEp, ApprovedEpFilters as Filters } from '@/types/approvedEp';
 import type { Ep } from '@/types/ep';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -18,9 +20,14 @@ export default function ApprovedEpsPage() {
   const canReassign = canComment;
 
   const [filters, setFilters] = useState<Filters>({});
+  const [page, setPage]       = useState(1);
   const [openEp, setOpenEp]   = useState<ApprovedEp | null>(null);
 
-  const { data: eps = [], isLoading } = useApprovedEps(filters);
+  const { data, isLoading } = useApprovedEps(filters, page);
+  const eps = data?.data ?? [];
+
+  // A new filter re-scopes the results, so the current page may no longer exist.
+  useEffect(() => setPage(1), [filters]);
   const { data: departmentMembers = [] } = useDepartmentMembers(user?.departmentId ?? null);
   const { mutate: reassignOwner, variables: reassignVars, isPending: isReassigning } =
     useReassignEpOwner();
@@ -38,15 +45,18 @@ export default function ApprovedEpsPage() {
       <PageHeader
         title="Approved EPs"
         subtitle="Department-wide operational tracker"
+        actions={
+          !isLoading && (
+            <SoftBadge tone="blue" className="px-3 py-1 text-xs">
+              {data?.total ?? 0} EP{(data?.total ?? 0) !== 1 ? 's' : ''}
+            </SoftBadge>
+          )
+        }
       />
 
       {/* Filter bar */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b bg-background">
-        <ApprovedEpsFilters
-          filters={filters}
-          onChange={setFilters}
-          totalCount={eps.length}
-        />
+        <ApprovedEpsFilters filters={filters} onChange={setFilters} />
       </div>
 
       {/* Desktop table */}
@@ -82,6 +92,14 @@ export default function ApprovedEpsPage() {
           </ul>
         )}
       </div>
+
+      <PaginationBar
+        page={data?.page ?? 1}
+        totalPages={data?.totalPages ?? 1}
+        total={data?.total ?? 0}
+        pageSize={data?.pageSize ?? 50}
+        onPageChange={setPage}
+      />
 
       {/* Shared comment side panel (reused from Team CRM) */}
       {/*

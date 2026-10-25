@@ -4,7 +4,8 @@
 // - Comments icon per row opens CommentPanel (side sheet)
 // - Read-only banner is always visible
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import {
   MessageSquare,
   User,
@@ -55,7 +56,12 @@ export default function TeamCrmPage() {
 
   // Only show MEMBER-role users — exclude TL and VP accounts
   const members = allMembers.filter((m) => m.role === 'MEMBER');
-  const { data: eps = [], isLoading: epsLoading } = useTeamEps(selectedMemberId);
+  const [page, setPage] = useState(1);
+  const { data, isLoading: epsLoading } = useTeamEps(selectedMemberId, {}, page);
+  const eps = data?.data ?? [];
+
+  // Switching member swaps the whole list, so start from the top.
+  useEffect(() => setPage(1), [selectedMemberId]);
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
 
@@ -82,7 +88,7 @@ export default function TeamCrmPage() {
         />
         {selectedMember && (
           <span className="text-sm text-muted-foreground">
-             {eps.length} EP{eps.length !== 1 ? 's' : ''} assigned
+             {data?.total ?? 0} EP{(data?.total ?? 0) !== 1 ? 's' : ''} assigned
           </span>
         )}
       </div>
@@ -131,6 +137,16 @@ export default function TeamCrmPage() {
             </ul>
           )}
         </div>
+      )}
+
+      {selectedMemberId && (
+        <PaginationBar
+          page={data?.page ?? 1}
+          totalPages={data?.totalPages ?? 1}
+          total={data?.total ?? 0}
+          pageSize={data?.pageSize ?? 50}
+          onPageChange={setPage}
+        />
       )}
 
       {/* Comment side panel */}

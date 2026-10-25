@@ -4,10 +4,12 @@
 // - Desktop: TanStack Table with sticky columns
 // All inline edits call PATCH /eps/:id via useUpdateEp
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useUpdateEp }    from '@/hooks/useUpdateEp';
 import { useTransitionEp } from '@/hooks/useTransitionEp';
 import { useEps }         from '@/hooks/useEps';
+import { useEpsCount }    from '@/hooks/useEpsCount';
+import { PaginationBar }  from '@/components/ui/pagination-bar';
 import { CrmFilters }   from '@/components/crm/CrmFilters';
 import { EpTable }      from '@/components/crm/EpTable';
 import { EpCardList }   from '@/components/crm/EpCardList';
@@ -22,8 +24,13 @@ export default function MyCrmPage() {
   // Comment panel state
   const [openEp, setOpenEp] = useState<any | null>(null);
 
-  // Data fetching 
-  const { data: eps = [], isLoading } = useEps(filters);
+  // Data fetching
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useEps(filters, page);
+  const eps = data?.data ?? [];
+
+  // A new filter re-scopes the results, so the current page may no longer exist.
+  useEffect(() => setPage(1), [filters]);
 
   // Mutations 
   const { mutate, isPending, variables } = useUpdateEp();
@@ -33,8 +40,12 @@ export default function MyCrmPage() {
   const pendingId = (isPending && variables ? variables.id : null) || 
                     (isTransitionPending && transitionVariables ? transitionVariables.id : null);
 
-  // Leads processed stats 
-  const contactedCount = useMemo(() => eps.filter((ep) => ep.contacted).length, [eps]);
+  /*
+    Leads processed stats — counted server-side across the whole filtered list,
+    not over the rows currently on screen.
+  */
+  const totalCount = data?.total ?? 0;
+  const contactedCount = useEpsCount({ ...filters, contacted: 'true' });
 
   // Shared mutation handlers 
 
@@ -70,7 +81,7 @@ export default function MyCrmPage() {
     Progress, not a label. A bare "3/20" says little at a glance, so the count
     carries a bar underneath showing how far through the list you are.
   */
-  const contactedPct = eps.length > 0 ? (contactedCount / eps.length) * 100 : 0;
+  const contactedPct = totalCount > 0 ? (contactedCount / totalCount) * 100 : 0;
 
   const leadsBadge = !isLoading ? (
     <div
@@ -83,7 +94,7 @@ export default function MyCrmPage() {
         </span>
         <span className="text-xs font-bold tabular-nums">
           {contactedCount}
-          <span className="text-muted-foreground font-medium">/{eps.length}</span>
+          <span className="text-muted-foreground font-medium">/{totalCount}</span>
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -136,6 +147,14 @@ export default function MyCrmPage() {
           onCommentClick={(ep) => setOpenEp(ep)}
         />
       </div>
+
+      <PaginationBar
+        page={data?.page ?? 1}
+        totalPages={data?.totalPages ?? 1}
+        total={totalCount}
+        pageSize={data?.pageSize ?? 50}
+        onPageChange={setPage}
+      />
 
       {/* Comment side panel */}
       <CommentPanel

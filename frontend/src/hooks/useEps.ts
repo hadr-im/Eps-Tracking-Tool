@@ -1,17 +1,16 @@
-// React Query hook that fetches the current member's assigned EPs
-// Re-fetches automatically when filters change
+// React Query hook that fetches a page of the current member's assigned EPs
+// Re-fetches when filters or page change, and prefetches the next page
 
-import { useQuery } from '@tanstack/react-query';
+import { usePaginatedQuery } from './usePaginatedQuery';
 import { fetchMyEps } from '../services/epService';
 import type { EpFilters } from '../types/ep';
 
-export function useEps(filters: EpFilters = {}) {
-  return useQuery({
+export function useEps(filters: EpFilters = {}, page = 1) {
+  return usePaginatedQuery({
     // Include filters in the key so any filter change triggers a fresh fetch
     queryKey: ['eps', filters],
-    queryFn: () => fetchMyEps(filters),
-    // Keep previous data visible while new data loads (no flash of empty table)
-    placeholderData: (previousData) => previousData,
-    staleTime: 30_000, // 30s EPs don't change that frequently
+    fetchPage: (p, size) => fetchMyEps(filters, p, size),
+    page,
+    staleTime: 30_000, // EPs don't change that frequently
   });
 }
