@@ -8,6 +8,7 @@ import { TrackingPhase } from '../../../Domain/enums/TrackingPhase';
 import { AppError } from '../../errors/AppError';
 import { EpFilters } from './EpFilters';
 import { EpUpdateData } from './EpUpdateData';
+import { PageRequest, Paginated, toPaginated } from './Pagination';
 
 // Caller identity passed in by the controller (from req.user via authMiddleware)
 export interface EpManagementCaller {
@@ -70,10 +71,14 @@ export class EpManagementUseCase {
     Supports optional filtering by phase/status/contacted/interested/duration
     MEMBER role only (TL/VP use getTeamEps)
   */
-  async getMyEps(caller: EpManagementCaller, filters?: EpFilters): Promise<EpDto[]> {
+  async getMyEps(
+    caller: EpManagementCaller,
+    filters?: EpFilters,
+    page?: PageRequest,
+  ): Promise<Paginated<EpDto>> {
     if (!caller.departmentId) throw new AppError('No department assigned to your account', 400);
-    const eps = await this.epRepo.findByOwner(caller.id, filters);
-    return eps.map((ep) => this.toDto(ep));
+    const { rows, total } = await this.epRepo.findByOwner(caller.id, filters, page);
+    return toPaginated(rows.map((ep) => this.toDto(ep)), total, page);
   }
 
   /*
@@ -88,21 +93,22 @@ export class EpManagementUseCase {
     memberId?: string,
     filters?: EpFilters,
     ownerIds?: string[],
-  ): Promise<EpDto[]> {
+    page?: PageRequest,
+  ): Promise<Paginated<EpDto>> {
     if (!caller.departmentId) throw new AppError('No department assigned to your account', 400);
 
-    let eps: Ep[];
+    let result: { rows: Ep[]; total: number };
 
     if (memberId) {
       await this.assertCanViewMember(caller, memberId);
-      eps = await this.epRepo.findByOwner(memberId, filters);
+      result = await this.epRepo.findByOwner(memberId, filters, page);
     } else if (ownerIds) {
-      eps = await this.epRepo.findByOwners(ownerIds, filters);
+      result = await this.epRepo.findByOwners(ownerIds, filters, page);
     } else {
-      eps = await this.epRepo.findByDepartment(caller.departmentId, filters);
+      result = await this.epRepo.findByDepartment(caller.departmentId, filters, page);
     }
 
-    return eps.map((ep) => this.toDto(ep));
+    return toPaginated(result.rows.map((ep) => this.toDto(ep)), result.total, page);
   }
 
   /*
@@ -175,7 +181,20 @@ export class EpManagementUseCase {
       throw new AppError(`Invalid tracking phase: ${String(data.trackingPhase)}`, 400);
     }
 
-    const updated = await this.epRepo.updateEp(epId, data);
+    /*
+      Contacted is one-way: reaching out to someone is not an act that can be
+      taken back, and the contactedAt stamp other views date their timeline
+      from would be left pointing at a contact that supposedly never happened.
+      The UI locks the checkbox once it is ticked; this drops the field for any
+      client holding a stale copy, rather than failing a patch that is also
+      carrying legitimate edits to other fields.
+    */
+    const patch =
+      ep.contacted && data.contacted === false
+        ? (({ contacted: _dropped, ...rest }) => rest)(data)
+        : data;
+
+    const updated = await this.epRepo.updateEp(epId, patch);
 
     return this.toDto(updated);
   }
@@ -269,14 +288,21 @@ export class EpManagementUseCase {
     Returns EPs currently in the "LOOKING_FOR_OPPORTUNITIES" tracking phase
     TL/VP only (read-only view, commentable via addComment)
   */
-  async getEpsUnderProcess(caller: EpManagementCaller): Promise<EpDto[]> {
+  async getEpsUnderProcess(
+    caller: EpManagementCaller,
+    filters: EpFilters = {},
+  ): Promise<EpDto[]> {
     if (!caller.departmentId) throw new AppError('No department assigned to your account', 400);
 
-    const eps = await this.epRepo.findByDepartment(caller.departmentId, {
+    // Unpaginated: this view is a short working list, not a browsable table.
+    // The phase is what defines the view, so it is applied last and cannot be
+    // overridden by a query-string filter.
+    const { rows } = await this.epRepo.findByDepartment(caller.departmentId, {
+      ...filters,
       trackingPhase: TrackingPhase.LOOKING_FOR_OPPORTUNITIES,
     });
 
-    return eps.map((ep) => this.toDto(ep));
+    return rows.map((ep) => this.toDto(ep));
   }
 
   // Private mappers

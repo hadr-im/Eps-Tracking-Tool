@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getManualLeadUseCase } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { ManualLeadInput } from '../../Application/use-cases/dispatch/ManualLeadUseCase';
+import { DispatchFilters } from '../../Application/use-cases/dispatch/DispatchFilters';
 
 function handleError(res: Response, err: unknown): void {
   if (err instanceof AppError) {
@@ -49,7 +50,13 @@ export class ManualLeadController {
   */
   static async list(req: Request, res: Response): Promise<void> {
     try {
-      const leads = await getManualLeadUseCase().list(req.user!);
+      const q = req.query;
+      const filters: DispatchFilters = {
+        ...(typeof q['university']   === 'string' && { university:   q['university'] }),
+        ...(typeof q['fieldOfStudy'] === 'string' && { fieldOfStudy: q['fieldOfStudy'] }),
+      };
+
+      const leads = await getManualLeadUseCase().list(req.user!, filters);
       res.status(200).json({ data: leads, count: leads.length });
     } catch (err) {
       handleError(res, err);

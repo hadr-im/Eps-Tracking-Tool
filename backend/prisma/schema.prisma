@@ -204,9 +204,28 @@ model Ep {
   /// One person per department, never twice in the same one. Postgres treats
   /// NULLs as distinct, so hand-entered leads without an EXPA id are unaffected.
   @@unique([expaId, departmentId])
-  @@index([departmentId])
+
+  /// Every list in the app filters on a column and then sorts on a date, so the
+  /// indexes are shaped to serve both halves at once. Without the sort column
+  /// in the index Postgres can use it to find the rows but must still sort the
+  /// whole matching set before it can answer, which is what makes a paginated
+  /// LIMIT 50 cost the same as fetching everything.
+  ///
+  /// The single-column departmentId and ownerId indexes are gone: each is an
+  /// exact prefix of a composite below and Postgres uses a prefix on its own,
+  /// so keeping them only added write cost on every sync.
+
+  /// Dispatch pool — departmentId + unassigned, newest first.
+  @@index([departmentId, ownerId, createdAtExpa])
+  /// Department-wide listings that do not filter on owner.
+  @@index([departmentId, createdAtExpa])
+  /// Approved EPs and EPs under process, which select by status within a
+  /// department.
+  @@index([departmentId, statusOnExpa])
+  /// My CRM and Team CRM — by owner, most recently assigned first.
+  @@index([ownerId, assignedAt])
+
   @@index([statusOnExpa])
-  @@index([ownerId])
   @@index([addedManually])
   @@index([expaId])
 }

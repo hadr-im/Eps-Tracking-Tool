@@ -1,6 +1,7 @@
 import { IEpRepository } from '../../../Domain/abstracts/IEpRepository';
 import { EpStatus } from '../../../Domain/enums/EpStatus';
 import { EpFilters } from './EpFilters';
+import { PageRequest, Paginated, toPaginated } from './Pagination';
 import { CallerContext } from './GetApprovedEpsUseCase';
 import { UserRole } from '../../../Domain/enums/UserRole';
 
@@ -31,7 +32,12 @@ export interface LeadDto {
 export class GetLeadsUseCase {
   constructor(private readonly epRepo: IEpRepository) {}
 
-  async execute(caller: CallerContext, requestedDepartmentId?: string, filters: EpFilters = {}): Promise<LeadDto[]> {
+  async execute(
+    caller: CallerContext,
+    requestedDepartmentId?: string,
+    filters: EpFilters = {},
+    page?: PageRequest,
+  ): Promise<Paginated<LeadDto>> {
     const departmentId = this.resolveDepartmentId(caller, requestedDepartmentId);
 
     const leadStatuses: EpStatus[] = [
@@ -46,9 +52,13 @@ export class GetLeadsUseCase {
       unassignedOnly: true,
     };
 
-    const rows = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);
+    const { rows, total } = await this.epRepo.findByDepartmentFiltered(
+      departmentId,
+      mergedFilters,
+      page,
+    );
 
-    return rows.map(({ ep }) => ({
+    const data = rows.map(({ ep }) => ({
       id: ep.id,
       expaId: ep.expaId,
       fullName: ep.fullName,
@@ -63,6 +73,8 @@ export class GetLeadsUseCase {
       createdAtExpa: ep.createdAtExpa.toISOString(),
       syncedAt: ep.syncedAt.toISOString(),
     }));
+
+    return toPaginated(data, total, page);
   }
 
   private resolveDepartmentId(caller: CallerContext, requestedDepartmentId?: string): string {

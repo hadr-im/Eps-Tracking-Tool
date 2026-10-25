@@ -7,6 +7,7 @@ import {
 } from '../../Infrastructure/container';
 import { AppError } from '../../Application/errors/AppError';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
+import { parsePageRequest } from '../../Application/use-cases/ep/Pagination';
 import { Product } from '../../Domain/enums/Product';
 
 // Shared error handler
@@ -33,6 +34,11 @@ function parseFilters(query: Request['query']): EpFilters {
   if (typeof query['hostingLC'] === 'string')    filters.hostingLC   = query['hostingLC'];
   if (typeof query['createdFrom'] === 'string')  filters.createdFrom = query['createdFrom'];
   if (typeof query['createdTo'] === 'string')    filters.createdTo   = query['createdTo'];
+
+  // Only a real integer becomes a constraint, so junk filters nothing rather
+  // than matching nothing.
+  const yearParam = Number(query['yearOfStudy']);
+  if (Number.isInteger(yearParam) && yearParam > 0) filters.yearOfStudy = yearParam;
 
   const productParam = query['product'];
   if (typeof productParam === 'string' && Object.values(Product).includes(productParam as Product)) {
@@ -82,10 +88,23 @@ export class ExpaController {
       const caller = req.user!;
       const requestedDepartmentId = req.query['departmentId'] as string | undefined;
       const filters = parseFilters(req.query);
+      const page = parsePageRequest(req.query['page'], req.query['pageSize']);
 
-      const eps = await getApprovedEpsWithDetailUseCase.execute(caller, requestedDepartmentId, filters);
+      const result = await getApprovedEpsWithDetailUseCase.execute(
+        caller,
+        requestedDepartmentId,
+        filters,
+        page,
+      );
 
-      res.status(200).json({ data: eps, count: eps.length });
+      res.status(200).json({
+        data: result.data,
+        count: result.data.length,
+        page: result.page,
+        pageSize: result.pageSize,
+        total: result.total,
+        totalPages: result.totalPages,
+      });
     } catch (err) {
       handleError(res, err);
     }
@@ -119,16 +138,25 @@ export class ExpaController {
       ?university=  &fieldOfStudy=  &product=GV|GTA|GTE
       &createdFrom= &createdTo=
       &departmentId= (VP only)
+      &page= &pageSize=  (omit both to get every row, as before)
   */
   static async getLeads(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
       const requestedDepartmentId = req.query['departmentId'] as string | undefined;
       const filters = parseFilters(req.query);
+      const page = parsePageRequest(req.query['page'], req.query['pageSize']);
 
-      const eps = await getLeadsUseCase.execute(caller, requestedDepartmentId, filters);
+      const result = await getLeadsUseCase.execute(caller, requestedDepartmentId, filters, page);
 
-      res.status(200).json({ data: eps, count: eps.length });
+      res.status(200).json({
+        data: result.data,
+        count: result.data.length,
+        page: result.page,
+        pageSize: result.pageSize,
+        total: result.total,
+        totalPages: result.totalPages,
+      });
     } catch (err) {
       handleError(res, err);
     }

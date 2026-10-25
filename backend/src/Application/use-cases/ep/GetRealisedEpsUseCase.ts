@@ -20,7 +20,7 @@ export class GetRealisedEpsUseCase {
       status: EpStatus.REALIZED,
     };
 
-    const rows = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);
+    const { rows } = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);
     return rows.map((r) => this.toDto(r));
   }
 

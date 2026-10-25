@@ -5,6 +5,17 @@ import { EpStatus } from '../enums/EpStatus';
 import { Product } from '../enums/Product';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
 import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
+import { PageRequest } from '../../Application/use-cases/ep/Pagination';
+
+/*
+  What a list read hands back. `total` counts every row matching the filters,
+  not the slice, so callers can build page controls without a second query.
+  Omitting the page request returns all rows and total === rows.length.
+*/
+export interface RowPage<T> {
+  rows: T[];
+  total: number;
+}
 
 
 // Lightweight projection (only what SyncStatusUseCase needs for comparison)
@@ -53,12 +64,13 @@ export interface EpContactEnrichment {
 export interface IEpRepository {
   // Queries 
 
-  // Returns all EPs belonging to a department
-  findByDepartment(departmentId: string): Promise<Ep[]>;
-
   // Filtered query : supports all EpFilters fields
   // Eagerly joins ApprovedDetail so callers don't need a second round-trip.
-  findByDepartmentFiltered(departmentId: string, filters: EpFilters): Promise<EpWithDetail[]>;
+  findByDepartmentFiltered(
+    departmentId: string,
+    filters: EpFilters,
+    page?: PageRequest,
+  ): Promise<RowPage<EpWithDetail>>;
 
   // Lightweight read : only id + status + hasApprovedDetail for status comparison
   findStatusSnapshotsByDepartment(departmentId: string): Promise<EpStatusSnapshot[]>;
@@ -83,14 +95,18 @@ export interface IEpRepository {
   // Looks up a single EP by internal ID 
   findById(epId: string): Promise<Ep | null>;
 
-  // Returns all EPs assigned to a specific member, optionally filtered
-  findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]>;
+  // Returns EPs assigned to a specific member, optionally filtered and paged
+  findByOwner(ownerId: string, filters?: EpFilters, page?: PageRequest): Promise<RowPage<Ep>>;
 
   // Returns EPs assigned to any of the given members (TL scoped view)
-  findByOwners(ownerIds: string[], filters?: EpFilters): Promise<Ep[]>;
+  findByOwners(ownerIds: string[], filters?: EpFilters, page?: PageRequest): Promise<RowPage<Ep>>;
 
-  // Returns all EPs for a department, optionally filtered (includes CRM fields)
-  findByDepartment(departmentId: string, filters?: EpFilters): Promise<Ep[]>;
+  // Returns EPs for a department, optionally filtered (includes CRM fields)
+  findByDepartment(
+    departmentId: string,
+    filters?: EpFilters,
+    page?: PageRequest,
+  ): Promise<RowPage<Ep>>;
 
   // Partial update (only the fields present in data are written)
   updateEp(epId: string, data: EpUpdateData): Promise<Ep>;

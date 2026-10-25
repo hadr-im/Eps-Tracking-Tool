@@ -4,6 +4,7 @@ import { AppError } from '../../Application/errors/AppError';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
 import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
+import { Paginated, parsePageRequest } from '../../Application/use-cases/ep/Pagination';
 import { Product } from '../../Domain/enums/Product';
 import { TrackingPhase } from '../../Domain/enums/TrackingPhase';
 import { Duration } from '../../Domain/enums/Duration';
@@ -29,6 +30,11 @@ function parseFilters(query: Request['query']): EpFilters {
   if (typeof query['createdFrom']  === 'string') filters.createdFrom  = query['createdFrom'];
   if (typeof query['createdTo']    === 'string') filters.createdTo    = query['createdTo'];
   if (typeof query['search']       === 'string') filters.search       = query['search'];
+
+  // Arrives as a string; only a real integer becomes a constraint, so a junk
+  // value filters nothing rather than matching nothing.
+  const yearParam = Number(query['yearOfStudy']);
+  if (Number.isInteger(yearParam) && yearParam > 0) filters.yearOfStudy = yearParam;
 
   const productParam = query['product'];
   if (typeof productParam === 'string' && Object.values(Product).includes(productParam as Product)) {
@@ -59,6 +65,24 @@ function parseFilters(query: Request['query']): EpFilters {
   return filters;
 }
 
+/*
+  One response shape for every list endpoint: the page of rows plus what the UI
+  needs to draw the page controls. `count` is the length of this page and is
+  kept because the pre-pagination clients read it; `total` is the number across
+  all pages and is the one the page controls use. Conflating the two is how a
+  paginated table ends up claiming it holds 50 records.
+*/
+function sendPage<T>(res: Response, result: Paginated<T>): void {
+  res.status(200).json({
+    data: result.data,
+    count: result.data.length,
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+  });
+}
+
 export class EpController {
 
   static async getEps(req: Request, res: Response): Promise<void> {
@@ -69,18 +93,20 @@ export class EpController {
       // TL / VP: optional memberId to drill into one member
       const memberId = typeof req.query['memberId'] === 'string' ? req.query['memberId'] : undefined;
 
+      const page = parsePageRequest(req.query['page'], req.query['pageSize']);
+
       if (memberId) {
         // Specific member requested, works for both TL and VP
         // (The use case validates that the caller has permission to view this member)
-        const eps = await epManagementUseCase.getTeamEps(caller, memberId, filters);
-        res.status(200).json({ data: eps, count: eps.length });
+        const result = await epManagementUseCase.getTeamEps(caller, memberId, filters, undefined, page);
+        sendPage(res, result);
         return;
       }
 
       // No memberId provided: the caller wants to see their OWN assigned EPs
       // (This applies to MEMBER, TEAM_LEADER, and VP roles alike since anyone can have EPs)
-      const eps = await epManagementUseCase.getMyEps(caller, filters);
-      res.status(200).json({ data: eps, count: eps.length });
+      const result = await epManagementUseCase.getMyEps(caller, filters, page);
+      sendPage(res, result);
     } catch (err) {
       handleError(res, err);
     }
@@ -156,7 +182,7 @@ export class EpController {
   static async getEpsUnderProcess(req: Request, res: Response): Promise<void> {
     try {
       const caller = req.user!;
-      const eps = await epManagementUseCase.getEpsUnderProcess(caller);
+      const eps = await epManagementUseCase.getEpsUnderProcess(caller, parseFilters(req.query));
       res.status(200).json({ data: eps, count: eps.length });
     } catch (err) {
       handleError(res, err);
@@ -217,8 +243,14 @@ export class EpController {
         ? req.query['departmentId']
         : undefined;
       const filters = parseFilters(req.query);
-      const eps = await getApprovedEpsWithDetailUseCase.execute(caller, requestedDepartmentId, filters);
-      res.status(200).json({ data: eps, count: eps.length });
+      const page = parsePageRequest(req.query['page'], req.query['pageSize']);
+      const result = await getApprovedEpsWithDetailUseCase.execute(
+        caller,
+        requestedDepartmentId,
+        filters,
+        page,
+      );
+      sendPage(res, result);
     } catch (err) {
       handleError(res, err);
     }

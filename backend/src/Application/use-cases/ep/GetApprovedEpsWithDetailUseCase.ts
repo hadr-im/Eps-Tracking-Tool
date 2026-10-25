@@ -1,6 +1,7 @@
 import { IEpRepository, EpWithDetail } from '../../../Domain/abstracts/IEpRepository';
 import { EpStatus } from '../../../Domain/enums/EpStatus';
 import { EpFilters } from './EpFilters';
+import { PageRequest, Paginated, toPaginated } from './Pagination';
 import { CallerContext } from './GetApprovedEpsUseCase';
 import { UserRole } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
@@ -46,7 +47,12 @@ export interface EpDetailDto {
 export class GetApprovedEpsWithDetailUseCase {
   constructor(private readonly epRepo: IEpRepository) {}
 
-  async execute(caller: CallerContext, requestedDepartmentId?: string, filters: EpFilters = {}): Promise<EpDetailDto[]> {
+  async execute(
+    caller: CallerContext,
+    requestedDepartmentId?: string,
+    filters: EpFilters = {},
+    page?: PageRequest,
+  ): Promise<Paginated<EpDetailDto>> {
     const departmentId = this.resolveDepartmentId(caller, requestedDepartmentId);
 
     const approvedStatuses: EpStatus[] = [
@@ -70,8 +76,13 @@ export class GetApprovedEpsWithDetailUseCase {
       status: finalStatus,
     };
 
-    const rows = await this.epRepo.findByDepartmentFiltered(departmentId, mergedFilters);
-    return rows.map((r) => this.toDto(r));
+    const { rows, total } = await this.epRepo.findByDepartmentFiltered(
+      departmentId,
+      mergedFilters,
+      page,
+    );
+
+    return toPaginated(rows.map((r) => this.toDto(r)), total, page);
   }
 
   /*

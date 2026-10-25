@@ -13,6 +13,8 @@ export interface EpFilters {
   university?: string;
   // Filter by field of study (exact match)
   fieldOfStudy?: string;
+  // Filter by year of study (exact match) — only the sign-up sheet supplies it
+  yearOfStudy?: number;
   // Filter by EXPA programme type
   product?: Product;
   // Filter by one or more statuses

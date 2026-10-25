@@ -22,7 +22,57 @@ import { Duration } from '../../Domain/enums/Duration';
 import { Availability } from '../../Domain/enums/Availability';
 import { EpFilters } from '../../Application/use-cases/ep/EpFilters';
 import { EpUpdateData } from '../../Application/use-cases/ep/EpUpdateData';
+import { PageRequest, toSkipTake } from '../../Application/use-cases/ep/Pagination';
 import { prisma } from '../Database/PrismaService';
+
+/*
+  Matches a university by its institution code rather than its full name.
+
+  The sign-up form has recorded the same place several ways — "ISET Sousse"
+  alongside "ISET: Institut Supérieur des Études Technologiques de Sousse", and
+  EPI under two different spellings — so an equality test on a display name
+  matches one variant and quietly drops the others. Every stored value starts
+  with the code, so a prefix test catches all of them.
+
+  The codes are chosen so none is a prefix of another (ISSAT vs ISSI, ISIS vs
+  ISITCOM, ESSTS vs ESSTHS), which is what keeps this from over-matching.
+*/
+function universityWhere(code: string): object {
+  return { startsWith: code, mode: 'insensitive' as const };
+}
+
+/*
+  Builds the createdAtExpa constraint for a date-range filter.
+
+  The two bounds are not symmetrical. `from` is a day the user wants included,
+  so it starts at midnight; `to` is also a day they want included, but
+  createdAtExpa is a timestamp, so comparing against midnight would keep only
+  leads that registered exactly at 00:00:00 and drop the rest of that day.
+  The upper bound therefore runs to the last millisecond of it.
+*/
+function dateRangeWhere(from?: string, to?: string): object {
+  if (!from && !to) return {};
+
+  const parse = (value: string, endOfDay: boolean): Date | null => {
+    const [y, m, d] = value.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return endOfDay
+      ? new Date(y, m - 1, d, 23, 59, 59, 999)
+      : new Date(y, m - 1, d, 0, 0, 0, 0);
+  };
+
+  const gte = from ? parse(from, false) : null;
+  const lte = to ? parse(to, true) : null;
+
+  if (!gte && !lte) return {};
+
+  return {
+    createdAtExpa: {
+      ...(gte && { gte }),
+      ...(lte && { lte }),
+    },
+  };
+}
 
 export class EpRepository implements IEpRepository {
   private readonly db: PrismaClient;
@@ -102,42 +152,97 @@ export class EpRepository implements IEpRepository {
     return row ? this.toEpEntity(row) : null;
   }
 
-  // Returns all EPs assigned to a specific member, server-side filtered
-  async findByOwner(ownerId: string, filters?: EpFilters): Promise<Ep[]> {
-    const rows = await this.db.ep.findMany({
-      where: {
-        ownerId,
-        ...this.buildWhere(filters),
+  /*
+    The three list reads below share one shape: build the WHERE, then either
+    return everything or a single page plus the total.
+
+    When a page is asked for, the rows and the COUNT go out as one $transaction
+    so the pair costs one round-trip rather than two — on a serverless function
+    talking to a pooled remote database, the round-trip is most of the cost.
+    Without a page there is no COUNT at all: the length of what we already hold
+    is the total.
+  */
+  private async paginate<T>(
+    model: { findMany: (args: any) => Promise<any[]>; count: (args: any) => Promise<number> },
+    args: Record<string, unknown>,
+    page: PageRequest | undefined,
+    map: (row: any) => T,
+  ): Promise<{ rows: T[]; total: number }> {
+    if (!page) {
+      const rows = await model.findMany(args);
+      return { rows: rows.map(map), total: rows.length };
+    }
+
+    const [rows, total] = await this.db.$transaction([
+      model.findMany({ ...args, ...toSkipTake(page) }),
+      model.count({ where: args['where'] }),
+    ] as any);
+
+    return { rows: (rows as any[]).map(map), total: total as unknown as number };
+  }
+
+  // Returns EPs assigned to a specific member, server-side filtered
+  async findByOwner(
+    ownerId: string,
+    filters?: EpFilters,
+    page?: PageRequest,
+  ): Promise<{ rows: Ep[]; total: number }> {
+    /*
+      Prisma drops a condition whose value is undefined, so `{ ownerId:
+      undefined }` does not match nobody — it matches everybody, and this
+      method would hand one member the entire department's pipeline. The only
+      caller supplies an id straight off a verified token, so this cannot fire
+      today; it is here because the failure is silent, total, and a
+      one-character typo away.
+    */
+    if (!ownerId) throw new Error('findByOwner called without an owner id');
+
+    return this.paginate(
+      this.db.ep,
+      {
+        where: { ownerId, ...this.buildWhere(filters) },
+        orderBy: { assignedAt: 'desc' },
       },
-      orderBy: { assignedAt: 'desc' },
-    });
-    return rows.map((r) => this.toEpEntity(r));
+      page,
+      (r) => this.toEpEntity(r),
+    );
   }
 
   // Returns EPs assigned to any of the given members (TL-scoped view)
-  // Returns an empty array immediately when ownerIds is empty (no DB hit)
-  async findByOwners(ownerIds: string[], filters?: EpFilters): Promise<Ep[]> {
-    if (ownerIds.length === 0) return [];
-    const rows = await this.db.ep.findMany({
-      where: {
-        ownerId: { in: ownerIds },
-        ...this.buildWhere(filters),
+  // Returns an empty page immediately when ownerIds is empty (no DB hit)
+  async findByOwners(
+    ownerIds: string[],
+    filters?: EpFilters,
+    page?: PageRequest,
+  ): Promise<{ rows: Ep[]; total: number }> {
+    if (ownerIds.length === 0) return { rows: [], total: 0 };
+
+    return this.paginate(
+      this.db.ep,
+      {
+        where: { ownerId: { in: ownerIds }, ...this.buildWhere(filters) },
+        orderBy: { assignedAt: 'desc' },
       },
-      orderBy: { assignedAt: 'desc' },
-    });
-    return rows.map((r) => this.toEpEntity(r));
+      page,
+      (r) => this.toEpEntity(r),
+    );
   }
 
-  // Returns all EPs for a department, optionally filtered (overrides the old unfilterd version)
-  async findByDepartment(departmentId: string, filters?: EpFilters): Promise<Ep[]> {
-    const rows = await this.db.ep.findMany({
-      where: {
-        departmentId,
-        ...this.buildWhere(filters),
+  // Returns EPs for a department, optionally filtered
+  async findByDepartment(
+    departmentId: string,
+    filters?: EpFilters,
+    page?: PageRequest,
+  ): Promise<{ rows: Ep[]; total: number }> {
+    return this.paginate(
+      this.db.ep,
+      {
+        where: { departmentId, ...this.buildWhere(filters) },
+        orderBy: { createdAtExpa: 'desc' },
       },
-      orderBy: { createdAtExpa: 'desc' },
-    });
-    return rows.map((r) => this.toEpEntity(r));
+      page,
+      (r) => this.toEpEntity(r),
+    );
   }
 
   // Partial update, only fields present in data are written
@@ -221,31 +326,25 @@ export class EpRepository implements IEpRepository {
   async findByDepartmentFiltered(
     departmentId: string,
     filters: EpFilters,
-  ): Promise<EpWithDetail[]> {
+    page?: PageRequest,
+  ): Promise<{ rows: EpWithDetail[]; total: number }> {
     const statusFilter = filters.status
       ? Array.isArray(filters.status)
         ? { in: filters.status }
         : filters.status
       : undefined;
 
-    const rows = await this.db.ep.findMany({
-      where: {
+    const where = {
         departmentId,
         ...(filters.product    && { product: filters.product as unknown as any }),
         ...(statusFilter       && { statusOnExpa: statusFilter }),
-        ...(filters.university && { university: filters.university }),
+        ...(filters.university && { university: universityWhere(filters.university) }),
         ...(filters.fieldOfStudy && { fieldOfStudy: filters.fieldOfStudy }),
+        ...(filters.yearOfStudy !== undefined && { yearOfStudy: filters.yearOfStudy }),
         ...(filters.search && {
           fullName: { contains: filters.search, mode: 'insensitive' as const },
         }),
-        ...(filters.createdFrom || filters.createdTo
-          ? {
-              createdAtExpa: {
-                ...(filters.createdFrom && { gte: new Date(filters.createdFrom) }),
-                ...(filters.createdTo   && { lte: new Date(filters.createdTo) }),
-              },
-            }
-          : {}),
+        ...dateRangeWhere(filters.createdFrom, filters.createdTo),
 
           ...(filters.hostingMC || filters.hostingLC
           ? {
@@ -256,19 +355,25 @@ export class EpRepository implements IEpRepository {
             }
           : {}),
         ...(filters.unassignedOnly && { ownerId: null }),
-      },
-      include: {
-        approvedDetail: true,
-        owner: { select: { fullName: true } },
-      },
-      orderBy: { createdAtExpa: 'desc' },
-    });
+    };
 
-    return rows.map((r) => ({
-      ep: this.toEpEntity(r),
-      approvedDetail: r.approvedDetail ? this.toApprovedDetailEntity(r.approvedDetail) : null,
-      memberName: r.owner?.fullName ?? null,
-    }));
+    return this.paginate(
+      this.db.ep,
+      {
+        where,
+        include: {
+          approvedDetail: true,
+          owner: { select: { fullName: true } },
+        },
+        orderBy: { createdAtExpa: 'desc' },
+      },
+      page,
+      (r) => ({
+        ep: this.toEpEntity(r),
+        approvedDetail: r.approvedDetail ? this.toApprovedDetailEntity(r.approvedDetail) : null,
+        memberName: r.owner?.fullName ?? null,
+      }),
+    );
   }
 
   // Single write 
@@ -325,47 +430,62 @@ export class EpRepository implements IEpRepository {
     if (details.length === 0) return;
 
     /*
-      ApprovedDetail is pinned on both sides: one detail per EP (epId unique)
-      and one per EXPA application (expaAppId unique). That makes a naive
-      upsert fail two different ways.
+      ApprovedDetail is pinned on both sides: one per EP (epId unique) and one
+      per EXPA application (expaAppId unique). A detail can therefore collide
+      two ways — with another application on the same EP, or with the same
+      application sitting on a different EP, which the old wrong-programme-code
+      sync left plenty of.
 
-      Keying on expaAppId broke when a person held a second application, since
-      it tried to add a second detail to the same EP. Keying on epId alone
-      broke when an application had been filed against a different EP row by an
-      earlier sync — the wrong-programme-code era left plenty of those.
-
-      So each detail first releases its application from wherever else it is
-      attached, then writes against the EP.
-
-      Deliberately not wrapped in a transaction: two round-trips per detail
-      across several hundred details overruns Prisma's interactive-transaction
-      timeout. The pair is safe to run unwrapped because every expaAppId
-      appears at most once per call, so no two details contend for the same
-      row, and the sync is idempotent — a partial run simply finishes on the
-      next one.
+      Resolving that per row meant two round-trips each, and several hundred
+      serial round-trips to a remote database overran the serverless request
+      limit. So the conflicts are cleared in two bulk queries first, which
+      leaves the writes independent and safe to run concurrently.
     */
-    for (const d of details) {
-      await this.db.approvedDetail.deleteMany({
-        where: { expaAppId: d.expaAppId, NOT: { epId: d.epId } },
-      });
+    const appIds = details.map((d) => d.expaAppId);
+    const intended = new Map(details.map((d) => [d.expaAppId, d.epId]));
 
-      const fields = {
-        expaAppId: d.expaAppId,
-        opportunityTitle: d.opportunityTitle,
-        hostingMC: d.hostingMC,
-        hostingLC: d.hostingLC,
-        projectFees: d.projectFees,
-        approvalDate: d.approvalDate,
-        realizedDate: d.realizedDate,
-        completedDate: d.completedDate,
-        finishedDate: d.finishedDate,
-      };
+    // Any detail holding one of our applications against a different EP.
+    const clashes = await this.db.approvedDetail.findMany({
+      where: { expaAppId: { in: appIds } },
+      select: { id: true, expaAppId: true, epId: true },
+    });
 
-      await this.db.approvedDetail.upsert({
-        where: { epId: d.epId },
-        update: fields,
-        create: { id: d.id, epId: d.epId, ...fields },
-      });
+    const stale = clashes
+      .filter((c) => intended.get(c.expaAppId) !== c.epId)
+      .map((c) => c.id);
+
+    if (stale.length > 0) {
+      await this.db.approvedDetail.deleteMany({ where: { id: { in: stale } } });
+    }
+
+    /*
+      Capped rather than a bare Promise.all: the connection pool is small and
+      flooding it is how this started timing out in the first place.
+    */
+    const CONCURRENCY = 20;
+
+    for (let i = 0; i < details.length; i += CONCURRENCY) {
+      await Promise.all(
+        details.slice(i, i + CONCURRENCY).map((d) => {
+          const fields = {
+            expaAppId: d.expaAppId,
+            opportunityTitle: d.opportunityTitle,
+            hostingMC: d.hostingMC,
+            hostingLC: d.hostingLC,
+            projectFees: d.projectFees,
+            approvalDate: d.approvalDate,
+            realizedDate: d.realizedDate,
+            completedDate: d.completedDate,
+            finishedDate: d.finishedDate,
+          };
+
+          return this.db.approvedDetail.upsert({
+            where: { epId: d.epId },
+            update: fields,
+            create: { id: d.id, epId: d.epId, ...fields },
+          });
+        }),
+      );
     }
   }
 
@@ -399,8 +519,9 @@ export class EpRepository implements IEpRepository {
     return {
       ...(filters.product        && { product: filters.product as unknown as any }),
       ...(statusFilter           && { statusOnExpa: statusFilter }),
-      ...(filters.university     && { university: filters.university }),
+      ...(filters.university     && { university: universityWhere(filters.university) }),
       ...(filters.fieldOfStudy   && { fieldOfStudy: filters.fieldOfStudy }),
+      ...(filters.yearOfStudy !== undefined && { yearOfStudy: filters.yearOfStudy }),
       ...(filters.trackingPhase  && { trackingPhase: filters.trackingPhase as unknown as any }),
       ...(filters.duration       && { duration: filters.duration as unknown as any }),
       // Boolean filters: only applied when explicitly set (undefined = no constraint)
@@ -410,14 +531,7 @@ export class EpRepository implements IEpRepository {
       ...(filters.search && {
         fullName: { contains: filters.search, mode: 'insensitive' as const },
       }),
-      ...(filters.createdFrom || filters.createdTo
-        ? {
-            createdAtExpa: {
-              ...(filters.createdFrom && { gte: new Date(filters.createdFrom) }),
-              ...(filters.createdTo   && { lte: new Date(filters.createdTo) }),
-            },
-          }
-        : {}),
+      ...dateRangeWhere(filters.createdFrom, filters.createdTo),
       ...(filters.unassignedOnly && { ownerId: null }),
     };
   }
