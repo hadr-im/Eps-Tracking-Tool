@@ -1,0 +1,3 @@
+
+# Load-test fixtures and k6 scripts (local tooling, not part of the app)
+backend/loadtest/
