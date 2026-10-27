@@ -228,7 +228,18 @@ export class AuthRepository implements IAuthRepository {
   // see and re-enable someone who left.
   async findDepartmentUsers(departmentId: string): Promise<User[]> {
     const rows = await this.db.user.findMany({
-      where: { departmentId, status: AccountStatus.ACTIVE },
+      where: {
+        departmentId,
+        status: AccountStatus.ACTIVE,
+        /*
+          The Members page is a VP's roster of the people they manage, and an
+          LCP is not one of them — they outrank the VP and merely happen to be
+          supervising this department at the moment. Every action on that page
+          was already refused for them, so listing the row only offered a
+          control that could not be used.
+        */
+        role: { not: UserRole.LCP },
+      },
       orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
     });
     return rows.map((r) => this.toUserEntity(r));

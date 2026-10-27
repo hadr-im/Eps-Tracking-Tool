@@ -99,6 +99,17 @@ export class DispatchRepository implements IDispatchRepository {
       where: {
         departmentId,
         isDisabled: false,
+        /*
+          An LCP is excluded everywhere this list is used.
+
+          They hold a departmentId only to say which department they are
+          currently supervising, not because they work its pipeline — they
+          own no EPs, so they are neither a valid dispatch target nor a
+          dashboard worth opening. Filtering here rather than in each caller
+          keeps them out of the dispatch dialog, the member pickers and the
+          dashboards at once.
+        */
+        role: { not: UserRole.LCP },
         ...(teamLeaderId !== undefined && { teamLeaderId }),
       },
       orderBy: { fullName: 'asc' },
