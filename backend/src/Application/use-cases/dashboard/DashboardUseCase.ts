@@ -7,7 +7,7 @@ import {
   TransitionStat,
 } from '../../../Domain/abstracts/IDashboardRepository';
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 
 export interface DashboardCaller {
@@ -65,7 +65,7 @@ export class DashboardUseCase {
   }
 
   async getTeamLeaderDashboard(caller: DashboardCaller): Promise<TeamLeaderDashboardDto> {
-    if (caller.role !== UserRole.TEAM_LEADER && caller.role !== UserRole.VP) {
+    if (caller.role !== UserRole.TEAM_LEADER && !isVpLevel(caller.role)) {
       throw new AppError('Only TLs and VPs can view team dashboards', 403);
     }
     if (!caller.departmentId) throw new AppError('No department assigned', 400);
@@ -77,12 +77,12 @@ export class DashboardUseCase {
     const phaseCounts = await this.repo.getPhaseCounts(scope);
     
     /*
-      A Team Leader's dashboard covers their own team, not the whole
-      department — the breakdown is there to show how THEIR members are doing.
-      A VP hitting this endpoint still sees everyone.
+      The breakdown covers the whole department, for a Team Leader as much as
+      a VP. Team Leaders dispatch to anyone in the department, so limiting the
+      figures to their own team showed them a slice of work they are not
+      actually confined to.
     */
-    const teamLeaderId = caller.role === UserRole.TEAM_LEADER ? caller.id : undefined;
-    const breakdown = await this.repo.getMemberBreakdown(caller.departmentId, teamLeaderId);
+    const breakdown = await this.repo.getMemberBreakdown(caller.departmentId);
 
     const base = this.buildBaseStats(statusCounts, phaseCounts);
 
@@ -97,7 +97,7 @@ export class DashboardUseCase {
     requestedDepartmentId?: string,
     months: number = 6
   ): Promise<VpDashboardDto> {
-    if (caller.role !== UserRole.VP) {
+    if (!isVpLevel(caller.role)) {
       throw new AppError('Only VPs can view VP dashboards', 403);
     }
 
@@ -155,9 +155,6 @@ export class DashboardUseCase {
   ): Promise<void> {
     if (targetUserId === caller.id) return;
 
-    if (caller.role === UserRole.MEMBER) {
-      throw new AppError('Members can only view their own dashboard', 403);
-    }
     if (!caller.departmentId) {
       throw new AppError('No department assigned to your account', 400);
     }
@@ -169,13 +166,17 @@ export class DashboardUseCase {
       throw new AppError('That member is not in your department', 403);
     }
 
-    // A VP oversees the department, and every Team Leader can now dispatch to
-    // any member in it, so both need to see any member's numbers.
-    if (caller.role === UserRole.VP || caller.role === UserRole.TEAM_LEADER) return;
+    /*
+      Anyone in the department may read anyone else's dashboard. These are
+      aggregate counts — how many leads contacted, how many approved — which
+      the department already discusses openly, and seeing them is what makes
+      the leaderboard mean anything.
 
-    if (target.teamLeaderId !== caller.id) {
-      throw new AppError('That member is not on your team', 403);
-    }
+      The department check above is the real boundary and applies to every
+      role including a member. CRM access is NOT widened by this: the EP
+      endpoints keep their own, stricter rule, so a member still cannot read
+      another member's notes or contact details.
+    */
   }
 
   private buildBaseStats(statusCounts: StatusCount[], phaseCounts: PhaseCount[]): BaseDashboardStats {

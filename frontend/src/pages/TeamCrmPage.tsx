@@ -38,6 +38,7 @@ import {
 } from '@/components/crm/EpMobileCard';
 import type { Ep }               from '@/types/ep';
 import { PageHeader }            from '@/components/layout/PageHeader';
+import { isVpLevel } from '@/types/auth';
 
 // No-op callbacks
 const noop = () => {};
@@ -47,7 +48,7 @@ const noopPhase = () => {};
 export default function TeamCrmPage() {
   const { user } = useAuth();
   const departmentId = user?.departmentId ?? null;
-  const canComment = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canComment = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [openEp, setOpenEp] = useState<Ep | null>(null);

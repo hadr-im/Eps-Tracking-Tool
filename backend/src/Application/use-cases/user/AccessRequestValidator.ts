@@ -4,7 +4,8 @@ import { AppError } from '../../errors/AppError';
 
 export interface AccessRequest {
   role: UserRole;
-  departmentId: string;
+  // Null only for an LCP, who belongs to no single department.
+  departmentId: string | null;
   teamLeaderId: string | null;
 }
 
@@ -33,15 +34,40 @@ export class AccessRequestValidator {
       throw new AppError('Select a valid position', 400);
     }
 
-    if (!(await this.repo.departmentExists(access.departmentId))) {
-      throw new AppError('That department does not exist', 400);
+    /*
+      Every role but LCP must name a department. An LCP oversees all of them,
+      so there is nothing to name here — they pick which one to supervise
+      after signing in, and may change it afterwards.
+    */
+    if (access.role !== UserRole.LCP) {
+      if (!access.departmentId) {
+        throw new AppError('Select a department', 400);
+      }
+      if (!(await this.repo.departmentExists(access.departmentId))) {
+        throw new AppError('That department does not exist', 400);
+      }
     }
 
     switch (access.role) {
       case UserRole.VP:
-        await this.assertNoExistingVp(access.departmentId, excludeUserId);
+        await this.assertNoExistingVp(access.departmentId!, excludeUserId);
         if (access.teamLeaderId) {
           throw new AppError('A VP is not assigned to a Team Leader', 400);
+        }
+        break;
+
+      /*
+        An LCP is not checked against assertNoExistingVp: they sit above the
+        VPs rather than in place of one, so a department can hold both. The
+        departmentId they carry is whichever one they are supervising at the
+        moment, not a post they occupy.
+      */
+      case UserRole.LCP:
+        if (access.teamLeaderId) {
+          throw new AppError('An LCP is not assigned to a Team Leader', 400);
+        }
+        if (access.departmentId) {
+          throw new AppError('An LCP is not tied to a department', 400);
         }
         break;
 
@@ -55,7 +81,7 @@ export class AccessRequestValidator {
         // Null is allowed: the member does not know their TL yet, and the
         // approving VP fills it in.
         if (access.teamLeaderId) {
-          await this.assertValidTeamLeader(access.teamLeaderId, access.departmentId);
+          await this.assertValidTeamLeader(access.teamLeaderId, access.departmentId!);
         }
         break;
     }

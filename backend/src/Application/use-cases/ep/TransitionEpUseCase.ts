@@ -1,5 +1,5 @@
 import { IEpRepository } from '../../../Domain/abstracts/IEpRepository';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { Product, PROGRAMME_DEPARTMENT_ID } from '../../../Domain/enums/Product';
 import { AppError } from '../../errors/AppError';
 import { Ep } from '../../../Domain/entities/Ep';
@@ -22,7 +22,7 @@ export class TransitionEpUseCase {
     const { epId, targetProduct, caller, note } = request;
 
     // 1. Validate caller has a department (unless they are a VP who might not have one)
-    if (!caller.departmentId && caller.role !== UserRole.VP) {
+    if (!caller.departmentId && !isVpLevel(caller.role)) {
       throw new AppError('Caller has no department assigned', 400);
     }
 

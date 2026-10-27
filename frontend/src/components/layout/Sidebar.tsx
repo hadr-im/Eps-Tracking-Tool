@@ -1,3 +1,7 @@
+import { isVpLevel, canSwitchDepartment } from '@/types/auth';
+import { productBrand } from '@/lib/productBrand';
+import { useDepartments } from '@/hooks/useSignupOptions';
+import { useSwitchDepartment } from '@/hooks/useSwitchDepartment';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -9,6 +13,7 @@ import {
   BadgeCheck,
   Hourglass,
   LayoutDashboard,
+  Building2,
   Send,
   UserCheck,
   UserCog,
@@ -32,6 +37,7 @@ const ROLE_CODES: Record<string, string> = {
   MEMBER: 'TM',
   TEAM_LEADER: 'TL',
   VP: 'VP',
+  LCP: 'LCP',
 };
 
 // Nav section definitions (Team section gated by role in the render)
@@ -99,6 +105,68 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: NavItemProps) {
   return link;
 }
 
+/*
+  The LCP's department switcher.
+
+  Shaped like a NavItem but it is a button, not a link: picking a department
+  changes which one the whole app is scoped to rather than moving to a route.
+  Every page then keeps working exactly as it does for a VP, which is the
+  point of modelling an LCP as "a VP who can move".
+*/
+function DepartmentItem({
+  product,
+  departmentId,
+  collapsed,
+  isActive,
+  isPending,
+  onSelect,
+}: {
+  product: string;
+  departmentId: string;
+  collapsed: boolean;
+  isActive: boolean;
+  isPending: boolean;
+  onSelect: (departmentId: string) => void;
+}) {
+  const brand = productBrand(product);
+  const label = brand?.label ?? product;
+
+  const button = (
+    <button
+      type="button"
+      id={`nav-dept-${product.toLowerCase()}`}
+      disabled={isPending}
+      onClick={() => onSelect(departmentId)}
+      aria-current={isActive ? 'true' : undefined}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+        isActive
+          ? 'bg-(--nav-active)/15 text-(--nav-active)'
+          : 'text-sidebar-foreground/70 hover:bg-(--nav-active)/10 hover:text-(--nav-active)',
+        collapsed && 'justify-center px-2',
+        isPending && 'opacity-60',
+      )}
+    >
+      {brand ? (
+        <img src={brand.logo} alt="" className="h-[18px] w-[18px] shrink-0 object-contain" />
+      ) : (
+        <Building2 size={18} className="shrink-0" />
+      )}
+      {!collapsed && <span className="truncate">{label}</span>}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger>{button}</TooltipTrigger>
+        <TooltipContent side="right" className="text-xs">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return button;
+}
+
 // Logout — same shape as NavItem, red only on hover.
 
 function LogoutItem({
@@ -156,7 +224,12 @@ interface SidebarBodyProps {
 
 export function SidebarBody({ collapsed, onNavClick }: SidebarBodyProps) {
   const { logout, user } = useAuth();
-  const isTeam = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const isTeam = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
+  const isLcp = canSwitchDepartment(user?.role);
+
+  // Only an LCP needs the list, so it is not fetched for anyone else.
+  const { data: departments = [] } = useDepartments(isLcp);
+  const { mutate: switchDepartment, isPending: isSwitching } = useSwitchDepartment();
   const brand = brandForDepartment(user?.departmentId);
 
   return (
@@ -204,11 +277,37 @@ export function SidebarBody({ collapsed, onNavClick }: SidebarBodyProps) {
         {/* Navigation */}
         <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
 
-          {/* Personal section */}
-          <SectionLabel label="Personal" collapsed={collapsed} />
-          {PERSONAL_NAV.map((item) => (
-            <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
-          ))}
+          {/*
+            An LCP carries no EPs of their own, so "My CRM" and "My Dashboard"
+            would always be empty. The three departments take that space
+            instead, since choosing one is what an LCP actually does here.
+          */}
+          {isLcp ? (
+            <>
+              <SectionLabel label="Departments" collapsed={collapsed} />
+              {departments.map((d) => (
+                <DepartmentItem
+                  key={d.id}
+                  product={d.product}
+                  departmentId={d.id}
+                  collapsed={collapsed}
+                  isActive={d.id === user?.departmentId}
+                  isPending={isSwitching}
+                  onSelect={(id) => {
+                    onNavClick?.();
+                    if (id !== user?.departmentId) switchDepartment(id);
+                  }}
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              <SectionLabel label="Personal" collapsed={collapsed} />
+              {PERSONAL_NAV.map((item) => (
+                <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
+              ))}
+            </>
+          )}
 
           {/* Team section (TL / VP only) */}
           {isTeam && (
@@ -219,7 +318,7 @@ export function SidebarBody({ collapsed, onNavClick }: SidebarBodyProps) {
                 <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onNavClick} />
               ))}
               {/* VP-only items */}
-              {user?.role === 'VP' && (
+              {isVpLevel(user?.role) && (
                 <>
                   <NavItem
                     to="/global-dashboard"

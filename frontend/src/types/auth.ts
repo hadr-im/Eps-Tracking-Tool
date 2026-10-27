@@ -4,7 +4,22 @@
 //   backend/src/Application/mappers/UserMapper.ts
 
 // Mirrors backend/src/Domain/enums/UserRole.ts 
-export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP';
+export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP' | 'LCP';
+
+/*
+  An LCP has a VP's authority over whichever department they are currently
+  supervising, so every permission check that asks "is this a VP?" means
+  "VP or above". Routing it through one helper keeps a new privileged role
+  from having to be remembered in a dozen separate comparisons.
+*/
+export function isVpLevel(role: UserRole | undefined): boolean {
+  return role === 'VP' || role === 'LCP';
+}
+
+// Only an LCP can move between departments.
+export function canSwitchDepartment(role: UserRole | undefined): boolean {
+  return role === 'LCP';
+}
 
 // Mirrors backend/src/Domain/enums/AuthProvider.ts
 export type AuthProvider = 'LOCAL' | 'GOOGLE';

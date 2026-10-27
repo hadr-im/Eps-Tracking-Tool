@@ -17,6 +17,11 @@ enum UserRole {
   MEMBER
   TEAM_LEADER
   VP
+  /// Local Committee President. Same authority as a VP, but over any
+  /// department: departmentId holds the one currently being supervised.
+  /// Deliberately not 'VP', so the one_vp_per_department unique index
+  /// (WHERE role = 'VP') does not apply to it.
+  LCP
 }
 
 enum AuthProvider {

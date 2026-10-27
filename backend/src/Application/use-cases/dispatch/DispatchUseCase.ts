@@ -1,7 +1,7 @@
 import { IDispatchRepository } from '../../../Domain/abstracts/IDispatchRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { User } from '../../../Domain/entities/User';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 import { IMailService } from '../../abstracts/IMailService';
 import { DispatchFilters } from './DispatchFilters';
@@ -40,7 +40,7 @@ export class DispatchUseCase {
     dispatcher: CallerContext,
     members: User[],
   ): Promise<Ep[]> {
-    if (dispatcher.role !== UserRole.TEAM_LEADER && dispatcher.role !== UserRole.VP) {
+    if (dispatcher.role !== UserRole.TEAM_LEADER && !isVpLevel(dispatcher.role)) {
       throw new AppError('Only Team Leaders and VPs can assign leads', 403);
     }
 

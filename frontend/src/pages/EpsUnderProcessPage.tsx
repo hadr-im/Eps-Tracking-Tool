@@ -14,10 +14,11 @@ import { SoftBadge }                 from '@/components/ui/soft-badge';
 import { UNIVERSITIES, FIELDS_OF_STUDY } from '@/lib/options';
 import type { Ep }                   from '@/types/ep';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { isVpLevel } from '@/types/auth';
 
 export default function EpsUnderProcessPage() {
   const { user } = useAuth();
-  const canComment   = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canComment   = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
   const departmentId = user?.departmentId ?? null;
 
   const [search, setSearch] = useState('');

@@ -43,7 +43,7 @@ const router = Router();
 router.get(
   '/eps',
   authMiddleware,
-  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getEps,
 );
 
@@ -70,7 +70,7 @@ router.get(
 router.get(
   '/eps/under-process',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getEpsUnderProcess,
 );
 
@@ -98,7 +98,7 @@ router.get(
 router.get(
   '/eps/transitions',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getTransitions,
 );
 
@@ -175,7 +175,7 @@ router.patch(
 router.patch(
   '/eps/:id/owner',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.reassignOwner,
 );
 
@@ -216,7 +216,7 @@ router.patch(
 router.post(
   '/eps/:id/transition',
   authMiddleware,
-  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.transitionEp,
 );
 
@@ -256,7 +256,7 @@ router.post(
 router.post(
   '/eps/:id/comments',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.addComment,
 );
 
@@ -284,7 +284,7 @@ router.post(
 router.get(
   '/eps/:id/comments',
   authMiddleware,
-  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getComments,
 );
 
@@ -315,7 +315,7 @@ router.get(
 router.get(
   '/approved-eps',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getApproved,
 );
 
@@ -344,7 +344,7 @@ router.get(
 router.get(
   '/realised-eps',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   EpController.getRealised,
 );
 

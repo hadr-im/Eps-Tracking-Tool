@@ -3,7 +3,7 @@ import { EpStatus } from '../../../Domain/enums/EpStatus';
 import { EpFilters } from './EpFilters';
 import { PageRequest, Paginated, toPaginated } from './Pagination';
 import { CallerContext } from './GetApprovedEpsUseCase';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 
 /*
   DTO for the Leads list does not include ApprovedDetail since leads have not yet been approved
@@ -78,7 +78,7 @@ export class GetLeadsUseCase {
   }
 
   private resolveDepartmentId(caller: CallerContext, requestedDepartmentId?: string): string {
-    if (caller.role === UserRole.VP && requestedDepartmentId) {
+    if (isVpLevel(caller.role) && requestedDepartmentId) {
       return requestedDepartmentId;
     }
     if (!caller.departmentId) throw new Error('User has no department assigned');

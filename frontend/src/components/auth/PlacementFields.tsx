@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { productBrand } from '@/lib/productBrand';
 import type { UserRole } from '@/types/auth';
 import type { PlacementValue } from '@/types/signup';
+import { isVpLevel } from '@/types/auth';
 
 // Department label: product logo on the left, name in the product's colour.
 function DepartmentOption({ name, product }: { name: string; product: string }) {
@@ -38,9 +39,10 @@ const ROLE_LABELS: Record<UserRole, string> = {
   MEMBER: 'Member',
   TEAM_LEADER: 'Team Leader',
   VP: 'Vice President',
+  LCP: 'LC President',
 };
 
-const ROLE_ORDER: UserRole[] = ['MEMBER', 'TEAM_LEADER', 'VP'];
+const ROLE_ORDER: UserRole[] = ['MEMBER', 'TEAM_LEADER', 'VP', 'LCP'];
 
 // Sentinel for "I don't know yet" — Select cannot hold a null value.
 const NO_TEAM_LEADER = '__none__';
@@ -63,13 +65,15 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
     value.requestedDepartmentId || null,
   );
 
-  const selectedDepartment = departments.find((d) => d.id === value.requestedDepartmentId);
 
-  // A department can only have one VP, so once it has one there is nothing to
-  // apply for — drop the option rather than let someone pick a dead end.
-  const availableRoles = ROLE_ORDER.filter(
-    (role) => role !== 'VP' || !selectedDepartment?.hasVp,
-  );
+  // Every position is offered; the department step below is where the
+  // one-VP-per-department rule is applied.
+  const availableRoles = ROLE_ORDER;
+
+  // A department that already has a VP is a dead end for someone applying as
+  // one, so it is shown as unavailable rather than silently failing on submit.
+  const departmentTaken = (d: { hasVp?: boolean }) =>
+    value.requestedRole === 'VP' && !!d.hasVp;
 
   // Changing department invalidates the Team Leader picked under the old one,
   // and may invalidate the position itself if the new one already has a VP.
@@ -86,18 +90,55 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
     });
   }
 
-  // Switching position clears the fields that only apply to the other one.
+  /*
+    Switching position clears the fields that only apply to the other one.
+
+    An LCP belongs to no department — they oversee all of them and pick which
+    to supervise after signing in — so choosing it drops any department already
+    selected rather than leaving a value the server would reject.
+  */
   function handleRoleChange(role: UserRole): void {
     onChange({
       ...value,
       requestedRole: role,
+      requestedDepartmentId: role === 'LCP' ? '' : value.requestedDepartmentId,
       requestedTeamLeaderId: role === 'MEMBER' ? value.requestedTeamLeaderId : null,
+      vpSetupCode: isVpLevel(role) ? value.vpSetupCode : '',
     });
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Department */}
+      {/*
+        Position comes first. The department field below depends on it: an LCP
+        is asked for no department at all, so the role has to be known before
+        it can be drawn.
+      */}
+      {(
+        <Field id="role" label="Your position" error={errors.requestedRole}>
+          <Select
+            value={value.requestedRole}
+            onValueChange={(val) => val && handleRoleChange(val as UserRole)}
+          >
+            <SelectTrigger id="role" className="w-full">
+              <SelectValue placeholder="Select your position">
+                {(val) => (val ? ROLE_LABELS[val as UserRole] : 'Select your position')}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {availableRoles.map((role) => (
+                <SelectItem key={role} value={role} label={ROLE_LABELS[role]}>
+                  {ROLE_LABELS[role]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+        </Field>
+      )}
+
+      {/* Department — an LCP has none, so the field is not shown at all */}
+      {value.requestedRole !== 'LCP' && (
       <Field id="department" label="Department" error={errors.requestedDepartmentId}>
         {loadingDepartments ? (
           <div className="flex h-9 items-center gap-2 text-sm text-muted-foreground">
@@ -137,10 +178,16 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
                   key={d.id}
                   value={d.id}
                   label={d.name}
+                  disabled={departmentTaken(d)}
                   // Faint hairline between options (not above the first one)
                   className={cn('py-2.5', i > 0 && 'border-t border-border/50')}
                 >
                   <DepartmentOption name={d.name} product={d.product} />
+                  {departmentTaken(d) && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      has a VP
+                    </span>
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -148,35 +195,7 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
         )}
       </Field>
 
-      {/* Position — only once a department is chosen, since the rules below depend on it */}
-      {value.requestedDepartmentId && (
-        <Field id="role" label="Your position" error={errors.requestedRole}>
-          <Select
-            value={value.requestedRole}
-            onValueChange={(val) => val && handleRoleChange(val as UserRole)}
-          >
-            <SelectTrigger id="role" className="w-full">
-              <SelectValue placeholder="Select your position">
-                {(val) => (val ? ROLE_LABELS[val as UserRole] : 'Select your position')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {availableRoles.map((role) => (
-                <SelectItem key={role} value={role} label={ROLE_LABELS[role]}>
-                  {ROLE_LABELS[role]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedDepartment?.hasVp && (
-            <p className="text-xs text-muted-foreground">
-              {selectedDepartment.name} already has a VP, so that position is
-              not available.
-            </p>
-          )}
-        </Field>
       )}
-
       {/* Member: which Team Leader they report to */}
       {value.requestedRole === 'MEMBER' && (
         <Field id="teamLeader" label="Your Team Leader" error={errors.requestedTeamLeaderId}>
@@ -226,26 +245,28 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
         </Field>
       )}
 
-      {/* VP: the setup code stands in for the approval a VP cannot give themselves */}
-      {value.requestedRole === 'VP' && (
+      {/*
+        The setup code stands in for an approval these two roles cannot be
+        given: a department's first VP has nobody above them to approve it,
+        and an LCP has nobody above them at all. The codes are separate
+        secrets — see assertValidSetupCode on the server.
+      */}
+      {isVpLevel(value.requestedRole as UserRole) && (
         <>
-          <Field id="vpSetupCode" label="VP setup code" error={errors.vpSetupCode}>
+          <Field
+            id="vpSetupCode"
+            label={value.requestedRole === 'LCP' ? 'LCP setup code' : 'VP setup code'}
+            error={errors.vpSetupCode}
+          >
             <PasswordInput
               id="vpSetupCode"
-              placeholder="Enter your VP setup code"
+              placeholder={`Enter your ${value.requestedRole === 'LCP' ? 'LCP' : 'VP'} setup code`}
               autoComplete="off"
               aria-invalid={!!errors.vpSetupCode}
               value={value.vpSetupCode}
               onChange={(e) => onChange({ ...value, vpSetupCode: e.target.value })}
             />
           </Field>
-          <p className="rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
-            {selectedDepartment
-              ? `You are signing up as the VP of ${selectedDepartment.name}. A department can only have one VP.`
-              : 'A department can only have one VP.'}{' '}
-            With the correct code your account is active straight away — no
-            approval needed.
-          </p>
         </>
       )}
     </div>

@@ -34,7 +34,7 @@ router.get('/me', UserController.getMe);
  *       403:
  *         description: Caller is not a VP
  */
-router.get('/pending', roleMiddleware(UserRole.VP), AccountApprovalController.listPending);
+router.get('/pending', roleMiddleware(UserRole.VP, UserRole.LCP), AccountApprovalController.listPending);
 
 /**
  * @openapi
@@ -51,7 +51,7 @@ router.get('/pending', roleMiddleware(UserRole.VP), AccountApprovalController.li
  *       403:
  *         description: Caller is not a VP
  */
-router.get('/members', roleMiddleware(UserRole.VP), MemberManagementController.list);
+router.get('/members', roleMiddleware(UserRole.VP, UserRole.LCP), MemberManagementController.list);
 
 /**
  * @openapi
@@ -95,7 +95,7 @@ router.get('/members', roleMiddleware(UserRole.VP), MemberManagementController.l
  *       409:
  *         description: The dispatcher slot is already taken
  */
-router.patch('/:id/access', roleMiddleware(UserRole.VP), MemberManagementController.updateAccess);
+router.patch('/:id/access', roleMiddleware(UserRole.VP, UserRole.LCP), MemberManagementController.updateAccess);
 
 /**
  * @openapi
@@ -139,7 +139,7 @@ router.patch('/:id/access', roleMiddleware(UserRole.VP), MemberManagementControl
  *       409:
  *         description: Already reviewed, or the department already has a VP or dispatcher
  */
-router.post('/:id/approve', roleMiddleware(UserRole.VP), AccountApprovalController.approve);
+router.post('/:id/approve', roleMiddleware(UserRole.VP, UserRole.LCP), AccountApprovalController.approve);
 
 /**
  * @openapi
@@ -173,7 +173,7 @@ router.post('/:id/approve', roleMiddleware(UserRole.VP), AccountApprovalControll
  *       409:
  *         description: Already reviewed
  */
-router.post('/:id/reject', roleMiddleware(UserRole.VP), AccountApprovalController.reject);
+router.post('/:id/reject', roleMiddleware(UserRole.VP, UserRole.LCP), AccountApprovalController.reject);
 
 // PATCH /users/me   update fullName and/or avatarUrl
 router.patch('/me', UserController.updateProfileValidation, UserController.updateProfile);
@@ -228,7 +228,7 @@ router.post(
  */
 router.patch(
   '/:memberId/team-leader',
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   UserManagementController.assignTeamLeader,
 );
 

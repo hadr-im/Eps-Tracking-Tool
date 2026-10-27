@@ -48,6 +48,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   MEMBER: 'Member',
   TEAM_LEADER: 'Team Leader',
   VP: 'Vice President',
+  LCP: 'LC President',
 };
 
 type Tab = 'PENDING' | 'REJECTED';

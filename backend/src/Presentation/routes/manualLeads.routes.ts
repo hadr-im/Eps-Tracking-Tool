@@ -6,7 +6,7 @@ import { UserRole } from '../../Domain/enums/UserRole';
 
 const router = Router();
 
-router.use(authMiddleware, roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP));
+router.use(authMiddleware, roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP));
 
 /**
  * @openapi

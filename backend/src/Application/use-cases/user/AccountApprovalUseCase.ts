@@ -1,6 +1,6 @@
 import { IAuthRepository, GrantedAccess } from '../../../Domain/abstracts/IAuthRepository';
 import { User } from '../../../Domain/entities/User';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AccountStatus } from '../../../Domain/enums/AccountStatus';
 import { UserMapper, UserResponse } from '../../mappers/UserMapper';
 import { AppError } from '../../errors/AppError';
@@ -112,7 +112,7 @@ export class AccountApprovalUseCase {
   // Private helpers
 
   private assertVp(caller: ApprovalCaller): string {
-    if (caller.role !== UserRole.VP) {
+    if (!isVpLevel(caller.role)) {
       throw new AppError('Only a VP can review signup requests', 403);
     }
     if (!caller.departmentId) {

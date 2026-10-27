@@ -3,7 +3,7 @@ import { ICommentRepository, CommentAuthor } from '../../../Domain/abstracts/ICo
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { Comment } from '../../../Domain/entities/Comment';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { TrackingPhase } from '../../../Domain/enums/TrackingPhase';
 import { AppError } from '../../errors/AppError';
 import { EpFilters } from './EpFilters';
@@ -139,7 +139,7 @@ export class EpManagementUseCase {
 
     // A VP oversees the whole department, and every Team Leader can now assign
     // leads across it, so both need to see any member's EPs.
-    if (caller.role === UserRole.VP || caller.role === UserRole.TEAM_LEADER) return;
+    if (isVpLevel(caller.role) || caller.role === UserRole.TEAM_LEADER) return;
 
     if (target.teamLeaderId !== caller.id) {
       throw new AppError('That member is not on your team', 403);

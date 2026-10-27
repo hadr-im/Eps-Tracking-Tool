@@ -24,9 +24,14 @@ export class CompleteGoogleSignupDto {
   @IsEnum(UserRole, { message: 'Select a valid position' })
   requestedRole!: UserRole;
 
+  /*
+    Omitted by an LCP, who oversees every department and so belongs to none at
+    signup — they choose where to start on first sign-in. Required for every
+    other role, which AccessRequestValidator enforces once the role is known.
+  */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Select a department' })
-  requestedDepartmentId!: string;
+  requestedDepartmentId?: string | null;
 
   @IsOptional()
   @IsString()

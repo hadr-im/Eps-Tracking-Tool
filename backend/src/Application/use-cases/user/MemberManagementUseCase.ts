@@ -1,5 +1,5 @@
 import { IAuthRepository, ManagedAccess } from '../../../Domain/abstracts/IAuthRepository';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AccountStatus } from '../../../Domain/enums/AccountStatus';
 import { UserMapper, UserResponse } from '../../mappers/UserMapper';
 import { AppError } from '../../errors/AppError';
@@ -72,10 +72,10 @@ export class MemberManagementUseCase {
     if (user.departmentId !== departmentId) {
       throw new AppError('That member is not in your department', 403);
     }
-    if (user.role === UserRole.VP) {
+    if (isVpLevel(user.role)) {
       throw new AppError('A VP account cannot be changed here', 403);
     }
-    if (changes.role === UserRole.VP) {
+    if (changes.role !== undefined && isVpLevel(changes.role)) {
       throw new AppError(
         'A member cannot be promoted to VP here. The incoming VP signs up with the VP setup code.',
         400,
@@ -119,7 +119,7 @@ export class MemberManagementUseCase {
   // Private helpers
 
   private assertVp(caller: MemberManagementCaller): string {
-    if (caller.role !== UserRole.VP) {
+    if (!isVpLevel(caller.role)) {
       throw new AppError('Only a VP can manage members', 403);
     }
     if (!caller.departmentId) {

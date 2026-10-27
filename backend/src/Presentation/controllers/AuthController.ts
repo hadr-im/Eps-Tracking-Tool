@@ -127,6 +127,28 @@ export class AuthController {
     }
   }
 
+  /*
+    PATCH /auth/me/department — LCP only.
+
+    Returns a new access token alongside the user, because departmentId is a
+    claim inside it: the client has to replace the one it holds or it will go
+    on asking for the previous department until the token expires.
+  */
+  static async switchDepartment(req: Request, res: Response): Promise<void> {
+    try {
+      const { departmentId } = req.body as { departmentId?: string };
+      if (!departmentId || typeof departmentId !== 'string') {
+        res.status(400).json({ message: 'departmentId is required' });
+        return;
+      }
+
+      const result = await authUseCase.switchDepartment(req.user!.id, departmentId);
+      res.status(200).json(result);
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
   // POST /auth/forgot-password 
   static forgotPasswordValidation = validateDto(ForgotPasswordDto);
   static async forgotPassword(req: Request, res: Response): Promise<void> {

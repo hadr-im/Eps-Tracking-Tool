@@ -23,12 +23,13 @@ import { Button } from '@/components/ui/button';
 import { SoftBadge } from '@/components/ui/soft-badge';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { UNIVERSITIES, FIELDS_OF_STUDY } from '@/lib/options';
+import { isVpLevel } from '@/types/auth';
 
 export default function TransitionedEpsPage() {
   const { user } = useAuth();
 
   // Team Leaders and VPs can assign transitioned EPs to a member.
-  const canAssign = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canAssign = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
 
   const [search, setSearch] = useState('');
   const [university, setUniversity] = useState<string | undefined>();

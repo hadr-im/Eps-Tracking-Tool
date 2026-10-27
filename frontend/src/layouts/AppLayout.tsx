@@ -16,6 +16,7 @@ export function AppLayout() {
   // Mobile: sheet open state
   const [sheetOpen, setSheetOpen] = useState(false);
 
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
 

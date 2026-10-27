@@ -13,10 +13,11 @@ import { SoftBadge }            from '@/components/ui/soft-badge';
 import type { ApprovedEp, ApprovedEpFilters as Filters } from '@/types/approvedEp';
 import type { Ep } from '@/types/ep';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { isVpLevel } from '@/types/auth';
 
 export default function ApprovedEpsPage() {
   const { user } = useAuth();
-  const canComment = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canComment = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
   const canReassign = canComment;
 
   const [filters, setFilters] = useState<Filters>({});

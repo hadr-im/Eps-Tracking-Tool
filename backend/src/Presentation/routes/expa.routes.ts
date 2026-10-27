@@ -48,7 +48,7 @@ const router = Router();
 router.post(
   '/sync',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   ExpaController.manualSync,
 );
 

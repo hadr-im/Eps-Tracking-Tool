@@ -4,10 +4,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchDepartments, fetchTeamLeaders } from '../services/signupService';
 
-export function useDepartments() {
+export function useDepartments(enabled = true) {
   return useQuery({
     queryKey: ['signup-options', 'departments'],
     queryFn: fetchDepartments,
+    enabled,
     // The departments themselves never change, but hasVp does,
     // and a stale value would offer a position that is no longer available.
     staleTime: 30_000,

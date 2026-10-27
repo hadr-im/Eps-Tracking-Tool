@@ -16,12 +16,13 @@ import { PaginationBar }    from '@/components/ui/pagination-bar';
 import { SoftBadge }        from '@/components/ui/soft-badge';
 import type { Lead, LeadFilters } from '@/types/lead';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { isVpLevel } from '@/types/auth';
 
 export default function LeadsPage() {
   const { user } = useAuth();
 
   // Team Leaders and VPs may assign leads; members can browse but not assign.
-  const canDispatch = user?.role === 'TEAM_LEADER' || user?.role === 'VP';
+  const canDispatch = user?.role === 'TEAM_LEADER' || isVpLevel(user?.role);
   const departmentId = user?.departmentId ?? null;
 
   const [filters, setFilters] = useState<LeadFilters>({});

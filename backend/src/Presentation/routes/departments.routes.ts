@@ -43,7 +43,9 @@ const router = Router();
 router.get(
   '/:id/members',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP),
+  // Members included: they need the list to pick whose dashboard to look at.
+  // The controller still refuses any department but the caller's own.
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
   DepartmentController.getMembers,
 );
 

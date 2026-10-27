@@ -6,7 +6,7 @@ import { OtpToken } from '../../../Domain/entities/OtpToken';
 import { User } from '../../../Domain/entities/User';
 import { AuthProvider } from '../../../Domain/enums/AuthProvider';
 import { AccountStatus } from '../../../Domain/enums/AccountStatus';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, canSwitchDepartment } from '../../../Domain/enums/UserRole';
 import { BcryptService } from '../../../Infrastructure/services/BcryptService';
 import { JwtService, SetupTokenPayload } from '../../../Infrastructure/jwt/JwtService';
 import { UserMapper, UserResponse } from '../../mappers/UserMapper';
@@ -117,22 +117,41 @@ export class AuthUseCase {
     default when unset.
   */
   private assertValidVpSetupCode(provided: string | undefined): void {
-    const expected = process.env['VP_SIGNUP_CODE'];
+    this.assertValidSetupCode(provided, 'VP_SIGNUP_CODE', 'VP');
+  }
+
+  /*
+    The same gate for an LCP, behind its own secret.
+
+    Deliberately not the VP code: an LCP can reach every department, so sharing
+    one secret would mean anyone trusted to set up a single department's VP
+    could quietly grant themselves the whole LC.
+  */
+  private assertValidLcpSetupCode(provided: string | undefined): void {
+    this.assertValidSetupCode(provided, 'LCP_SIGNUP_CODE', 'LCP');
+  }
+
+  private assertValidSetupCode(
+    provided: string | undefined,
+    envVar: string,
+    label: string,
+  ): void {
+    const expected = process.env[envVar];
     if (!expected) {
       throw new AppError(
-        'VP signup is not configured on this server. Contact your administrator.',
+        `${label} signup is not configured on this server. Contact your administrator.`,
         503,
       );
     }
     if (!provided) {
-      throw new AppError('A VP setup code is required to sign up as a VP.', 400);
+      throw new AppError(`A ${label} setup code is required to sign up as an ${label}.`, 400);
     }
 
     const given = Buffer.from(provided);
     const actual = Buffer.from(expected);
     // Length is compared first because timingSafeEqual throws on a mismatch.
     if (given.length !== actual.length || !crypto.timingSafeEqual(given, actual)) {
-      throw new AppError('That VP setup code is not correct.', 403);
+      throw new AppError(`That ${label} setup code is not correct.`, 403);
     }
   }
 
@@ -187,7 +206,7 @@ export class AuthUseCase {
     const requested = UserMapper.toRequestedAccess(dto);
     await this.accessValidator.validate({
       role: dto.requestedRole,
-      departmentId: dto.requestedDepartmentId,
+      departmentId: dto.requestedDepartmentId ?? null,
       teamLeaderId: requested.teamLeaderId,
     });
 
@@ -199,7 +218,28 @@ export class AuthUseCase {
     if (dto.requestedRole === UserRole.VP) {
       this.assertValidVpSetupCode(dto.vpSetupCode);
       user.role = UserRole.VP;
-      user.departmentId = dto.requestedDepartmentId;
+      user.departmentId = dto.requestedDepartmentId ?? null;
+      user.status = AccountStatus.ACTIVE;
+    }
+
+    /*
+      An LCP supervises every department, so the one picked at signup is only
+      a starting point — they choose where to begin on first sign-in and can
+      move afterwards. It is still stored here so the account is never left
+      without a department, which every department-scoped query assumes.
+    */
+    if (dto.requestedRole === UserRole.LCP) {
+      this.assertValidLcpSetupCode(dto.vpSetupCode);
+      user.role = UserRole.LCP;
+      /*
+        An LCP belongs to no department, but every department-scoped query
+        assumes one, so they start in Global Volunteer and switch from the
+        sidebar. Looked up by programme rather than by the seeded id, which
+        would break quietly if the seed were regenerated; null is tolerated
+        because the alternative is refusing a valid signup over a missing
+        department.
+      */
+      user.departmentId = await this.repo.findDepartmentIdByProduct('GV');
       user.status = AccountStatus.ACTIVE;
     }
 
@@ -291,6 +331,47 @@ export class AuthUseCase {
     return UserMapper.toResponse(user);
   }
 
+  /*
+    Switches which department an LCP is supervising.
+
+    This is the whole of what makes an LCP different from a VP. Rather than a
+    parallel set of cross-department permissions, the LCP simply holds a
+    departmentId like everyone else and is allowed to change it — so every
+    existing department-scoped rule keeps working untouched, and there is no
+    second code path that could disagree with the first about who sees what.
+
+    A fresh access token is minted because departmentId is a claim inside it:
+    without one, the old token would keep scoping requests to the previous
+    department until it expired.
+  */
+  async switchDepartment(
+    userId: string,
+    departmentId: string,
+  ): Promise<{ user: UserResponse; accessToken: string }> {
+    const user = await this.repo.findById(userId);
+    if (!user) throw new AppError('User not found', 404);
+    this.assertCanSignIn(user);
+
+    if (!canSwitchDepartment(user.role)) {
+      throw new AppError('Only an LCP can change which department they supervise', 403);
+    }
+
+    if (!(await this.repo.departmentExists(departmentId))) {
+      throw new AppError('That department does not exist', 400);
+    }
+
+    const updated = await this.repo.setSupervisedDepartment(userId, departmentId);
+
+    return {
+      user: UserMapper.toResponse(updated),
+      accessToken: this.jwt.generateAccessToken({
+        userId: updated.id,
+        role: updated.role,
+        departmentId: updated.departmentId,
+      }),
+    };
+  }
+
   // Google OAuth 
 
   /*
@@ -370,7 +451,7 @@ export class AuthUseCase {
     const requested = UserMapper.toRequestedAccess(dto);
     await this.accessValidator.validate({
       role: dto.requestedRole,
-      departmentId: dto.requestedDepartmentId,
+      departmentId: dto.requestedDepartmentId ?? null,
       teamLeaderId: requested.teamLeaderId,
     });
 
@@ -379,7 +460,28 @@ export class AuthUseCase {
     if (dto.requestedRole === UserRole.VP) {
       this.assertValidVpSetupCode(dto.vpSetupCode);
       user.role = UserRole.VP;
-      user.departmentId = dto.requestedDepartmentId;
+      user.departmentId = dto.requestedDepartmentId ?? null;
+      user.status = AccountStatus.ACTIVE;
+    }
+
+    /*
+      An LCP supervises every department, so the one picked at signup is only
+      a starting point — they choose where to begin on first sign-in and can
+      move afterwards. It is still stored here so the account is never left
+      without a department, which every department-scoped query assumes.
+    */
+    if (dto.requestedRole === UserRole.LCP) {
+      this.assertValidLcpSetupCode(dto.vpSetupCode);
+      user.role = UserRole.LCP;
+      /*
+        An LCP belongs to no department, but every department-scoped query
+        assumes one, so they start in Global Volunteer and switch from the
+        sidebar. Looked up by programme rather than by the seeded id, which
+        would break quietly if the seed were regenerated; null is tolerated
+        because the alternative is refusing a valid signup over a missing
+        department.
+      */
+      user.departmentId = await this.repo.findDepartmentIdByProduct('GV');
       user.status = AccountStatus.ACTIVE;
     }
 

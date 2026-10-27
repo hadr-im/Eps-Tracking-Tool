@@ -48,7 +48,8 @@ export interface SignupPayload {
   password: string;
   fullName: string;
   requestedRole: UserRole;
-  requestedDepartmentId: string;
+  // Null for an LCP, who oversees every department and belongs to none.
+  requestedDepartmentId: string | null;
   requestedTeamLeaderId?: string | null;
   vpSetupCode?: string;
 }
@@ -57,7 +58,8 @@ export interface SignupPayload {
 export interface CompleteGoogleSignupPayload {
   setupToken: string;
   requestedRole: UserRole;
-  requestedDepartmentId: string;
+  // Null for an LCP, who oversees every department and belongs to none.
+  requestedDepartmentId: string | null;
   requestedTeamLeaderId?: string | null;
   vpSetupCode?: string;
 }

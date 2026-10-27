@@ -69,6 +69,20 @@ export interface IAuthRepository {
   findDepartmentUsers(departmentId: string): Promise<User[]>;
   // Applies a role/team/dispatcher/enabled change to an already-approved account
   updateUserAccess(userId: string, access: ManagedAccess): Promise<User>;
+
+  /*
+    Moves an LCP to the department they are supervising. Only the department
+    changes — role, status and everything else stay put, because this is a
+    change of view rather than a change of access.
+  */
+  setSupervisedDepartment(userId: string, departmentId: string): Promise<User>;
+
+  /*
+    The department a given programme belongs to. Used to give a new LCP a
+    starting department without hard-coding a seeded id, which would break
+    quietly if the seed were ever regenerated.
+  */
+  findDepartmentIdByProduct(product: string): Promise<string | null>;
   /*
     The department's current VP, or null. Used to give a friendly error naming
     the existing holder before the DB unique index would reject it.

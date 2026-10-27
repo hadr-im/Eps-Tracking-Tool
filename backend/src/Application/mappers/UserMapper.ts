@@ -88,12 +88,12 @@ export class UserMapper {
   // Normalises the requested-access portion of any signup DTO
   static toRequestedAccess(dto: {
     requestedRole: UserRole;
-    requestedDepartmentId: string;
+    requestedDepartmentId?: string | null;
     requestedTeamLeaderId?: string | null;
   }): RequestedAccess {
     return {
       role: dto.requestedRole,
-      departmentId: dto.requestedDepartmentId,
+      departmentId: dto.requestedDepartmentId ?? null,
       // Only members belong to a Team Leader
       teamLeaderId:
         dto.requestedRole === UserRole.MEMBER ? (dto.requestedTeamLeaderId ?? null) : null,

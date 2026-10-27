@@ -4,7 +4,7 @@ import { IExpaRepository } from '../../../Domain/abstracts/IExpaRepository';
 import { Ep } from '../../../Domain/entities/Ep';
 import { EpStatus } from '../../../Domain/enums/EpStatus';
 import { Product, PROGRAMME_DEPARTMENT_ID } from '../../../Domain/enums/Product';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 import { CallerContext } from './DispatchUseCase';
 import { DispatchFilters } from './DispatchFilters';
@@ -159,7 +159,7 @@ export class ManualLeadUseCase {
   }
 
   private assertCanManage(caller: CallerContext): void {
-    if (caller.role !== UserRole.TEAM_LEADER && caller.role !== UserRole.VP) {
+    if (caller.role !== UserRole.TEAM_LEADER && !isVpLevel(caller.role)) {
       throw new AppError('Only Team Leaders and VPs can manage manual leads', 403);
     }
     if (!caller.departmentId) {

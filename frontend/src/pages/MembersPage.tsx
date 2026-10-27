@@ -38,12 +38,14 @@ import { SoftBadge } from '@/components/ui/soft-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/types/auth';
+import { isVpLevel } from '@/types/auth';
 import type { ManagedMember } from '@/types/members';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   MEMBER: 'Member',
   TEAM_LEADER: 'Team Leader',
   VP: 'Vice President',
+  LCP: 'LC President',
 };
 
 export default function MembersPage() {
@@ -187,7 +189,7 @@ function MemberCard({
   const update = useUpdateMemberAccess();
   const [open, setOpen] = useState(false);
 
-  const locked = isSelf || member.role === 'VP';
+  const locked = isSelf || isVpLevel(member.role);
   const apply = (changes: Parameters<typeof update.mutate>[0]['changes']) =>
     update.mutate({ userId: member.id, changes });
   const assignableLeaders = teamLeaders.filter((tl) => tl.id !== member.id);
@@ -311,7 +313,7 @@ function MemberRow({
 
   // A VP manages everyone except themselves — demoting or disabling your own
   // account would leave the department with no VP and no way to appoint one.
-  const locked = isSelf || member.role === 'VP';
+  const locked = isSelf || isVpLevel(member.role);
 
   const apply = (changes: Parameters<typeof update.mutate>[0]['changes']) =>
     update.mutate({ userId: member.id, changes });

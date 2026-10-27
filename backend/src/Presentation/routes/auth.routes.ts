@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
 import { authMiddleware } from '../middlewares/authMiddleware';
+import { roleMiddleware } from '../middlewares/roleMiddleware';
 import { authRateLimiter } from '../middlewares/rateLimiters';
+import { UserRole } from '../../Domain/enums/UserRole';
 
 const router = Router();
 
@@ -176,6 +178,41 @@ router.post('/logout', authMiddleware, AuthController.logout);
  *         description: Unauthorized
  */
 router.get('/me', authMiddleware, AuthController.me);
+
+/**
+ * @openapi
+ * /auth/me/department:
+ *   patch:
+ *     tags: [Auth]
+ *     summary: Change which department the signed-in LCP supervises
+ *     description: |
+ *       **LCP only** — every other role is bound to the department they were
+ *       approved into and receives 403.
+ *
+ *       Returns a fresh `accessToken`; `departmentId` is a claim inside it, so
+ *       the client must replace the token it holds.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [departmentId]
+ *             properties:
+ *               departmentId: { type: string }
+ *     responses:
+ *       200: { description: Department switched }
+ *       400: { description: Missing or unknown department }
+ *       403: { description: Not an LCP }
+ */
+router.patch(
+  '/me/department',
+  authMiddleware,
+  roleMiddleware(UserRole.LCP),
+  AuthController.switchDepartment,
+);
 
 /**
  * @openapi

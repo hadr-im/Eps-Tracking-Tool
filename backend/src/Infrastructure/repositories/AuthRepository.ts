@@ -246,6 +246,22 @@ export class AuthRepository implements IAuthRepository {
     return this.toUserEntity(row);
   }
 
+  async findDepartmentIdByProduct(product: string): Promise<string | null> {
+    const row = await this.db.department.findFirst({
+      where: { product: product as never },
+      select: { id: true },
+    });
+    return row?.id ?? null;
+  }
+
+  async setSupervisedDepartment(userId: string, departmentId: string): Promise<User> {
+    const row = await this.db.user.update({
+      where: { id: userId },
+      data: { departmentId },
+    });
+    return this.toUserEntity(row);
+  }
+
   async findActiveVp(departmentId: string): Promise<User | null> {
     const row = await this.db.user.findFirst({
       where: { departmentId, role: UserRole.VP, isDisabled: false },

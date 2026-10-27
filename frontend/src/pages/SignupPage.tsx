@@ -28,6 +28,7 @@ import { AuthLayout } from '@/components/auth/AuthLayout'
 import { useDepartments } from '@/hooks/useSignupOptions'
 import { EMPTY_PLACEMENT, type PlacementValue } from '@/types/signup'
 import type { UserRole } from '@/types/auth'
+import { isVpLevel } from '@/types/auth'
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -62,13 +63,13 @@ export default function SignupPage() {
   async function handleFinalSubmit(): Promise<void> {
 
     const nextErrors: Partial<Record<keyof PlacementValue, string>> = {}
-    if (!placement.requestedDepartmentId) {
+    if (placement.requestedRole !== 'LCP' && !placement.requestedDepartmentId) {
       nextErrors.requestedDepartmentId = 'Select your department'
     }
     if (!placement.requestedRole) {
       nextErrors.requestedRole = 'Select your position'
     }
-    if (placement.requestedRole === 'VP' && !placement.vpSetupCode.trim()) {
+    if (isVpLevel(placement.requestedRole as UserRole) && !placement.vpSetupCode.trim()) {
       nextErrors.vpSetupCode = 'Enter your VP setup code'
     }
     setPlacementErrors(nextErrors)
@@ -82,7 +83,7 @@ export default function SignupPage() {
         password: identity.password,
         fullName: identity.fullName,
         requestedRole: placement.requestedRole as UserRole,
-        requestedDepartmentId: placement.requestedDepartmentId,
+        requestedDepartmentId: placement.requestedDepartmentId || null,
         requestedTeamLeaderId: placement.requestedTeamLeaderId,
         vpSetupCode: placement.vpSetupCode.trim() || undefined,
       })
@@ -227,6 +228,8 @@ export default function SignupPage() {
                   <Loader2 size={16} className="animate-spin" />
                   Submitting…
                 </>
+              ) : isVpLevel(placement.requestedRole as UserRole) ? (
+                'Create account'
               ) : (
                 'Submit for approval'
               )}

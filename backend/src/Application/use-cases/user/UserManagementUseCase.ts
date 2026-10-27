@@ -1,6 +1,6 @@
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { User } from '../../../Domain/entities/User';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 
 // Minimal caller shape needed by this use case
@@ -27,7 +27,7 @@ export class UserManagementUseCase {
     teamLeaderId: string | null,
     caller: UserManagementCaller,
   ): Promise<User> {
-    if (caller.role !== UserRole.TEAM_LEADER && caller.role !== UserRole.VP) {
+    if (caller.role !== UserRole.TEAM_LEADER && !isVpLevel(caller.role)) {
       throw new AppError('Only a Team Leader or VP can assign members', 403);
     }
 

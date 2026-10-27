@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import { Toaster }            from './components/ui/sonner'
 import { AuthProvider }       from './context/AuthContext.tsx'
+import { useAuth }            from './hooks/useAuth.ts'
 import { ProtectedRoute }     from './components/auth/ProtectedRoute.tsx'
 import { RoleRoute }          from './components/auth/RoleRoute.tsx'
 import { AppLayout }          from './layouts/AppLayout.tsx'
@@ -86,6 +87,18 @@ const queryClient = new QueryClient({
   },
 })
 
+/*
+  Where signing in puts you.
+
+  An LCP carries no EPs of their own, so "My CRM" would always be empty for
+  them — they land on the department dashboard instead, showing whichever
+  department they are currently supervising.
+*/
+function LandingRedirect() {
+  const { user } = useAuth()
+  return <Navigate to={user?.role === 'LCP' ? '/team/dashboard' : '/crm'} replace />
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
@@ -104,14 +117,14 @@ createRoot(document.getElementById('root')!).render(
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 {/* Redirect root to CRM */}
-                <Route index element={<Navigate to="/crm" replace />} />
+                <Route index element={<LandingRedirect />} />
 
                 {/* All-roles routes */}
                 <Route path="/crm"       element={<MyCrmPage />} />
                 <Route path="/dashboard" element={<MyDashboardPage />} />
 
                 {/* TL + VP routes */}
-                <Route element={<RoleRoute allowed={['TEAM_LEADER', 'VP']} />}>
+                <Route element={<RoleRoute allowed={['TEAM_LEADER', 'VP', 'LCP']} />}>
                   <Route path="/team/crm"           element={<TeamCrmPage />} />
                   <Route path="/team/dashboard"     element={<TeamDashboardPage />} />
                   <Route path="/dispatch"           element={<LeadsPage />} />
@@ -122,7 +135,7 @@ createRoot(document.getElementById('root')!).render(
                 </Route>
 
                 {/* VP-only routes */}
-                <Route element={<RoleRoute allowed={['VP']} />}>
+                <Route element={<RoleRoute allowed={['VP', 'LCP']} />}>
                   <Route path="/global-dashboard" element={<GlobalDashboardPage />} />
                   <Route path="/approvals"        element={<ApprovalsPage />} />
                   <Route path="/members"          element={<MembersPage />} />
