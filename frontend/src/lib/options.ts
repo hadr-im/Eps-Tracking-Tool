@@ -113,3 +113,23 @@ export const YEARS_OF_STUDY = [
   { value: '4', label: '4th year' },
   { value: '5', label: '5th year' },
 ] as const;
+
+/*
+  "How did you hear about us?" on the sign-up form.
+
+  Offered as a dropdown rather than free text because the stored values had
+  already drifted — "Friend" and "a friend" were separate answers, and one
+  lead's source was simply "aaa". A fixed list keeps the field worth filtering
+  and reporting on.
+*/
+export const LEAD_SOURCES = [
+  'Information booth on campus',
+  'Classroom presentation',
+  'Friend',
+  'Event',
+  'Instagram',
+  'Facebook',
+  'Emails',
+  'Media (magazine, TV, newspaper or radio)',
+  'Other',
+] as const;

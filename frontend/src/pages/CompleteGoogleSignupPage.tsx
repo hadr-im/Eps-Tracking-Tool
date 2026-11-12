@@ -18,7 +18,7 @@ import { StepIndicator } from '@/components/auth/StepIndicator';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { EMPTY_PLACEMENT, type PlacementValue } from '@/types/signup';
 import type { UserRole } from '@/types/auth';
-import { isVpLevel } from '@/types/auth';
+import { isVpLevel, canSwitchDepartment } from '@/types/auth';
 
 export default function CompleteGoogleSignupPage() {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export default function CompleteGoogleSignupPage() {
   async function handleSubmit(): Promise<void> {
 
     const nextErrors: Partial<Record<keyof PlacementValue, string>> = {};
-    if (placement.requestedRole !== 'LCP' && !placement.requestedDepartmentId) {
+    if (!canSwitchDepartment(placement.requestedRole as UserRole) && !placement.requestedDepartmentId) {
       nextErrors.requestedDepartmentId = 'Select your department';
     }
     if (!placement.requestedRole) {

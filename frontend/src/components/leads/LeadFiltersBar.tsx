@@ -11,11 +11,14 @@
   that stops a request firing on every keystroke.
 */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EpFilterBar } from '@/components/filters/EpFilterBar';
+import { MultiFilterSelect } from '@/components/filters/MultiFilterSelect';
+import { useAuth } from '@/hooks/useAuth';
+import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { FilterSelect } from '@/components/filters/FilterSelect';
 import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
 import { UNIVERSITIES, FIELDS_OF_STUDY, YEARS_OF_STUDY } from '@/lib/options';
@@ -29,7 +32,7 @@ interface LeadFiltersBarProps {
 }
 
 // Everything except search, which is debounced separately.
-const PARAM_KEYS = ['university', 'fieldOfStudy', 'yearOfStudy', 'createdFrom', 'createdTo'] as const;
+const PARAM_KEYS = ['university', 'fieldOfStudy', 'yearOfStudy', 'createdFrom', 'createdTo', 'ownerIds'] as const;
 
 export function LeadFiltersBar({
   onFiltersChange,
@@ -38,6 +41,14 @@ export function LeadFiltersBar({
   onDispatch,
 }: LeadFiltersBarProps) {
   const [params, setParams] = useSearchParams();
+
+  // Who the department's leads can be dispatched to, for the member filter.
+  const { user } = useAuth();
+  const { data: members = [] } = useDepartmentMembers(user?.departmentId ?? null);
+  const memberOptions = useMemo(
+    () => members.map((m) => ({ value: m.id, label: m.fullName })),
+    [members],
+  );
 
   const [searchInput, setSearchInput] = useState(params.get('search') ?? '');
   const search = params.get('search') ?? undefined;
@@ -64,6 +75,7 @@ export function LeadFiltersBar({
   useEffect(() => {
     onFiltersChange({
       search,
+      ownerIds: read('ownerIds')?.split(',').filter(Boolean) ?? [],
       university: read('university'),
       fieldOfStudy: read('fieldOfStudy'),
       yearOfStudy: read('yearOfStudy'),
@@ -99,7 +111,7 @@ export function LeadFiltersBar({
       idPrefix="leads"
       search={searchInput}
       onSearchChange={setSearchInput}
-      placeholder="Search by name…"
+      placeholder="Search name, phone or EP ID…"
       hasActiveFilters={hasActiveFilters}
       onClearFilters={clearAll}
       filters={
@@ -124,6 +136,13 @@ export function LeadFiltersBar({
             options={YEARS_OF_STUDY}
             allLabel="All years"
             className="w-28"
+          />
+          <MultiFilterSelect
+            values={read('ownerIds')?.split(',').filter(Boolean) ?? []}
+            onChange={(ids) => setParam({ ownerIds: ids.length ? ids.join(',') : undefined })}
+            options={memberOptions}
+            allLabel="All members"
+            className="w-36"
           />
           <DateRangeFilter
             from={read('createdFrom')}

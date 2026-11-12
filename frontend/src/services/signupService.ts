@@ -22,6 +22,22 @@ export async function fetchDepartments(): Promise<Department[]> {
   return data.data;
 }
 
+export interface PositionAvailability {
+  lcpTaken: boolean;
+  adminTaken: boolean;
+}
+
+/*
+  Which single-holder positions are still open. The VP position is
+  per-department and comes from `hasVp` on the departments lookup instead.
+*/
+export async function fetchPositionAvailability(): Promise<PositionAvailability> {
+  const { data } = await apiClient.get<{ data: PositionAvailability }>(
+    '/auth/signup-options/positions',
+  );
+  return data.data;
+}
+
 export async function fetchTeamLeaders(departmentId: string): Promise<TeamLeaderOption[]> {
   const { data } = await apiClient.get<ListResponse<TeamLeaderOption>>(
     `/auth/signup-options/departments/${departmentId}/team-leaders`,

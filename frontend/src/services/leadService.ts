@@ -30,6 +30,8 @@ export async function fetchLeads(
   };
 
   if (filters.search)       params['search']       = filters.search;
+  // Comma-separated: the API accepts either this or a repeated key.
+  if (filters.ownerIds?.length) params['ownerIds'] = filters.ownerIds.join(',');
   if (filters.university)   params['university']   = filters.university;
   if (filters.fieldOfStudy) params['fieldOfStudy'] = filters.fieldOfStudy;
   if (filters.yearOfStudy)  params['yearOfStudy']  = filters.yearOfStudy;

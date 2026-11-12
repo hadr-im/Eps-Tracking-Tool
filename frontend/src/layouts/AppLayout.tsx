@@ -32,7 +32,7 @@ export function AppLayout() {
         suppressed their backdrops (the comments drawer opened undimmed).
       */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="left" className="w-64! p-0 border-r">
+        <SheetContent side="left" className="p-0 border-r">
           <SidebarBody collapsed={false} onNavClick={() => setSheetOpen(false)} />
         </SheetContent>
       </Sheet>

@@ -38,7 +38,10 @@ export interface ExpaLookupResult {
   fieldOfStudy: string | null;
   createdAtExpa: string;
   statusOnExpa: string;
+  // True only when they are already a lead in YOUR department.
   alreadyExists: boolean;
+  // Every department they appear in, yours included.
+  existingDepartmentIds: string[];
 }
 
 export interface ExpaLookupApiResponse {

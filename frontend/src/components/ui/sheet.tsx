@@ -66,9 +66,9 @@ function SheetContent({
           [
             'fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl',
             'transition-transform duration-300 ease-out data-ending-style:duration-200',
-            'data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:sm:max-w-xs',
+            'data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-[88%] data-[side=left]:border-r data-[side=left]:sm:max-w-sm',
             'data-[side=left]:data-starting-style:-translate-x-full data-[side=left]:data-ending-style:-translate-x-full',
-            'data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:sm:max-w-sm',
+            'data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-[92%] data-[side=right]:border-l data-[side=right]:sm:max-w-md',
             'data-[side=right]:data-starting-style:translate-x-full data-[side=right]:data-ending-style:translate-x-full',
             'data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b',
             'data-[side=top]:data-starting-style:-translate-y-full data-[side=top]:data-ending-style:-translate-y-full',

@@ -18,6 +18,7 @@ import { cn }                    from '@/lib/utils';
 import { Button }               from '@/components/ui/button';
 import { AlertCircle }          from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { isVpLevel } from '@/types/auth';
 
 export default function TeamDashboardPage() {
   const { user } = useAuth();
@@ -29,7 +30,15 @@ export default function TeamDashboardPage() {
   const { data: allMembers = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
 
   // Only show MEMBER-role users — exclude the TL themselves and any VP accounts
-  const members = allMembers.filter((m) => m.role === 'MEMBER');
+  /*
+    Team Leaders carry their own EPs, so a VP overseeing the department needs
+    to see their pipeline too — leaving them out meant part of the department's
+    work was invisible from here. A Team Leader still sees only members, since
+    their peers are not theirs to oversee.
+  */
+  const members = allMembers.filter(
+    (m) => m.role === 'MEMBER' || (isVpLevel(user?.role) && m.role === 'TEAM_LEADER'),
+  );
   const { data, isLoading, isError } = useMyDashboard({ memberId: selectedMemberId ?? undefined });
 
   function handleSelectMember(id: string) {

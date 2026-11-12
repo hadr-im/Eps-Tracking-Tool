@@ -4,7 +4,7 @@
 //   backend/src/Application/mappers/UserMapper.ts
 
 // Mirrors backend/src/Domain/enums/UserRole.ts 
-export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP' | 'LCP';
+export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP' | 'LCP' | 'ADMIN';
 
 /*
   An LCP has a VP's authority over whichever department they are currently
@@ -13,12 +13,21 @@ export type UserRole = 'MEMBER' | 'TEAM_LEADER' | 'VP' | 'LCP';
   from having to be remembered in a dozen separate comparisons.
 */
 export function isVpLevel(role: UserRole | undefined): boolean {
-  return role === 'VP' || role === 'LCP';
+  return role === 'VP' || role === 'LCP' || role === 'ADMIN';
 }
 
-// Only an LCP can move between departments.
+/*
+  Roles that oversee the whole LC rather than one department. They carry a
+  departmentId only to say which one they are currently looking at, which is
+  why they can change it and nobody else can.
+*/
 export function canSwitchDepartment(role: UserRole | undefined): boolean {
-  return role === 'LCP';
+  return role === 'LCP' || role === 'ADMIN';
+}
+
+// The admin area belongs to whoever owns the installation.
+export function isAdmin(role: UserRole | undefined): boolean {
+  return role === 'ADMIN';
 }
 
 // Mirrors backend/src/Domain/enums/AuthProvider.ts

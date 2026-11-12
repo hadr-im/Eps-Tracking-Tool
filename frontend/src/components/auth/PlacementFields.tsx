@@ -15,12 +15,16 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Field, PasswordInput } from '@/components/auth/AuthFormFields';
-import { useDepartments, useTeamLeaders } from '@/hooks/useSignupOptions';
+import {
+  useDepartments,
+  useTeamLeaders,
+  usePositionAvailability,
+} from '@/hooks/useSignupOptions';
 import { cn } from '@/lib/utils';
 import { productBrand } from '@/lib/productBrand';
 import type { UserRole } from '@/types/auth';
 import type { PlacementValue } from '@/types/signup';
-import { isVpLevel } from '@/types/auth';
+import { isVpLevel, canSwitchDepartment } from '@/types/auth';
 
 // Department label: product logo on the left, name in the product's colour.
 function DepartmentOption({ name, product }: { name: string; product: string }) {
@@ -40,9 +44,17 @@ const ROLE_LABELS: Record<UserRole, string> = {
   TEAM_LEADER: 'Team Leader',
   VP: 'Vice President',
   LCP: 'LC President',
+  ADMIN: 'Admin',
 };
 
-const ROLE_ORDER: UserRole[] = ['MEMBER', 'TEAM_LEADER', 'VP', 'LCP'];
+// Which secret each privileged role is gated behind.
+const SETUP_CODE_LABEL: Partial<Record<UserRole, string>> = {
+  VP: 'VP',
+  LCP: 'LCP',
+  ADMIN: 'Admin',
+};
+
+const ROLE_ORDER: UserRole[] = ['MEMBER', 'TEAM_LEADER', 'VP', 'LCP', 'ADMIN'];
 
 // Sentinel for "I don't know yet" — Select cannot hold a null value.
 const NO_TEAM_LEADER = '__none__';
@@ -61,14 +73,33 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
     isError: departmentsFailed,
     refetch: refetchDepartments,
   } = useDepartments();
+  const { data: positions } = usePositionAvailability();
   const { data: teamLeaders = [], isLoading: loadingTeamLeaders } = useTeamLeaders(
     value.requestedDepartmentId || null,
   );
 
 
-  // Every position is offered; the department step below is where the
-  // one-VP-per-department rule is applied.
-  const availableRoles = ROLE_ORDER;
+  /*
+    A position that cannot be granted is dropped rather than offered and then
+    refused on submit.
+
+    LCP and admin are one per installation. VP is one per department, so it
+    survives as long as a single department is still without one — which
+    department that is gets handled below, where taken ones are disabled.
+
+    While the lookup is in flight nothing is hidden: briefly showing an option
+    that turns out to be taken is better than briefly hiding one that is free,
+    since the first is corrected by the server and the second looks like the
+    position does not exist.
+  */
+  const someDepartmentNeedsAVp = departments.length === 0 || departments.some((d) => !d.hasVp);
+
+  const availableRoles = ROLE_ORDER.filter((role) => {
+    if (role === 'LCP') return !positions?.lcpTaken;
+    if (role === 'ADMIN') return !positions?.adminTaken;
+    if (role === 'VP') return someDepartmentNeedsAVp;
+    return true;
+  });
 
   // A department that already has a VP is a dead end for someone applying as
   // one, so it is shown as unavailable rather than silently failing on submit.
@@ -101,7 +132,7 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
     onChange({
       ...value,
       requestedRole: role,
-      requestedDepartmentId: role === 'LCP' ? '' : value.requestedDepartmentId,
+      requestedDepartmentId: canSwitchDepartment(role) ? '' : value.requestedDepartmentId,
       requestedTeamLeaderId: role === 'MEMBER' ? value.requestedTeamLeaderId : null,
       vpSetupCode: isVpLevel(role) ? value.vpSetupCode : '',
     });
@@ -138,7 +169,7 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
       )}
 
       {/* Department — an LCP has none, so the field is not shown at all */}
-      {value.requestedRole !== 'LCP' && (
+      {!canSwitchDepartment(value.requestedRole as UserRole) && (
       <Field id="department" label="Department" error={errors.requestedDepartmentId}>
         {loadingDepartments ? (
           <div className="flex h-9 items-center gap-2 text-sm text-muted-foreground">
@@ -255,12 +286,12 @@ export function PlacementFields({ value, onChange, errors = {} }: PlacementField
         <>
           <Field
             id="vpSetupCode"
-            label={value.requestedRole === 'LCP' ? 'LCP setup code' : 'VP setup code'}
+            label={`${SETUP_CODE_LABEL[value.requestedRole as UserRole] ?? 'VP'} setup code`}
             error={errors.vpSetupCode}
           >
             <PasswordInput
               id="vpSetupCode"
-              placeholder={`Enter your ${value.requestedRole === 'LCP' ? 'LCP' : 'VP'} setup code`}
+              placeholder={`Enter your ${SETUP_CODE_LABEL[value.requestedRole as UserRole] ?? 'VP'} setup code`}
               autoComplete="off"
               aria-invalid={!!errors.vpSetupCode}
               value={value.vpSetupCode}

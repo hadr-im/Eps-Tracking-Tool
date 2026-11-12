@@ -1,4 +1,4 @@
-import { isVpLevel, canSwitchDepartment } from '@/types/auth';
+import { isVpLevel, canSwitchDepartment, isAdmin } from '@/types/auth';
 import { productBrand } from '@/lib/productBrand';
 import { useDepartments } from '@/hooks/useSignupOptions';
 import { useSwitchDepartment } from '@/hooks/useSwitchDepartment';
@@ -14,6 +14,7 @@ import {
   Hourglass,
   LayoutDashboard,
   Building2,
+  ShieldCheck,
   Send,
   UserCheck,
   UserCog,
@@ -38,6 +39,7 @@ const ROLE_CODES: Record<string, string> = {
   TEAM_LEADER: 'TL',
   VP: 'VP',
   LCP: 'LCP',
+  ADMIN: 'ADMIN',
 };
 
 // Nav section definitions (Team section gated by role in the render)
@@ -334,6 +336,19 @@ export function SidebarBody({ collapsed, onNavClick }: SidebarBodyProps) {
                     collapsed={collapsed}
                     onClick={onNavClick}
                   />
+                  {/*
+                    Admin area — the owner of the installation only. Sits last
+                    so it reads as a level above the department work above it.
+                  */}
+                  {isAdmin(user?.role) && (
+                    <NavItem
+                      to="/admin"
+                      icon={ShieldCheck}
+                      label="Admin"
+                      collapsed={collapsed}
+                      onClick={onNavClick}
+                    />
+                  )}
                   <NavItem
                     to="/members"
                     icon={UserCog}

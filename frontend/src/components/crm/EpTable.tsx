@@ -24,6 +24,8 @@ import { StatusBadgeCell }     from './cells/StatusBadgeCell';
 import { CheckboxCell }        from './cells/CheckboxCell';
 import { TrackingPhaseCell }   from './cells/TrackingPhaseCell';
 import { EditableTextCell }    from './cells/EditableTextCell';
+import { OptionCell }          from './cells/OptionCell';
+import { UNIVERSITIES, FIELDS_OF_STUDY, YEARS_OF_STUDY, LEAD_SOURCES } from '@/lib/options';
 import { TruncatedText }       from './cells/TruncatedText';
 import { DateCell }            from './cells/DateCell';
 import { TransitionCell }      from './cells/TransitionCell';
@@ -159,32 +161,64 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
     col.accessor('university', {
       id: 'university',
       header: 'University',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
         <TruncatedText
           value={info.getValue()}
           className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
         />
+      ) : (
+        <OptionCell
+          id={info.row.original.id}
+          field="university"
+          value={info.getValue()}
+          options={UNIVERSITIES}
+          placeholder="set university"
+          isPending={pendingId === info.row.original.id}
+          onUpdate={onTextUpdate}
+          wide
+        />
       ),
-      meta: { minWidth: 130 },
+      meta: { minWidth: 150 },
     }),
     col.accessor('fieldOfStudy', {
       id: 'fieldOfStudy',
       header: 'Field of Study',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
         <TruncatedText
           value={info.getValue()}
           className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden"
         />
+      ) : (
+        <OptionCell
+          id={info.row.original.id}
+          field="fieldOfStudy"
+          value={info.getValue()}
+          options={FIELDS_OF_STUDY}
+          placeholder="set field"
+          isPending={pendingId === info.row.original.id}
+          onUpdate={onTextUpdate}
+          wide
+        />
       ),
-      meta: { minWidth: 130 },
+      meta: { minWidth: 150 },
     }),
     col.accessor('yearOfStudy', {
       id: 'yearOfStudy',
       header: 'Year',
-      cell: (info) => (
+      cell: (info) => readOnly ? (
         <span className="text-xs">{info.getValue() ?? <span className="text-muted-foreground">—</span>}</span>
+      ) : (
+        <OptionCell
+          id={info.row.original.id}
+          field="yearOfStudy"
+          value={info.getValue()}
+          options={YEARS_OF_STUDY}
+          placeholder="set year"
+          isPending={pendingId === info.row.original.id}
+          onUpdate={onTextUpdate}
+        />
       ),
-      meta: { minWidth: 60 },
+      meta: { minWidth: 100 },
     }),
 
     // CRM 
@@ -197,17 +231,18 @@ function buildColumns(props: Omit<EpTableProps, 'eps' | 'isLoading'>): ColumnDef
           className="text-xs max-w-40 block truncate whitespace-nowrap overflow-hidden mx-auto"
         />
       ) : (
-        <div className="flex justify-center w-full">
-          <EditableTextCell
-            id={info.row.original.id}
-            field="source"
-            value={info.getValue()}
-            isPending={pendingId === info.row.original.id}
-            onUpdate={onTextUpdate}
-          />
-        </div>
+        <OptionCell
+          id={info.row.original.id}
+          field="source"
+          value={info.getValue()}
+          options={LEAD_SOURCES}
+          placeholder="set source"
+          isPending={pendingId === info.row.original.id}
+          onUpdate={onTextUpdate}
+          wide
+        />
       ),
-      meta: { minWidth: 120 },
+      meta: { minWidth: 150 },
     }),
     col.accessor('cvLink', {
       id: 'cvLink',

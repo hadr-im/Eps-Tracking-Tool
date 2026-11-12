@@ -8,7 +8,7 @@
 // Both land in the caller's own department; that is decided server-side.
 
 import { useState } from 'react';
-import { Loader2, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { useCreateManualLead, useExpaLookup } from '@/hooks/useManualLeads';
 import type { ManualLeadPayload } from '@/types/manualLead';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { brandForDepartment } from '@/lib/productBrand';
 
 interface AddManualLeadDialogProps {
   open: boolean;
@@ -51,6 +53,14 @@ export function AddManualLeadDialog({ open, onClose }: AddManualLeadDialogProps)
   // Set once a lookup succeeds, so the form shows a reviewed-and-ready state.
   const [prefilled, setPrefilled] = useState(false);
   const [alreadyExists, setAlreadyExists] = useState(false);
+  const [existingDepartments, setExistingDepartments] = useState<string[]>([]);
+
+  const { user } = useAuth();
+
+  const myDepartmentLabel = brandForDepartment(user?.departmentId)?.label ?? null;
+  const otherDepartmentLabels = existingDepartments
+    .filter((id) => id !== user?.departmentId)
+    .map((id) => brandForDepartment(id)?.label ?? id);
 
   const { mutate: lookup, isPending: isLooking } = useExpaLookup();
   const { mutate: create, isPending: isSaving } = useCreateManualLead();
@@ -93,6 +103,7 @@ export function AddManualLeadDialog({ open, onClose }: AddManualLeadDialogProps)
         });
         setPrefilled(true);
         setAlreadyExists(person.alreadyExists);
+        setExistingDepartments(person.existingDepartmentIds ?? []);
       },
     });
   }
@@ -176,10 +187,25 @@ export function AddManualLeadDialog({ open, onClose }: AddManualLeadDialogProps)
               </p>
             )}
 
+            {/*
+              Only a clash in your OWN department blocks the add. Existing
+              elsewhere is normal — someone who ticked two programmes belongs
+              in both — so that case is a note, not an error.
+            */}
             {alreadyExists && (
               <p className="flex items-start gap-1.5 text-xs text-destructive">
                 <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                This EP is already in the system, so it cannot be added again.
+                This EP is already a lead in your department
+                {myDepartmentLabel ? ` (${myDepartmentLabel})` : ''}, so they
+                cannot be added again.
+              </p>
+            )}
+
+            {!alreadyExists && otherDepartmentLabels.length > 0 && (
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info size={13} className="mt-0.5 shrink-0" />
+                This EP is already a lead in {otherDepartmentLabels.join(' and ')}.
+                You can still add them to your department.
               </p>
             )}
           </div>

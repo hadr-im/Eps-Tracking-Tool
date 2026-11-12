@@ -46,6 +46,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   TEAM_LEADER: 'Team Leader',
   VP: 'Vice President',
   LCP: 'LC President',
+  ADMIN: 'Admin',
 };
 
 export default function MembersPage() {

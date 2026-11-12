@@ -28,7 +28,7 @@ import { AuthLayout } from '@/components/auth/AuthLayout'
 import { useDepartments } from '@/hooks/useSignupOptions'
 import { EMPTY_PLACEMENT, type PlacementValue } from '@/types/signup'
 import type { UserRole } from '@/types/auth'
-import { isVpLevel } from '@/types/auth'
+import { isVpLevel, canSwitchDepartment } from '@/types/auth'
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -63,7 +63,7 @@ export default function SignupPage() {
   async function handleFinalSubmit(): Promise<void> {
 
     const nextErrors: Partial<Record<keyof PlacementValue, string>> = {}
-    if (placement.requestedRole !== 'LCP' && !placement.requestedDepartmentId) {
+    if (!canSwitchDepartment(placement.requestedRole as UserRole) && !placement.requestedDepartmentId) {
       nextErrors.requestedDepartmentId = 'Select your department'
     }
     if (!placement.requestedRole) {

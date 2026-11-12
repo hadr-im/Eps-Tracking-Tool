@@ -76,6 +76,8 @@ function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
     id: 'select',
     header: ({ table }) => {
       const { selectedSet, allIds, togglePage } = metaOf(table);
+      // allIds already excludes dispatched rows, so "select all" cannot pick
+      // one that its own checkbox refuses.
       const allSelected = allIds.length > 0 && allIds.every((id) => selectedSet.has(id));
       const someSelected = allIds.some((id) => selectedSet.has(id));
       return (
@@ -93,6 +95,16 @@ function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
     cell: (info) => {
       const id = info.row.original.id;
       const { selectedSet, toggleOne } = metaOf(info.table);
+      /*
+        A dispatched lead gets no checkbox at all rather than a disabled one.
+        Reassignment goes through the member's CRM, not by sending the same
+        lead to a second person from here — and a greyed-out control reads as
+        something broken, so the row simply leaves the cell empty.
+      */
+      if (info.row.original.ownerId) {
+        return <div className="flex justify-center" aria-hidden />;
+      }
+
       return (
         <div className="flex justify-center">
           <Checkbox
@@ -114,6 +126,24 @@ function buildColumns(canDispatch: boolean): ColumnDef<Lead, any>[] {
         <span className="font-medium text-sm whitespace-nowrap">{info.getValue()}</span>
       ),
       meta: { sticky: 'left', minWidth: 160 },
+    }),
+    /*
+      Who has the lead. A dispatched lead stays in this list rather than
+      disappearing, so this column is what separates "already handled" from
+      "still waiting" — without it the two look identical.
+    */
+    col.accessor('memberName', {
+      id: 'memberName',
+      header: 'Dispatched To',
+      cell: (info) => {
+        const name = info.getValue() as string | null;
+        return name ? (
+          <span className="whitespace-nowrap text-sm">{name}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Unassigned</span>
+        );
+      },
+      meta: { minWidth: 150 },
     }),
     col.accessor('expaId', {
       id: 'id',
@@ -280,7 +310,15 @@ export function LeadTable({
   selectedIds,
   onSelectionChange,
 }: LeadTableProps) {
-  const allIds = useMemo(() => leads.map((l) => l.id), [leads]);
+  /*
+    Only the rows that can actually be ticked. A dispatched lead is shown but
+    locked, so counting it here would leave the header checkbox permanently
+    indeterminate and let "select all" queue a lead the server would refuse.
+  */
+  const allIds = useMemo(
+    () => leads.filter((l) => !l.ownerId).map((l) => l.id),
+    [leads],
+  );
 
   // Membership is checked once per row on every render; an array would make
   // that O(n²) — about 165,000 comparisons on a 400-lead department.

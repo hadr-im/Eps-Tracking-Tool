@@ -7,6 +7,7 @@ import './index.css'
 import { Toaster }            from './components/ui/sonner'
 import { AuthProvider }       from './context/AuthContext.tsx'
 import { useAuth }            from './hooks/useAuth.ts'
+import { canSwitchDepartment } from './types/auth.ts'
 import { ProtectedRoute }     from './components/auth/ProtectedRoute.tsx'
 import { RoleRoute }          from './components/auth/RoleRoute.tsx'
 import { AppLayout }          from './layouts/AppLayout.tsx'
@@ -37,6 +38,7 @@ const ProfilePage            = lazy(() => import('./pages/ProfilePage.tsx'))
 const TransitionedEpsPage    = lazy(() => import('./pages/TransitionedEpsPage.tsx'))
 const ApprovalsPage          = lazy(() => import('./pages/ApprovalsPage.tsx'))
 const MembersPage            = lazy(() => import('./pages/MembersPage.tsx'))
+const AdminDashboardPage     = lazy(() => import('./pages/AdminDashboardPage.tsx'))
 
 // Pages: public
 import LoginPage             from './pages/LoginPage.tsx'
@@ -90,13 +92,13 @@ const queryClient = new QueryClient({
 /*
   Where signing in puts you.
 
-  An LCP carries no EPs of their own, so "My CRM" would always be empty for
-  them — they land on the department dashboard instead, showing whichever
-  department they are currently supervising.
+  The LC-wide roles carry no EPs of their own, so "My CRM" would always be
+  empty for them — they land on the department dashboard instead, showing
+  whichever department they are currently supervising.
 */
 function LandingRedirect() {
   const { user } = useAuth()
-  return <Navigate to={user?.role === 'LCP' ? '/team/dashboard' : '/crm'} replace />
+  return <Navigate to={canSwitchDepartment(user?.role) ? '/team/dashboard' : '/crm'} replace />
 }
 
 createRoot(document.getElementById('root')!).render(
@@ -124,7 +126,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/dashboard" element={<MyDashboardPage />} />
 
                 {/* TL + VP routes */}
-                <Route element={<RoleRoute allowed={['TEAM_LEADER', 'VP', 'LCP']} />}>
+                <Route element={<RoleRoute allowed={['TEAM_LEADER', 'VP', 'LCP', 'ADMIN']} />}>
                   <Route path="/team/crm"           element={<TeamCrmPage />} />
                   <Route path="/team/dashboard"     element={<TeamDashboardPage />} />
                   <Route path="/dispatch"           element={<LeadsPage />} />
@@ -134,8 +136,13 @@ createRoot(document.getElementById('root')!).render(
                   <Route path="/team/transitioned-eps" element={<TransitionedEpsPage />} />
                 </Route>
 
-                {/* VP-only routes */}
-                <Route element={<RoleRoute allowed={['VP', 'LCP']} />}>
+                {/* Admin-only: the owner of the installation */}
+                <Route element={<RoleRoute allowed={['ADMIN']} />}>
+                  <Route path="/admin" element={<AdminDashboardPage />} />
+                </Route>
+
+                {/* VP-level routes */}
+                <Route element={<RoleRoute allowed={['VP', 'LCP', 'ADMIN']} />}>
                   <Route path="/global-dashboard" element={<GlobalDashboardPage />} />
                   <Route path="/approvals"        element={<ApprovalsPage />} />
                   <Route path="/members"          element={<MembersPage />} />

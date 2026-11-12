@@ -9,6 +9,8 @@ import { ChevronDown, User, FileSpreadsheet , Star } from 'lucide-react';
 import { StatusBadgeCell }   from './cells/StatusBadgeCell';
 import { TrackingPhaseCell } from './cells/TrackingPhaseCell';
 import { EditableTextCell }  from './cells/EditableTextCell';
+import { OptionCell }        from './cells/OptionCell';
+import { UNIVERSITIES, FIELDS_OF_STUDY, YEARS_OF_STUDY, LEAD_SOURCES } from '@/lib/options';
 import { CheckboxCell }      from './cells/CheckboxCell';
 import { DateCell }          from './cells/DateCell';
 import { DurationCell }      from './cells/DurationCell';
@@ -104,14 +106,25 @@ export function EpDetailSheet({
             <Row label="Phone">
               <ReadOnlyField>{ep.phone ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
             </Row>
+            {/*
+              Editable here as well as in the table: the sheet is where most
+              people read a lead, so finding a wrong university and having to
+              go back to the grid to fix it would be the obvious gap.
+            */}
             <Row label="University">
-              <ReadOnlyField>{ep.university ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+              <OptionCell id={ep.id} field="university" value={ep.university}
+                options={UNIVERSITIES} placeholder="set university"
+                isPending={isPending} onUpdate={onTextUpdate} wide />
             </Row>
             <Row label="Field of Study">
-              <ReadOnlyField>{ep.fieldOfStudy ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+              <OptionCell id={ep.id} field="fieldOfStudy" value={ep.fieldOfStudy}
+                options={FIELDS_OF_STUDY} placeholder="set field"
+                isPending={isPending} onUpdate={onTextUpdate} wide />
             </Row>
             <Row label="Year">
-              <ReadOnlyField>{ep.yearOfStudy ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+              <OptionCell id={ep.id} field="yearOfStudy" value={ep.yearOfStudy}
+                options={YEARS_OF_STUDY} placeholder="set year"
+                isPending={isPending} onUpdate={onTextUpdate} />
             </Row>
             <Row label="Created on">
               <ReadOnlyField><DateCell value={ep.createdAtExpa} /></ReadOnlyField>
@@ -142,7 +155,9 @@ export function EpDetailSheet({
               <ReadOnlyField><DateCell value={ep.assignedAt} /></ReadOnlyField>
             </Row>
             <Row label="Source">
-              <EditableTextCell id={ep.id} field="source" value={ep.source} isPending={isPending} onUpdate={onTextUpdate} />
+              <OptionCell id={ep.id} field="source" value={ep.source}
+                options={LEAD_SOURCES} placeholder="set source"
+                isPending={isPending} onUpdate={onTextUpdate} wide />
             </Row>
             <Row label="CV Link">
               <div className="flex items-center gap-2 w-full">

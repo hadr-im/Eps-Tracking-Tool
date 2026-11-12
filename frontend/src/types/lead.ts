@@ -20,6 +20,12 @@ export interface Lead {
   createdAtExpa: string;   // ISO date string
   source: string | null;
   ownerId: string | null;
+  /*
+    Name of the member it was dispatched to, null while still in the pool.
+    Optional because Transitioned EPs reuses this table with Ep rows, which
+    are unassigned by definition and so never carry one.
+  */
+  memberName?: string | null;
   departmentId: string;
 }
 
@@ -27,7 +33,10 @@ export type LeadsApiResponse = Page<Lead>;
 
 // Filter params accepted by GET /leads
 export interface LeadFilters {
-  search?: string;        // client-side debounced full-name search
+  // Matches a name, a phone number or an EXPA id (debounced, server-side)
+  search?: string;
+  // Members the lead was dispatched to; empty means no constraint
+  ownerIds?: string[];
   university?: string;
   fieldOfStudy?: string;
   // Sent as a string because it comes from a select; the API parses it.
