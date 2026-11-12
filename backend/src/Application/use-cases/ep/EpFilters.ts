@@ -39,4 +39,10 @@ export interface EpFilters {
   hostingLC?: string;
   // If true, returns only EPs that have no owner assigned
   unassignedOnly?: boolean;
+  /*
+    Restrict to EPs owned by any of these members. Empty or omitted means no
+    constraint; the dispatch page uses it to answer "show me what I gave to
+    these three people".
+  */
+  ownerIds?: string[];
 }

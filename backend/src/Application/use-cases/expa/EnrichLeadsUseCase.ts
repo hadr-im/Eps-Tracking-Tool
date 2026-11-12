@@ -231,13 +231,23 @@ export class EnrichLeadsUseCase {
       Safe to overwrite because neither field is in EpUpdateData — the CRM
       cannot edit them, so there is never a member's correction underneath.
     */
-    if (signup.university && signup.university !== ep.university) {
+    /*
+      Fills a blank, never replaces an answer.
+
+      These two used to let the sheet win outright, on the grounds that the
+      form was the better source. Now that members can correct them from the
+      CRM, that rule would quietly undo their work on the next run — thirty
+      minutes later, with no sign anything had happened. A person looking at
+      the lead beats a form the lead filled in months ago.
+    */
+    if (signup.university && isBlank(ep.university)) {
       update.university = signup.university;
       result.fields.university++;
       changed = true;
     }
 
-    if (signup.fieldOfStudy && signup.fieldOfStudy !== ep.fieldOfStudy) {
+    // Same rule as university above: fill a blank, never replace an answer.
+    if (signup.fieldOfStudy && isBlank(ep.fieldOfStudy)) {
       update.fieldOfStudy = signup.fieldOfStudy;
       result.fields.fieldOfStudy++;
       changed = true;

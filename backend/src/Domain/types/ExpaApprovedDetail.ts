@@ -1,3 +1,5 @@
+import { Product } from '../enums/Product';
+
 /*
  Raw data shape returned by EXPA's 'allOpportunityApplication' GraphQL query
  This isnt the ApprovedDetail domain entity, it is the unmapped API response
@@ -25,4 +27,13 @@ export interface ExpaApprovedDetail {
   // ISO date string derived when current_status = "finished"
   finishedDate: string | null;
   projectFees: number | null;
+  /*
+    The programme this application was approved INTO, from
+    opportunity.programme.id. EXPA reports a person's status across all their
+    applications, so without this an approval in one programme looks like an
+    approval in every programme they ever showed interest in.
+
+    Null when EXPA returns no programme on the opportunity.
+  */
+  product: Product | null;
 }

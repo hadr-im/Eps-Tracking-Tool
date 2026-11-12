@@ -26,6 +26,33 @@ import { PageRequest, toSkipTake } from '../../Application/use-cases/ep/Paginati
 import { prisma } from '../Database/PrismaService';
 
 /*
+  One search box over three fields.
+
+  People search for a lead by whatever they happen to have: the name from a
+  conversation, the number that just called them, or the EXPA id from a
+  colleague's message. Matching only the name meant pasting a phone number
+  returned nothing, which reads as "we don't have them".
+
+  Name is a partial, case-insensitive match. Phone strips punctuation on the
+  query side only — stored numbers were normalised on the way in — and an EXPA
+  id matches on a prefix so a half-remembered one still narrows the list.
+*/
+function searchWhere(search?: string): object {
+  const term = search?.trim();
+  if (!term) return {};
+
+  const digits = term.replace(/[^\d]/g, '');
+
+  return {
+    OR: [
+      { fullName: { contains: term, mode: 'insensitive' as const } },
+      ...(digits.length >= 4 ? [{ phone: { contains: digits } }] : []),
+      { expaId: { startsWith: term } },
+    ],
+  };
+}
+
+/*
   Matches a university by its institution code rather than its full name.
 
   The sign-up form has recorded the same place several ways — "ISET Sousse"
@@ -89,6 +116,7 @@ export class EpRepository implements IEpRepository {
         id: true,
         expaId: true,
         statusOnExpa: true,
+        product: true,
         approvedDetail: { select: { id: true } },
       },
     });
@@ -97,6 +125,7 @@ export class EpRepository implements IEpRepository {
       id: r.id,
       expaId: r.expaId,
       statusOnExpa: r.statusOnExpa,
+      product: r.product as unknown as Product,
       hasApprovedDetail: r.approvedDetail !== null,
     }));
   }
@@ -250,6 +279,9 @@ export class EpRepository implements IEpRepository {
     const updatePayload: Record<string, unknown> = {};
 
     if ('source'         in data) updatePayload['source']         = data.source;
+    if ('university'     in data) updatePayload['university']     = data.university;
+    if ('fieldOfStudy'   in data) updatePayload['fieldOfStudy']   = data.fieldOfStudy;
+    if ('yearOfStudy'    in data) updatePayload['yearOfStudy']    = data.yearOfStudy;
     if ('cvLink'         in data) updatePayload['cvLink']         = data.cvLink;
     if ('trackingPhase'  in data) updatePayload['trackingPhase']  = data.trackingPhase;
     if ('notes'          in data) updatePayload['notes']          = data.notes;
@@ -341,9 +373,7 @@ export class EpRepository implements IEpRepository {
         ...(filters.university && { university: universityWhere(filters.university) }),
         ...(filters.fieldOfStudy && { fieldOfStudy: filters.fieldOfStudy }),
         ...(filters.yearOfStudy !== undefined && { yearOfStudy: filters.yearOfStudy }),
-        ...(filters.search && {
-          fullName: { contains: filters.search, mode: 'insensitive' as const },
-        }),
+        ...searchWhere(filters.search),
         ...dateRangeWhere(filters.createdFrom, filters.createdTo),
 
           ...(filters.hostingMC || filters.hostingLC
@@ -355,6 +385,7 @@ export class EpRepository implements IEpRepository {
             }
           : {}),
         ...(filters.unassignedOnly && { ownerId: null }),
+        ...(filters.ownerIds?.length && { ownerId: { in: filters.ownerIds } }),
     };
 
     return this.paginate(
@@ -527,12 +558,10 @@ export class EpRepository implements IEpRepository {
       // Boolean filters: only applied when explicitly set (undefined = no constraint)
       ...(filters.contacted  !== undefined && { contacted:  filters.contacted }),
       ...(filters.interested !== undefined && { interested: filters.interested }),
-      // Partial, case-insensitive fullName search
-      ...(filters.search && {
-        fullName: { contains: filters.search, mode: 'insensitive' as const },
-      }),
+      ...searchWhere(filters.search),
       ...dateRangeWhere(filters.createdFrom, filters.createdTo),
       ...(filters.unassignedOnly && { ownerId: null }),
+      ...(filters.ownerIds?.length && { ownerId: { in: filters.ownerIds } }),
     };
   }
 

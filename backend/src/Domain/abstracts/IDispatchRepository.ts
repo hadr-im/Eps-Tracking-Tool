@@ -28,6 +28,13 @@ export interface IDispatchRepository {
   */
   existsInDepartment(expaId: string, departmentId: string): Promise<boolean>;
 
+  /*
+    Every department this person already has a row in. Someone who ticked two
+    programmes legitimately appears in both, so this is for telling the user
+    where they are rather than for refusing anything.
+  */
+  findDepartmentsForExpaId(expaId: string): Promise<string[]>;
+
   // Whether a row id is taken, so a second copy knows to generate its own.
   idExists(id: string): Promise<boolean>;
 

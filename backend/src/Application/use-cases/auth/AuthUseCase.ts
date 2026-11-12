@@ -131,6 +131,18 @@ export class AuthUseCase {
     this.assertValidSetupCode(provided, 'LCP_SIGNUP_CODE', 'LCP');
   }
 
+  /*
+    And again for the admin, behind a third secret.
+
+    Separate from the LCP code for the same reason that one is separate from
+    the VP code: an admin is everything an LCP is plus the admin area, so a
+    shared secret would let anyone trusted to run the LC quietly take the
+    installation with it.
+  */
+  private assertValidAdminSetupCode(provided: string | undefined): void {
+    this.assertValidSetupCode(provided, 'ADMIN_SIGNUP_CODE', 'admin');
+  }
+
   private assertValidSetupCode(
     provided: string | undefined,
     envVar: string,
@@ -231,6 +243,21 @@ export class AuthUseCase {
     if (dto.requestedRole === UserRole.LCP) {
       this.assertValidLcpSetupCode(dto.vpSetupCode);
       user.role = UserRole.LCP;
+      /*
+        An LCP belongs to no department, but every department-scoped query
+        assumes one, so they start in Global Volunteer and switch from the
+        sidebar. Looked up by programme rather than by the seeded id, which
+        would break quietly if the seed were regenerated; null is tolerated
+        because the alternative is refusing a valid signup over a missing
+        department.
+      */
+      user.departmentId = await this.repo.findDepartmentIdByProduct('GV');
+      user.status = AccountStatus.ACTIVE;
+    }
+
+    if (dto.requestedRole === UserRole.ADMIN) {
+      this.assertValidAdminSetupCode(dto.vpSetupCode);
+      user.role = UserRole.ADMIN;
       /*
         An LCP belongs to no department, but every department-scoped query
         assumes one, so they start in Global Volunteer and switch from the
@@ -473,6 +500,21 @@ export class AuthUseCase {
     if (dto.requestedRole === UserRole.LCP) {
       this.assertValidLcpSetupCode(dto.vpSetupCode);
       user.role = UserRole.LCP;
+      /*
+        An LCP belongs to no department, but every department-scoped query
+        assumes one, so they start in Global Volunteer and switch from the
+        sidebar. Looked up by programme rather than by the seeded id, which
+        would break quietly if the seed were regenerated; null is tolerated
+        because the alternative is refusing a valid signup over a missing
+        department.
+      */
+      user.departmentId = await this.repo.findDepartmentIdByProduct('GV');
+      user.status = AccountStatus.ACTIVE;
+    }
+
+    if (dto.requestedRole === UserRole.ADMIN) {
+      this.assertValidAdminSetupCode(dto.vpSetupCode);
+      user.role = UserRole.ADMIN;
       /*
         An LCP belongs to no department, but every department-scoped query
         assumes one, so they start in Global Volunteer and switch from the

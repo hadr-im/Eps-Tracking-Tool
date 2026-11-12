@@ -449,6 +449,11 @@ export class ExpaRepository implements IExpaRepository {
           ? (app.opportunity.project_fee as { fee: number }).fee
           : (app.opportunity?.project_fee as number | null) ?? null
       ),
+      // Which programme this approval actually belongs to. Already in the
+      // query; it was being discarded here.
+      product: app.opportunity?.programme?.id
+        ? PROGRAMME_FROM_EXPA_CODE[Number(app.opportunity.programme.id)] ?? null
+        : null,
     };
   }
 }

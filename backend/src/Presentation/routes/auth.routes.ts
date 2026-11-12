@@ -93,6 +93,22 @@ router.get('/signup-options/departments', AuthController.getDepartments);
 
 /**
  * @openapi
+ * /auth/signup-options/positions:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Which single-holder positions are still open
+ *     description: |
+ *       Public — the caller has no account yet. Returns booleans only, so the
+ *       signup form can stop offering a position that cannot be granted.
+ *       The VP position is per-department and comes from `hasVp` on the
+ *       departments lookup instead.
+ *     responses:
+ *       200: { description: Availability }
+ */
+router.get('/signup-options/positions', AuthController.getPositionAvailability);
+
+/**
+ * @openapi
  * /auth/signup-options/departments/{id}/team-leaders:
  *   get:
  *     tags: [Auth]
@@ -210,7 +226,7 @@ router.get('/me', authMiddleware, AuthController.me);
 router.patch(
   '/me/department',
   authMiddleware,
-  roleMiddleware(UserRole.LCP),
+  roleMiddleware(UserRole.LCP, UserRole.ADMIN),
   AuthController.switchDepartment,
 );
 

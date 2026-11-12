@@ -14,7 +14,7 @@ import {
 import { User } from '../../Domain/entities/User';
 import { RefreshToken } from '../../Domain/entities/RefreshToken';
 import { OtpToken } from '../../Domain/entities/OtpToken';
-import { UserRole } from '../../Domain/enums/UserRole';
+import { UserRole, LC_WIDE_ROLES } from '../../Domain/enums/UserRole';
 import { AuthProvider } from '../../Domain/enums/AuthProvider';
 import { AccountStatus } from '../../Domain/enums/AccountStatus';
 import { prisma } from '../Database/PrismaService';
@@ -232,13 +232,13 @@ export class AuthRepository implements IAuthRepository {
         departmentId,
         status: AccountStatus.ACTIVE,
         /*
-          The Members page is a VP's roster of the people they manage, and an
-          LCP is not one of them — they outrank the VP and merely happen to be
-          supervising this department at the moment. Every action on that page
-          was already refused for them, so listing the row only offered a
-          control that could not be used.
+          The Members page is a VP's roster of the people they manage, and the
+          LC-wide roles are not among them — they outrank the VP and merely
+          happen to be supervising this department at the moment. Every action
+          on that page was already refused for them, so listing the row only
+          offered a control that could not be used.
         */
-        role: { not: UserRole.LCP },
+        role: { notIn: [...LC_WIDE_ROLES] },
       },
       orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
     });
@@ -255,6 +255,13 @@ export class AuthRepository implements IAuthRepository {
       },
     });
     return this.toUserEntity(row);
+  }
+
+  async findActiveByRole(role: UserRole): Promise<User | null> {
+    const row = await this.db.user.findFirst({
+      where: { role, isDisabled: false },
+    });
+    return row ? this.toUserEntity(row) : null;
   }
 
   async findDepartmentIdByProduct(product: string): Promise<string | null> {

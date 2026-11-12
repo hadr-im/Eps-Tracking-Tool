@@ -49,11 +49,30 @@ export interface ExpaLookupResult {
   fieldOfStudy: string | null;
   createdAtExpa: string;
   statusOnExpa: string;
-  // True when this person is already in the database, in any department.
+  /*
+    True only when this person is already a lead in the CALLER'S department,
+    which is the one case that blocks adding them. Existing elsewhere does
+    not: someone who ticked two programmes belongs in both.
+  */
   alreadyExists: boolean;
+  /*
+    Every department they already appear in, the caller's included. The form
+    uses it to say where, instead of an unhelpful "already in the system".
+  */
+  existingDepartmentIds: string[];
 }
 
 const MANUAL_ID_PREFIX = 'manual-';
+
+/*
+  Programme names as people say them. The department id ('dpt-gta') is what
+  the code carries, but it is not what anyone calls the team.
+*/
+const PRODUCT_LABEL: Record<string, string> = {
+  GV: 'Global Volunteer',
+  GTA: 'Global Talent',
+  GTE: 'Global Teacher',
+};
 
 export class ManualLeadUseCase {
   constructor(
@@ -78,6 +97,8 @@ export class ManualLeadUseCase {
     const person = await this.expaRepo.fetchPersonById(trimmed);
     if (!person) throw new AppError(`No EXPA person found with ID ${trimmed}`, 404);
 
+    const existingDepartmentIds = await this.dispatchRepo.findDepartmentsForExpaId(person.epId);
+
     return {
       expaId: person.epId,
       fullName: person.fullName,
@@ -89,10 +110,8 @@ export class ManualLeadUseCase {
       statusOnExpa: person.statusOnExpa,
       // Scoped to the caller's department: this person may already be a lead
       // elsewhere and still be a valid addition here.
-      alreadyExists: await this.dispatchRepo.existsInDepartment(
-        person.epId,
-        caller.departmentId!,
-      ),
+      alreadyExists: existingDepartmentIds.includes(caller.departmentId!),
+      existingDepartmentIds,
     };
   }
 
@@ -109,8 +128,17 @@ export class ManualLeadUseCase {
 
     if (expaId) {
       if (!/^\d+$/.test(expaId)) throw new AppError('An EXPA ID must be numeric', 400);
+      /*
+        Only a clash in the caller's own department blocks the add. The message
+        names the department rather than saying "already exists", which read as
+        a system-wide ban and sent people looking for a row that was never the
+        problem.
+      */
       if (await this.dispatchRepo.existsInDepartment(expaId, departmentId)) {
-        throw new AppError(`EP ${expaId} is already a lead in your department`, 409);
+        throw new AppError(
+          `EP ${expaId} is already a lead in ${PRODUCT_LABEL[product] ?? departmentId}.`,
+          409,
+        );
       }
     }
 

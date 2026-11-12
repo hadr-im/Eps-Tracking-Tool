@@ -230,6 +230,22 @@ export class AuthController {
   // Signup form lookups (public — the caller has no account yet)
 
   // GET /auth/signup-options/departments
+  /*
+    GET /auth/signup-options/positions — public.
+
+    Says which single-holder positions are still open so the form can drop the
+    ones that are not. Booleans only; who holds them is nobody's business
+    before they have an account.
+  */
+  static async getPositionAvailability(_req: Request, res: Response): Promise<void> {
+    try {
+      const data = await signupOptionsUseCase.getPositionAvailability();
+      res.status(200).json({ data });
+    } catch (err) {
+      handleError(res, err);
+    }
+  }
+
   static async getDepartments(_req: Request, res: Response): Promise<void> {
     try {
       const departments = await signupOptionsUseCase.getDepartments();

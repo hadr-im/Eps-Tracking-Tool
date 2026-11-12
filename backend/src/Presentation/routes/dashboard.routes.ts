@@ -54,7 +54,7 @@ router.get(
 router.get(
   '/department',
   authMiddleware,
-  roleMiddleware(UserRole.VP, UserRole.LCP),
+  roleMiddleware(UserRole.VP, UserRole.LCP, UserRole.ADMIN),
   DashboardController.getVpDashboard,
 );
 
@@ -80,7 +80,7 @@ router.get(
   authMiddleware,
   // Members included: the use case confines them to their own department,
   // and a dashboard is aggregate figures rather than anyone's pipeline.
-  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
+  roleMiddleware(UserRole.MEMBER, UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP, UserRole.ADMIN),
   DashboardController.getMemberDashboard,
 );
 

@@ -25,6 +25,8 @@ export interface EpStatusSnapshot {
   // selected more than one programme, and a status change applies to them all.
   expaId: string | null;
   statusOnExpa: EpStatus;
+  // Which programme this row belongs to, so an approval can be matched to it.
+  product: Product;
   hasApprovedDetail: boolean;
 }
 

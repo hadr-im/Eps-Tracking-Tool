@@ -1,5 +1,6 @@
 import { IAuthRepository, DepartmentSummary } from '../../../Domain/abstracts/IAuthRepository';
 import { AppError } from '../../errors/AppError';
+import { UserRole } from '../../../Domain/enums/UserRole';
 
 // Deliberately minimal: the signup form needs a label and an id, nothing else.
 export interface TeamLeaderOption {
@@ -22,6 +23,22 @@ export class SignupOptionsUseCase {
 
   async getDepartments(): Promise<DepartmentSummary[]> {
     return this.repo.listDepartments();
+  }
+
+  /*
+    Which single-holder positions are still open.
+
+    Booleans only, and deliberately no names: the form needs to know whether
+    to offer the option, and an anonymous caller has no business learning who
+    holds it. Departments carry their own `hasVp`, so the VP position is
+    derived from that list rather than repeated here.
+  */
+  async getPositionAvailability(): Promise<{ lcpTaken: boolean; adminTaken: boolean }> {
+    const [lcp, admin] = await Promise.all([
+      this.repo.findActiveByRole(UserRole.LCP),
+      this.repo.findActiveByRole(UserRole.ADMIN),
+    ]);
+    return { lcpTaken: lcp !== null, adminTaken: admin !== null };
   }
 
   async getTeamLeaders(departmentId: string): Promise<TeamLeaderOption[]> {

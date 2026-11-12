@@ -6,7 +6,7 @@ import { Ep } from '../../Domain/entities/Ep';
 import { User } from '../../Domain/entities/User';
 import { Product } from '../../Domain/enums/Product';
 import { EpStatus } from '../../Domain/enums/EpStatus';
-import { UserRole } from '../../Domain/enums/UserRole';
+import { UserRole, LC_WIDE_ROLES } from '../../Domain/enums/UserRole';
 import { AuthProvider } from '../../Domain/enums/AuthProvider';
 import { TrackingPhase } from '../../Domain/enums/TrackingPhase';
 import { Duration } from '../../Domain/enums/Duration';
@@ -100,7 +100,7 @@ export class DispatchRepository implements IDispatchRepository {
         departmentId,
         isDisabled: false,
         /*
-          An LCP is excluded everywhere this list is used.
+          The LC-wide roles are excluded everywhere this list is used.
 
           They hold a departmentId only to say which department they are
           currently supervising, not because they work its pipeline — they
@@ -109,7 +109,7 @@ export class DispatchRepository implements IDispatchRepository {
           keeps them out of the dispatch dialog, the member pickers and the
           dashboards at once.
         */
-        role: { not: UserRole.LCP },
+        role: { notIn: [...LC_WIDE_ROLES] },
         ...(teamLeaderId !== undefined && { teamLeaderId }),
       },
       orderBy: { fullName: 'asc' },
@@ -126,6 +126,15 @@ export class DispatchRepository implements IDispatchRepository {
       select: { id: true },
     });
     return found !== null;
+  }
+
+  async findDepartmentsForExpaId(expaId: string): Promise<string[]> {
+    const rows = await this.db.ep.findMany({
+      where: { expaId },
+      select: { departmentId: true },
+      distinct: ['departmentId'],
+    });
+    return rows.map((r) => r.departmentId);
   }
 
   async idExists(id: string): Promise<boolean> {

@@ -128,6 +128,18 @@ export class EpController {
 
       if ('source'        in body) data.source        = body['source']        as string | null;
       if ('cvLink'        in body) data.cvLink        = body['cvLink']        as string | null;
+      if ('university'    in body) data.university    = body['university']    as string | null;
+      if ('fieldOfStudy'  in body) data.fieldOfStudy  = body['fieldOfStudy']  as string | null;
+
+      /*
+        Year arrives from a dropdown as a string. Anything that is not a
+        positive integer becomes null — clearing the field — rather than NaN,
+        which Prisma would reject with an opaque error.
+      */
+      if ('yearOfStudy' in body) {
+        const raw = Number(body['yearOfStudy']);
+        data.yearOfStudy = Number.isInteger(raw) && raw > 0 ? raw : null;
+      }
       if ('notes'         in body) data.notes         = body['notes']         as string | null;
       if ('contacted'     in body) data.contacted     = Boolean(body['contacted']);
       if ('interested'    in body) data.interested    = Boolean(body['interested']);

@@ -22,6 +22,9 @@ enum UserRole {
   /// Deliberately not 'VP', so the one_vp_per_department unique index
   /// (WHERE role = 'VP') does not apply to it.
   LCP
+  /// Owner of the installation: everything an LCP can do, plus the admin
+  /// dashboard. Like LCP, exempt from one_vp_per_department.
+  ADMIN
 }
 
 enum AuthProvider {

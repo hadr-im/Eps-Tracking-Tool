@@ -37,6 +37,19 @@ function parseFilters(query: Request['query']): EpFilters {
 
   // Only a real integer becomes a constraint, so junk filters nothing rather
   // than matching nothing.
+  /*
+    Repeatable: ?ownerIds=a&ownerIds=b, or a single comma-separated value.
+    Express gives an array for the first and a string for the second, so both
+    are normalised here rather than in the query builder.
+  */
+  const ownerParam = query['ownerIds'];
+  const ownerIds = Array.isArray(ownerParam)
+    ? ownerParam.filter((v): v is string => typeof v === 'string')
+    : typeof ownerParam === 'string'
+      ? ownerParam.split(',').filter(Boolean)
+      : [];
+  if (ownerIds.length > 0) filters.ownerIds = ownerIds;
+
   const yearParam = Number(query['yearOfStudy']);
   if (Number.isInteger(yearParam) && yearParam > 0) filters.yearOfStudy = yearParam;
 

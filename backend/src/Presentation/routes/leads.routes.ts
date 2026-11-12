@@ -42,7 +42,7 @@ const router = Router();
 router.get(
   '/',
   authMiddleware,
-  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP),
+  roleMiddleware(UserRole.TEAM_LEADER, UserRole.VP, UserRole.LCP, UserRole.ADMIN),
   ExpaController.getLeads,
 );
 

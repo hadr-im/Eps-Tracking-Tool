@@ -9,6 +9,17 @@ import { Availability } from '../../../Domain/enums/Availability';
 */
 export interface EpUpdateData {
   source?: string | null;
+  /*
+    Profile fields the sign-up sheet normally provides, editable from the CRM
+    because the form answers are often wrong or missing — a lead picks the
+    wrong university from a long list, or skips the question entirely.
+
+    The enrichment only fills these when blank, so a correction made here is
+    not undone by the next sync.
+  */
+  university?: string | null;
+  fieldOfStudy?: string | null;
+  yearOfStudy?: number | null;
   cvLink?: string | null;
   contacted?: boolean;
   interested?: boolean;

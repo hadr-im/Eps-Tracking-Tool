@@ -83,6 +83,12 @@ export interface IAuthRepository {
     quietly if the seed were ever regenerated.
   */
   findDepartmentIdByProduct(product: string): Promise<string | null>;
+
+  /*
+    The active holder of a role that only one person may hold at a time
+    (LCP, ADMIN), or null when the post is open.
+  */
+  findActiveByRole(role: UserRole): Promise<User | null>;
   /*
     The department's current VP, or null. Used to give a friendly error naming
     the existing holder before the DB unique index would reject it.

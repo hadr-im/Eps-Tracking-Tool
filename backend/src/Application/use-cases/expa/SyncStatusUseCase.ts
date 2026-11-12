@@ -115,13 +115,36 @@ export class SyncStatusUseCase {
 
       // Each copy is compared on its own: one department may already be up to
       // date while the other is behind.
+      /*
+        EXPA reports a person's status across every application they hold, not
+        just the one in the programme being synced. Someone approved in Global
+        Talent therefore comes back as "approved" while we are syncing Global
+        Volunteer, and advancing the GV row on that basis marked them approved
+        in a department that never approved them — they then showed up on the
+        wrong Approved EPs page with no approval record behind them.
+
+        An approved status is only honoured when the approval names this
+        programme. That also covers the case where EXPA reports "approved"
+        but returns no application to back it: an approved row with no
+        approval record is the very corruption being prevented, so an
+        unattributable approval is not acted on either.
+
+        Earlier statuses (lead, applied) carry no programme and are not
+        department-specific, so they still apply.
+      */
+      const approvedElsewhere =
+        STATUS_RANK[expaStatus] >= STATUS_RANK[EpStatus.APPROVED] &&
+        result.approvedDetail?.product !== product;
+
       for (const snapshot of matches) {
         const dbStatus = snapshot.statusOnExpa;
 
-        const statusAdvanced = STATUS_RANK[expaStatus] > STATUS_RANK[dbStatus];
+        const statusAdvanced =
+          !approvedElsewhere && STATUS_RANK[expaStatus] > STATUS_RANK[dbStatus];
         // Create/upsert ApprovedDetail if: status advanced or EP is already approved+
         // but still has no detail record (e.g seeded with APPROVED but detail never created)
-        const needsDetail = !!result.approvedDetail && !snapshot.hasApprovedDetail;
+        const needsDetail =
+          !!result.approvedDetail && !approvedElsewhere && !snapshot.hasApprovedDetail;
 
         // Nothing to do for this EP
         if (!statusAdvanced && !needsDetail) continue;
@@ -134,7 +157,7 @@ export class SyncStatusUseCase {
         }
 
         // Create ApprovedDetail if status advanced or if it was missing
-        if (result.approvedDetail && (statusAdvanced || needsDetail)) {
+        if (result.approvedDetail && !approvedElsewhere && (statusAdvanced || needsDetail)) {
           const detail = this.mapToApprovedDetail(snapshot.id, result.approvedDetail, expaStatus);
           newApprovedDetails.push(detail);
         }

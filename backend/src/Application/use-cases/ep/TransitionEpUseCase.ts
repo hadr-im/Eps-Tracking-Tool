@@ -53,14 +53,59 @@ export class TransitionEpUseCase {
       throw new AppError(`Could not resolve department for product ${targetProduct}`, 500);
     }
 
-    // 5. Execute the transition
-    return this.epRepo.transitionEp(epId, {
-      triggeredById: caller.id,
-      fromProduct: ep.product,
-      fromDepartmentId: ep.departmentId,
-      targetProduct,
-      targetDepartmentId,
-      note: note ?? `Transitioned from ${ep.product} to ${targetProduct}`,
-    });
+    /*
+      5. Refuse if the person is already in the target department.
+
+      Someone who ticked two programmes on the sign-up form exists as a row in
+      each — that is deliberate, and `@@unique([expaId, departmentId])` is what
+      keeps it to one row per department. Moving a row into a department the
+      person already occupies breaks that constraint, which surfaced as a bare
+      500 with nothing to act on.
+
+      Refusing rather than merging is the safe half of the choice: the row
+      already in the target department may be assigned to another member and
+      carry their notes, and silently folding this one into it would throw
+      their work away. Told plainly, the member can go and look.
+    */
+    if (ep.expaId) {
+      const siblings = await this.epRepo.findByExpaIds([ep.expaId]);
+      const clash = siblings.find(
+        (s) => s.departmentId === targetDepartmentId && s.id !== ep.id,
+      );
+
+      if (clash) {
+        throw new AppError(
+          `${ep.fullName} is already in the ${targetProduct} department` +
+            (clash.ownerId ? ', assigned to another member' : '') +
+            '. They signed up for both programmes, so there is nothing to move.',
+          409,
+        );
+      }
+    }
+
+    // 6. Execute the transition
+    try {
+      return await this.epRepo.transitionEp(epId, {
+        triggeredById: caller.id,
+        fromProduct: ep.product,
+        fromDepartmentId: ep.departmentId,
+        targetProduct,
+        targetDepartmentId,
+        note: note ?? `Transitioned from ${ep.product} to ${targetProduct}`,
+      });
+    } catch (err) {
+      /*
+        The check above can still lose a race: the sync creates the sibling row
+        between reading and writing. The database has the final say, so its
+        refusal is translated into the same message rather than a 500.
+      */
+      if ((err as { code?: string })?.code === 'P2002') {
+        throw new AppError(
+          `${ep.fullName} is already in the ${targetProduct} department.`,
+          409,
+        );
+      }
+      throw err;
+    }
   }
 }

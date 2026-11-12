@@ -21,6 +21,14 @@ export interface LeadDto {
   yearOfStudy: number | null;
   source: string | null;
   product: string;
+  /*
+    Who the lead was dispatched to, or null while it is still in the pool.
+    A dispatched lead stays in this list rather than vanishing — the page is
+    the department's whole intake, and disappearing rows made it impossible to
+    tell a lead that had been handled from one that was never synced.
+  */
+  ownerId: string | null;
+  memberName: string | null;
   statusOnExpa: string;
   createdAtExpa: string;
   syncedAt: string;
@@ -46,10 +54,14 @@ export class GetLeadsUseCase {
       EpStatus.INTERESTED,
     ];
 
+    /*
+      Deliberately NOT unassignedOnly. The dispatch page shows the department's
+      full intake and marks who holds each lead; the UI stops an already
+      dispatched row from being selected again.
+    */
     const mergedFilters: EpFilters = {
       ...filters,
       status: leadStatuses,
-      unassignedOnly: true,
     };
 
     const { rows, total } = await this.epRepo.findByDepartmentFiltered(
@@ -58,7 +70,7 @@ export class GetLeadsUseCase {
       page,
     );
 
-    const data = rows.map(({ ep }) => ({
+    const data = rows.map(({ ep, memberName }) => ({
       id: ep.id,
       expaId: ep.expaId,
       fullName: ep.fullName,
@@ -69,6 +81,8 @@ export class GetLeadsUseCase {
       yearOfStudy: ep.yearOfStudy,
       source: ep.source,
       product: ep.product,
+      ownerId: ep.ownerId,
+      memberName: memberName ?? null,
       statusOnExpa: ep.statusOnExpa,
       createdAtExpa: ep.createdAtExpa.toISOString(),
       syncedAt: ep.syncedAt.toISOString(),

@@ -1,10 +1,10 @@
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
-import { UserRole } from '../../../Domain/enums/UserRole';
+import { UserRole, canSwitchDepartment } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
 
 export interface AccessRequest {
   role: UserRole;
-  // Null only for an LCP, who belongs to no single department.
+  // Null for the LC-wide roles (LCP, ADMIN), which belong to no single department.
   departmentId: string | null;
   teamLeaderId: string | null;
 }
@@ -35,11 +35,11 @@ export class AccessRequestValidator {
     }
 
     /*
-      Every role but LCP must name a department. An LCP oversees all of them,
-      so there is nothing to name here — they pick which one to supervise
-      after signing in, and may change it afterwards.
+      A department-bound role must name a department. The LC-wide roles
+      oversee all of them, so there is nothing to name here — they start in
+      Global Volunteer and switch whenever they like.
     */
-    if (access.role !== UserRole.LCP) {
+    if (!canSwitchDepartment(access.role)) {
       if (!access.departmentId) {
         throw new AppError('Select a department', 400);
       }
@@ -57,19 +57,29 @@ export class AccessRequestValidator {
         break;
 
       /*
-        An LCP is not checked against assertNoExistingVp: they sit above the
-        VPs rather than in place of one, so a department can hold both. The
+        Neither is checked against assertNoExistingVp: they sit above the VPs
+        rather than in place of one, so a department can hold both. The
         departmentId they carry is whichever one they are supervising at the
         moment, not a post they occupy.
       */
       case UserRole.LCP:
+      case UserRole.ADMIN: {
+        const label = access.role === UserRole.ADMIN ? 'An admin' : 'An LCP';
+        /*
+          One per installation, the LC-wide equivalent of one VP per
+          department. The setup code alone is not enough: whoever holds it
+          could otherwise mint a second holder at will, and the two would have
+          equal authority with no way to tell which was intended.
+        */
+        await this.assertRoleUnheld(access.role, label, excludeUserId);
         if (access.teamLeaderId) {
-          throw new AppError('An LCP is not assigned to a Team Leader', 400);
+          throw new AppError(`${label} is not assigned to a Team Leader`, 400);
         }
         if (access.departmentId) {
-          throw new AppError('An LCP is not tied to a department', 400);
+          throw new AppError(`${label} is not tied to a department`, 400);
         }
         break;
+      }
 
       case UserRole.TEAM_LEADER:
         if (access.teamLeaderId) {
@@ -99,6 +109,20 @@ export class AccessRequestValidator {
     }
   }
 
+
+  private async assertRoleUnheld(
+    role: UserRole,
+    label: string,
+    excludeUserId?: string,
+  ): Promise<void> {
+    const existing = await this.repo.findActiveByRole(role);
+    if (existing && existing.id !== excludeUserId) {
+      throw new AppError(
+        `${label} already exists (${existing.fullName}). There can only be one.`,
+        409,
+      );
+    }
+  }
 
   private async assertValidTeamLeader(teamLeaderId: string, departmentId: string): Promise<void> {
     const tl = await this.repo.findById(teamLeaderId);
