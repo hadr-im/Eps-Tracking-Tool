@@ -37,6 +37,12 @@ function LeadRow({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  /*
+    Already dispatched leads are shown but cannot be picked again, matching
+    the desktop table. Reassignment goes through the member's CRM.
+  */
+  const selectable = canDispatch && !lead.ownerId;
+
   const hasExtras = !!(
     lead.email ||
     lead.phone ||
@@ -60,11 +66,16 @@ function LeadRow({
       <div
         className="flex items-center gap-3 px-4 py-3"
         onClick={() => {
-          if (canDispatch) onToggleSelection();
+          if (selectable) onToggleSelection();
           else if (hasExtras) setExpanded((v) => !v);
         }}
       >
-        {canDispatch && (
+        {/*
+          Matches the desktop table: a lead that has already been dispatched
+          gets no checkbox at all. Showing one here let the same lead be
+          queued a second time from a phone, which the table had ruled out.
+        */}
+        {selectable && (
           <Checkbox
             checked={isSelected}
             onCheckedChange={onToggleSelection}
@@ -76,14 +87,25 @@ function LeadRow({
         <UserAvatar fullName={lead.fullName} className="h-9 w-9" />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">
+          {/* Wraps: a cut-off name is the one thing a card must not do. */}
+          <p className="text-sm font-semibold break-words text-foreground">
             {lead.fullName}
           </p>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground">
             <span className="tabular-nums">#{lead.id}</span>
-            <span className="mx-1.5">·</span>
+            <span>·</span>
             <DateCell value={lead.createdAtExpa} withTime />
           </p>
+          {/*
+            Who holds the lead, the mobile counterpart of the table's
+            "Dispatched To" column. Without it a card with no checkbox looks
+            broken rather than already handled.
+          */}
+          {lead.memberName && (
+            <p className="mt-1 text-[11px] font-medium text-aiesec-blue">
+              Dispatched to {lead.memberName}
+            </p>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -141,7 +163,14 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-foreground truncate">{value}</dd>
+      {/*
+        Wraps instead of truncating. On a phone this is the only place these
+        values appear, and a university cut to "EPI: Ecole Polytechnique
+        Internationale Privee de S..." is not something anyone can act on.
+        break-words catches long email addresses that have no spaces to
+        break at.
+      */}
+      <dd className="mt-0.5 text-foreground break-words">{value}</dd>
     </div>
   );
 }
