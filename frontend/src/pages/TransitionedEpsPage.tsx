@@ -22,7 +22,10 @@ import { FilterSelect } from '@/components/filters/FilterSelect';
 import { Button } from '@/components/ui/button';
 import { SoftBadge } from '@/components/ui/soft-badge';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { UNIVERSITIES, FIELDS_OF_STUDY } from '@/lib/options';
+import { MultiFilterSelect } from '@/components/filters/MultiFilterSelect';
+import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
+import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
+import { UNIVERSITIES, FIELDS_OF_STUDY, YEARS_OF_STUDY } from '@/lib/options';
 import { isVpLevel } from '@/types/auth';
 
 export default function TransitionedEpsPage() {
@@ -34,10 +37,21 @@ export default function TransitionedEpsPage() {
   const [search, setSearch] = useState('');
   const [university, setUniversity] = useState<string | undefined>();
   const [fieldOfStudy, setFieldOfStudy] = useState<string | undefined>();
+  const [yearOfStudy, setYearOfStudy] = useState<string | undefined>();
+  const [ownerIds, setOwnerIds] = useState<string[]>([]);
+  const [signedUpFrom, setSignedUpFrom] = useState<string | undefined>();
+  const [signedUpTo, setSignedUpTo] = useState<string | undefined>();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDispatchOpen, setIsDispatchOpen] = useState(false);
 
   const { data: transitions = [], isLoading } = useTransitions();
+
+  // Who a transitioned EP can be handed to, for the member filter.
+  const { data: members = [] } = useDepartmentMembers(user?.departmentId ?? null);
+  const memberOptions = useMemo(
+    () => members.map((m) => ({ value: m.id, label: m.fullName })),
+    [members],
+  );
 
   /*
     Filtered client-side: a department receives a handful of transitions, so
@@ -49,7 +63,13 @@ export default function TransitionedEpsPage() {
     const q = search.trim().toLowerCase();
 
     return transitions
-      .map((t) => t.ep)
+      /*
+        memberName is a property of the transition, not of the EP inside it,
+        so mapping straight to `t.ep` dropped it. The table then showed
+        "Unassigned" on a row that had just been dispatched and no longer had
+        a checkbox — which reads as a broken row rather than a handled one.
+      */
+      .map((t) => (t.ep ? { ...t.ep, memberName: t.memberName ?? null } : null))
       .filter((ep): ep is NonNullable<typeof ep> => !!ep)
       .filter((ep) => {
         if (q && !ep.fullName.toLowerCase().includes(q) && !ep.id.toLowerCase().includes(q)) {
@@ -61,9 +81,26 @@ export default function TransitionedEpsPage() {
         if (fieldOfStudy && ep.fieldOfStudy !== fieldOfStudy) {
           return false;
         }
+        if (yearOfStudy && String(ep.yearOfStudy ?? '') !== yearOfStudy) {
+          return false;
+        }
+        // Empty means no constraint, not "nobody".
+        if (ownerIds.length > 0 && !ownerIds.includes(ep.ownerId ?? '')) {
+          return false;
+        }
+        /*
+          The Created column is the EXPA sign-up date, so this filters on that
+          rather than on when the transition happened. Compared as plain
+          YYYY-MM-DD strings, which keeps the upper bound inclusive without
+          having to reason about the end of the day in local time.
+        */
+        const signedUp = (ep.createdAtExpa ?? '').slice(0, 10);
+        if (signedUpFrom && signedUp < signedUpFrom) return false;
+        if (signedUpTo && signedUp > signedUpTo) return false;
+
         return true;
       });
-  }, [transitions, search, university, fieldOfStudy]);
+  }, [transitions, search, university, fieldOfStudy, yearOfStudy, ownerIds, signedUpFrom, signedUpTo]);
 
   // An Ep carries every field a Lead has, so the shared DispatchDialog and
   // LeadTable take these as-is.
@@ -98,11 +135,18 @@ export default function TransitionedEpsPage() {
           search={search}
           onSearchChange={setSearch}
           placeholder="Search EP name or ID…"
-          hasActiveFilters={!!(university || fieldOfStudy)}
+          hasActiveFilters={
+            !!(university || fieldOfStudy || yearOfStudy || signedUpFrom || signedUpTo) ||
+            ownerIds.length > 0
+          }
           onClearFilters={() => {
             setSearch('');
             setUniversity(undefined);
             setFieldOfStudy(undefined);
+            setYearOfStudy(undefined);
+            setOwnerIds([]);
+            setSignedUpFrom(undefined);
+            setSignedUpTo(undefined);
           }}
           filters={
             <>
@@ -119,6 +163,25 @@ export default function TransitionedEpsPage() {
                 options={FIELDS_OF_STUDY}
                 allLabel="All fields"
                 className="w-36"
+              />
+              <FilterSelect
+                value={yearOfStudy}
+                onChange={setYearOfStudy}
+                options={YEARS_OF_STUDY}
+                allLabel="All years"
+                className="w-28"
+              />
+              <MultiFilterSelect
+                values={ownerIds}
+                onChange={setOwnerIds}
+                options={memberOptions}
+                allLabel="All members"
+                className="w-36"
+              />
+              <DateRangeFilter
+                from={signedUpFrom}
+                to={signedUpTo}
+                onChange={({ from, to }) => { setSignedUpFrom(from); setSignedUpTo(to); }}
               />
             </>
           }
