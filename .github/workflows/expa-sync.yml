@@ -14,8 +14,15 @@ name: EXPA Sync
 
 on:
   schedule:
+    # Leads: pages through EXPA for all three departments, so it is the
+    # expensive one. Enrichment runs with it, immediately after.
     - cron: '*/30 * * * *'  # leads sync, every 30 minutes
     - cron: '0 * * * *'     # status/approvals sync, hourly
+    # Enrichment on its own, filling in the details EXPA does not return.
+    # It only reads the sign-up sheet and writes a handful of rows, so it
+    # costs nothing to run often - and it is what decides how long a new
+    # lead sits with a relay address and no phone number.
+    - cron: '10,20,40,50 * * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -23,7 +30,7 @@ on:
         required: true
         default: sync-leads
         type: choice
-        options: [sync-leads, sync-status]
+        options: [sync-leads, sync-status, enrich-only]
 
 concurrency:
   group: expa-sync-${{ github.event.schedule || inputs.job }}
@@ -38,6 +45,8 @@ jobs:
         run: |
           if [ "${{ github.event.schedule }}" = "0 * * * *" ]; then
             echo "job=sync-status" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "10,20,40,50 * * * *" ]; then
+            echo "job=enrich-only" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ inputs.job }}" ]; then
             echo "job=${{ inputs.job }}" >> "$GITHUB_OUTPUT"
           else
@@ -64,7 +73,7 @@ jobs:
       # department, which can outlast a serverless request if all three run
       # together, so they are split and run sequentially.
       - name: Sync each department
-        if: steps.cfg.outputs.ready == 'true'
+        if: steps.cfg.outputs.ready == 'true' && steps.pick.outputs.job != 'enrich-only'
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -113,7 +122,9 @@ jobs:
           [ "$code" = "200" ]
 
       - name: Enrich from the sign-up sheet
-        if: steps.cfg.outputs.ready == 'true' && steps.pick.outputs.job == 'sync-leads'
+        if: >-
+          steps.cfg.outputs.ready == 'true' &&
+          (steps.pick.outputs.job == 'sync-leads' || steps.pick.outputs.job == 'enrich-only')
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
