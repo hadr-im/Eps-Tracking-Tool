@@ -11,6 +11,9 @@ import { GetLeadsUseCase } from '../../Application/use-cases/ep/GetLeadsUseCase'
 import { SyncApprovalsUseCase } from '../../Application/use-cases/expa/SyncApprovalsUseCase';
 import { EnrichLeadsUseCase } from '../../Application/use-cases/expa/EnrichLeadsUseCase';
 import { SheetLeadRepository } from '../sheets/SheetLeadRepository';
+import { TeachingSheetLeadRepository } from '../sheets/TeachingSheetLeadRepository';
+import { CombinedSheetLeadRepository } from '../sheets/CombinedSheetLeadRepository';
+import { ISheetLeadRepository } from '../../Domain/abstracts/ISheetLeadRepository';
 
 /*
   Factory that constructs and wires all EXPA-related dependencies
@@ -67,6 +70,19 @@ export class ExpaFactory {
     keep working in an environment where the sheet is not configured.
   */
   makeEnrichLeadsUseCase(): EnrichLeadsUseCase {
-    return new EnrichLeadsUseCase(new SheetLeadRepository(), this.epRepository);
+    /*
+      The general form is always read. The Teaching form joins it only when
+      TEACHING_SHEET_ID is set, so an environment without it behaves exactly
+      as before rather than failing on a sheet it cannot see.
+    */
+    const sources: ISheetLeadRepository[] = [new SheetLeadRepository()];
+
+    const teaching = new TeachingSheetLeadRepository();
+    if (teaching.isConfigured()) sources.push(teaching);
+
+    return new EnrichLeadsUseCase(
+      sources.length === 1 ? sources[0]! : new CombinedSheetLeadRepository(sources),
+      this.epRepository,
+    );
   }
 }
