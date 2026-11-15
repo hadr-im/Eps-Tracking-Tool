@@ -52,20 +52,29 @@ function authoriseReport(req: Request, res: Response, next: NextFunction): void 
 interface ApprovalRow {
   fullName: string;
   department: string;
-  approvals: number;
+  ep: string;
+  approvedOn: string | null;
 }
 
 /*
   GET /api/reports/member-approvals
 
-  One row per active member: name, department, and how many of their EPs have
-  been approved. Counted the same way the dashboards count an approval — the
-  status having reached APPROVED or beyond — so the sheet and the leaderboard
-  cannot drift apart.
+  One row per approval: who holds the EP, which department, the EP's name and
+  the date EXPA granted the approval. A row per approval rather than a count
+  per member, so the sheet can be filtered or pivoted by month; the per-member
+  tally is a COUNTIF away, and a count cannot be unpicked back into dates.
+
+  What counts as an approval is what the dashboards count — the status having
+  reached APPROVED or beyond — so the two cannot drift apart.
+
+  Approvals with no owner are listed as "Unassigned" rather than dropped. Most
+  of them are: at the time of writing 206 EPs are approved and only 57 belong
+  to an active member, so filtering the rest out would quietly show a third of
+  the LC's approvals and look like the whole. The department is the EP's own,
+  which is also what lets those rows say something useful.
 
   ?from=YYYY-MM-DD&to=YYYY-MM-DD narrows it to approvals granted in that
-  window, by the approval date EXPA gives the application, matching what the
-  dashboards mean by a period. Omit both for all time.
+  window. Omit both for all of them.
 
   ?format=csv returns text/csv. The default is JSON.
 */
@@ -79,32 +88,35 @@ router.get('/member-approvals', authoriseReport, async (req: Request, res: Respo
     };
     const from = day(req.query['from'], false);
     const to = day(req.query['to'], true);
-    const windowed = !!(from || to);
 
     const rows = (await prisma.$queryRaw`
       SELECT
-        u."fullName" AS "fullName",
+        COALESCE(u."fullName", 'Unassigned') AS "fullName",
         d.name AS department,
-        COUNT(e.id) FILTER (
-          WHERE CASE WHEN ${windowed}::boolean
-                THEN COALESCE(ad."approvalDate" BETWEEN COALESCE(${from}::timestamp, '-infinity')
-                                                    AND COALESCE(${to}::timestamp, 'infinity'), false)
-                ELSE e."statusOnExpa" IN ('APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED') END
-        )::int AS approvals
-      FROM "User" u
-      JOIN "Department" d ON d.id = u."departmentId"
-      LEFT JOIN "Ep" e ON e."ownerId" = u.id
+        e."fullName" AS ep,
+        /*
+          A plain calendar date, formatted here rather than left as a
+          timestamp: a spreadsheet reads YYYY-MM-DD as a date and will sort
+          and filter on it, where an ISO string with a timezone lands as text.
+        */
+        TO_CHAR(ad."approvalDate", 'YYYY-MM-DD') AS "approvedOn"
+      FROM "Ep" e
+      JOIN "Department" d ON d.id = e."departmentId"
+      LEFT JOIN "User" u ON u.id = e."ownerId" AND u."isDisabled" = false
       LEFT JOIN "ApprovedDetail" ad ON ad."epId" = e.id
-      WHERE u."isDisabled" = false
-      GROUP BY u.id, u."fullName", d.name
-      ORDER BY approvals DESC, u."fullName" ASC
+      WHERE e."statusOnExpa" IN ('APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED')
+        AND (${from}::timestamp IS NULL OR ad."approvalDate" >= ${from}::timestamp)
+        AND (${to}::timestamp IS NULL OR ad."approvalDate" <= ${to}::timestamp)
+      -- Most recent first; the one approval with no date on it sorts last
+      -- rather than to the top, where it would look like the latest news.
+      ORDER BY ad."approvalDate" DESC NULLS LAST, e."fullName" ASC
     `) as ApprovalRow[];
 
     if (req.query['format'] === 'csv') {
       const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const csv = [
-        'Member,Department,Approvals',
-        ...rows.map((r) => [r.fullName, r.department, r.approvals].map(cell).join(',')),
+        'Member,Department,EP,Approved on',
+        ...rows.map((r) => [r.fullName, r.department, r.ep, r.approvedOn].map(cell).join(',')),
       ].join('\r\n');
       res.type('text/csv').send(csv);
       return;
