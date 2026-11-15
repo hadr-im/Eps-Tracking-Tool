@@ -9,12 +9,16 @@ import departmentsRoutes from './departments.routes';
 import dashboardRoutes from './dashboard.routes';
 import usersRoutes from './users.routes';
 import cronRoutes from './cron.routes';
+import reportsRoutes from './reports.routes';
 
 const router = Router();
 
 router.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 router.use('/cron',        cronRoutes);
+// Secret-authenticated extracts for spreadsheets; no session involved, so
+// mounted beside /cron rather than behind the JWT middleware below.
+router.use('/reports',     reportsRoutes);
 
 router.use('/auth',        authRoutes);
 router.use('/',            epRoutes);
