@@ -16,6 +16,8 @@ export function useReassignEpOwner() {
       qc.invalidateQueries({ queryKey: ['eps'] });
       qc.invalidateQueries({ queryKey: ['team-eps'] });
       qc.invalidateQueries({ queryKey: ['under-process'] });
+      // Dashboards are built from these same EPs; one prefix covers them all.
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
     onError: (err: unknown) => {
       toast.error(

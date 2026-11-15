@@ -14,23 +14,40 @@ interface RateStat {
   approved -> amber. Pulling from the shared chart tokens means these bars
   and the funnel stages next to them agree on what each stage looks like.
 */
-function buildRates(rates: ConversionRatesType): RateStat[] {
+/*
+  The wording changes with the period, because the figure does.
+
+  Over all time these follow one group of people down the pipeline: of the
+  EPs assigned, this share was contacted. Inside a period they compare things
+  that happened in it, and the EP approved on Tuesday is rarely the one
+  contacted on Tuesday — so they are described as comparisons, and they can
+  pass 100% when the work spans periods. Saying "of contacted became
+  interested" there would be a claim about individual people that the number
+  does not support.
+*/
+function buildRates(rates: ConversionRatesType, isPeriod: boolean): RateStat[] {
   return [
     {
       label: 'Contacted Rate',
-      description: 'of assigned EPs were contacted',
+      description: isPeriod
+        ? 'contacted, against EPs assigned in this period'
+        : 'of assigned EPs were contacted',
       rate: rates.contactedRate,
       color: 'bg-chart-blue',
     },
     {
       label: 'Interested Rate',
-      description: 'of contacted became interested',
+      description: isPeriod
+        ? 'marked interested, against those contacted'
+        : 'of contacted became interested',
       rate: rates.interestedRate,
       color: 'bg-chart-violet',
     },
     {
       label: 'Approval Rate',
-      description: 'of interested got approved',
+      description: isPeriod
+        ? 'approvals, against those marked interested'
+        : 'of interested got approved',
       rate: rates.approvalRate,
       color: 'bg-chart-amber',
     },
@@ -40,9 +57,11 @@ function buildRates(rates: ConversionRatesType): RateStat[] {
 interface ConversionRatesProps {
   rates?: ConversionRatesType;
   isLoading: boolean;
+  // True when the reader has narrowed the page to a period.
+  isPeriod?: boolean;
 }
 
-export function ConversionRates({ rates, isLoading }: ConversionRatesProps) {
+export function ConversionRates({ rates, isLoading, isPeriod = false }: ConversionRatesProps) {
   if (isLoading) {
     return (
       <Card className="border">
@@ -65,12 +84,20 @@ export function ConversionRates({ rates, isLoading }: ConversionRatesProps) {
     );
   }
 
-  const stats = buildRates(rates ?? { contactedRate: 0, interestedRate: 0, approvalRate: 0 });
+  const stats = buildRates(
+    rates ?? { contactedRate: 0, interestedRate: 0, approvalRate: 0 },
+    isPeriod,
+  );
 
   return (
     <Card className="border">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">Conversion Rates</CardTitle>
+        {isPeriod && (
+          <p className="text-[11px] text-muted-foreground">
+            Comparing what happened in this period, so these can pass 100%
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-5 pt-2">
         {stats.map((stat) => (

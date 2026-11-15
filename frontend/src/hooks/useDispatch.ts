@@ -17,6 +17,9 @@ export function useDispatch() {
       // has to drop the assigned rows too.
       queryClient.invalidateQueries({ queryKey: ['manual-leads'] });
       queryClient.invalidateQueries({ queryKey: ['transitions'] });
+      // Dashboards are built from these same EPs, so they are stale the
+      // moment one changes. All dashboard keys share this prefix.
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       const count = payload.epIds.length;
       toast.success(`${count} lead${count !== 1 ? 's' : ''} dispatched successfully`);
     },

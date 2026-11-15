@@ -95,6 +95,9 @@ export function useUpdateEp() {
     onSettled: () => {
       // Always refetch after error or success to ensure backend sync
       queryClient.invalidateQueries({ queryKey: ['eps'] });
+      // Dashboards are built from these same EPs, so they are stale the
+      // moment one changes. All dashboard keys share this prefix.
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     }
   });
 }

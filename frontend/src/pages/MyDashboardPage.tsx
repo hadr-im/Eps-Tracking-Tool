@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { DateRangePresetFilter, windowForPreset } from '@/components/dashboard/DateRangePresetFilter';
+import type { DatePreset } from '@/components/dashboard/DateRangePresetFilter';
+import { useState, useMemo } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useAuth }              from '@/hooks/useAuth';
 import { useMyDashboard }       from '@/hooks/useMyDashboard';
@@ -6,6 +8,8 @@ import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { MemberPicker }         from '@/components/team/MemberPicker';
 import { SummaryCards }         from '@/components/dashboard/SummaryCards';
 import { StatusFunnelChart }    from '@/components/dashboard/StatusFunnelChart';
+import { DimensionBreakdownChart } from '@/components/dashboard/DimensionBreakdownChart';
+import { GraduationCap, BookOpen } from 'lucide-react';
 import { PhaseBreakdownChart }  from '@/components/dashboard/PhaseBreakdownChart';
 import { ConversionRates }      from '@/components/dashboard/ConversionRates';
 import { PageHeader }           from '@/components/layout/PageHeader';
@@ -40,7 +44,19 @@ export default function MyDashboardPage({ userId }: MyDashboardPageProps = {}) {
   // Looking at yourself is the personal dashboard, so the picker falls back to
   // the plain /dashboard/me call rather than asking for your own id.
   const viewingId = userId ?? (selectedMemberId === user?.id ? undefined : selectedMemberId ?? undefined);
-  const { data, isLoading, isError } = useMyDashboard({ memberId: viewingId });
+  /*
+    The period every figure on this page covers. 'all' sends no dates, so the
+    default behaviour is unchanged from before the filter existed.
+  */
+  const [period, setPeriod] = useState<DatePreset>('all');
+  const dateWindow = useMemo(() => windowForPreset(period), [period]);
+  /*
+    With a period chosen the figures count what happened in it, not
+    where everyone stands, and the charts word themselves accordingly.
+  */
+  const isPeriod = period !== 'all';
+
+  const { data, isLoading, isFetching, isError } = useMyDashboard({ memberId: viewingId, window: dateWindow });
 
   const viewingSelf = !viewingId;
   const viewingName = members.find((m) => m.id === viewingId)?.fullName;
@@ -55,7 +71,16 @@ export default function MyDashboardPage({ userId }: MyDashboardPageProps = {}) {
             ? 'Your personal EP pipeline performance'
             : "Viewing this member's EP performance stats"
         }
+        actions={
+          <DateRangePresetFilter
+            value={period}
+            onChange={setPeriod}
+            isRefreshing={isFetching && !isLoading}
+            className="h-9 w-44 rounded-lg border border-border bg-card text-xs font-medium"
+          />
+        }
       />
+
 
       {canBrowseMembers && (
         <div className="shrink-0 flex flex-wrap items-center gap-3 border-b bg-background px-4 md:px-6 py-3">
@@ -91,12 +116,40 @@ export default function MyDashboardPage({ userId }: MyDashboardPageProps = {}) {
 
         {/* Funnel + Conversion rates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <StatusFunnelChart data={data?.statusFunnel} isLoading={isLoading} />
-          <ConversionRates   rates={data?.conversionRates} isLoading={isLoading} />
+          <StatusFunnelChart data={data?.statusFunnel} isLoading={isLoading} isPeriod={isPeriod} />
+          <ConversionRates   rates={data?.conversionRates} isLoading={isLoading} isPeriod={isPeriod} />
         </div>
 
         {/* Phase breakdown */}
         <PhaseBreakdownChart data={data?.phaseBreakdown} isLoading={isLoading} />
+
+        {/*
+          Where the leads come from. Side by side because they answer the same
+          kind of question and are read together when deciding which campuses
+          to target next.
+        */}
+        {/*
+          One per row, not side by side. Half a row left the legend a column
+          barely wide enough for a single character — "FLSH: Faculte des
+          Lettres..." rendered as "F", which identifies nothing.
+        */}
+        <div className="grid grid-cols-1 gap-6">
+          <DimensionBreakdownChart
+            title="Universities"
+            icon={GraduationCap}
+            data={data?.universityBreakdown}
+            isLoading={isLoading}
+            emptyMessage="No universities recorded yet."
+          />
+          <DimensionBreakdownChart
+            title="Fields of Study"
+            icon={BookOpen}
+            data={data?.fieldOfStudyBreakdown}
+            isLoading={isLoading}
+            emptyMessage="No fields of study recorded yet."
+          />
+        </div>
+
 
       </div>
     </div>

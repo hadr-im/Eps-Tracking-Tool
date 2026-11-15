@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -5,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { Trophy } from 'lucide-react';
@@ -19,9 +19,34 @@ interface LeaderboardChartProps {
   onMemberClick?: (memberId: string) => void;
 }
 
-import { TOOLTIP_STYLE, CHART_HOVER_FILL } from './chartTokens';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { TOOLTIP_STYLE, CHART_HOVER_FILL, CHART_COLORS } from './chartTokens';
+
+/*
+  Which measure the leaderboard ranks on.
+
+  Approved and realised answer "who is converting"; contacted answers "who is
+  actually working their list", which is the question earlier in a campaign
+  when nobody has an approval yet — and with no approvals the chart was simply
+  empty, which read as broken.
+*/
+const MEASURES = [
+  { value: 'contactedCount', label: 'Contacted', color: CHART_COLORS.blue },
+  { value: 'approvedCount', label: 'Approved', color: CHART_COLORS.amber },
+  { value: 'realisedCount', label: 'Realised', color: CHART_COLORS.emerald },
+] as const;
+
+type MeasureKey = (typeof MEASURES)[number]['value'];
 
 export function LeaderboardChart({ data, isLoading, onMemberClick }: LeaderboardChartProps) {
+  const [measure, setMeasure] = useState<MeasureKey>('approvedCount');
+  const active = MEASURES.find((m) => m.value === measure)!;
   if (isLoading) {
     return (
       <Card className="border">
@@ -37,28 +62,52 @@ export function LeaderboardChart({ data, isLoading, onMemberClick }: Leaderboard
 
   const isEmpty = !data || data.length === 0;
 
-  // Sort by approved desc, take top 15 for readability
+  // Ranked on whichever measure is selected, top 15 for readability.
   const chartData = [...(data ?? [])]
-    .sort((a, b) => b.approvedCount - a.approvedCount)
+    .sort((a, b) => b[measure] - a[measure])
     .slice(0, 15)
     .map((m) => ({
       name: m.fullName.split(' ')[0], // First name for axis brevity
       fullName: m.fullName,
       memberId: m.memberId,
-      Approved: m.approvedCount,
-      Realised: m.realisedCount,
+      value: m[measure],
     }));
 
   return (
     <Card className="border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <Trophy size={15} className="text-amber-500" />
-          Member Leaderboard
-        </CardTitle>
-        {onMemberClick && (
-          <p className="text-[11px] text-muted-foreground">Click a bar to view member dashboard</p>
-        )}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Trophy size={15} className="text-amber-500" />
+              Member Leaderboard
+            </CardTitle>
+            {onMemberClick && (
+              <p className="text-[11px] text-muted-foreground">
+                Click a bar to view member dashboard
+              </p>
+            )}
+          </div>
+
+          {/* Ranked by — top right, where the reader looks after the title. */}
+          <Select value={measure} onValueChange={(v) => v && setMeasure(v as MeasureKey)}>
+            <SelectTrigger
+              className="h-8 w-32 shrink-0 text-xs"
+              aria-label="Rank the leaderboard by"
+            >
+              <SelectValue>
+                {(v) => MEASURES.find((m) => m.value === v)?.label ?? 'Approved'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              {MEASURES.map((m) => (
+                <SelectItem key={m.value} value={m.value} label={m.label}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         {isEmpty ? (
@@ -94,18 +143,23 @@ export function LeaderboardChart({ data, isLoading, onMemberClick }: Leaderboard
               <Tooltip
                 cursor={{ fill: CHART_HOVER_FILL }}
                 contentStyle={TOOLTIP_STYLE}
-                formatter={(value, name) => [value, name]}
+                formatter={(value) => [value, active.label]}
                 labelFormatter={(_, payload) =>
                   payload?.[0] ? (payload[0].payload as typeof chartData[0]).fullName : ''
                 }
               />
-              <Legend
-                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                iconType="circle"
-                iconSize={8}
+              {/*
+                A single series, so no legend: the dropdown above already
+                names what the bars are, and a one-entry legend repeating it
+                is noise.
+              */}
+              <Bar
+                dataKey="value"
+                name={active.label}
+                fill={active.color}
+                radius={[3, 3, 0, 0]}
+                maxBarSize={28}
               />
-              <Bar dataKey="Approved" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="Realised" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
         )}

@@ -1,14 +1,25 @@
 import {
   IDashboardRepository,
+  BaseCounts,
   StatusCount,
   PhaseCount,
   MemberBreakdown,
   StatusChangeTrend,
   TransitionStat,
+  DimensionCount,
 } from '../../../Domain/abstracts/IDashboardRepository';
 import { IAuthRepository } from '../../../Domain/abstracts/IAuthRepository';
 import { UserRole, isVpLevel } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
+
+/*
+  Optional sign-up-date window from the query string. Absent means "all time",
+  which is what every dashboard did before this existed.
+*/
+export interface DashboardWindow {
+  from?: Date;
+  to?: Date;
+}
 
 export interface DashboardCaller {
   id: string;
@@ -19,6 +30,13 @@ export interface DashboardCaller {
 export interface BaseDashboardStats {
   statusFunnel: StatusCount[];
   phaseBreakdown: PhaseCount[];
+  /*
+    Where this scope's leads come from, ranked largest first. Every distinct
+    value is returned; the UI decides how many rows to draw and what to fold
+    into "Other", because that depends on the space it has.
+  */
+  universityBreakdown: DimensionCount[];
+  fieldOfStudyBreakdown: DimensionCount[];
   conversionRates: {
     contactedRate: number;
     interestedRate: number;
@@ -50,31 +68,33 @@ export class DashboardUseCase {
     private readonly authRepo: IAuthRepository,
   ) {}
 
-  async getMemberDashboard(caller: DashboardCaller, targetUserId: string): Promise<MemberDashboardDto> {
+  async getMemberDashboard(
+    caller: DashboardCaller,
+    targetUserId: string,
+    window: DashboardWindow = {},
+  ): Promise<MemberDashboardDto> {
     await this.assertCanViewDashboardOf(caller, targetUserId);
 
     const scope = {
       ownerId: targetUserId,
       departmentId: caller.departmentId ?? undefined,
+      ...window,
     };
 
-    const statusCounts = await this.repo.getStatusCounts(scope);
-    const phaseCounts = await this.repo.getPhaseCounts(scope);
-        
-    return this.buildBaseStats(statusCounts, phaseCounts);
+    return this.buildBaseStats(await this.repo.getBaseCounts(scope));
   }
 
-  async getTeamLeaderDashboard(caller: DashboardCaller): Promise<TeamLeaderDashboardDto> {
+  async getTeamLeaderDashboard(
+    caller: DashboardCaller,
+    window: DashboardWindow = {},
+  ): Promise<TeamLeaderDashboardDto> {
     if (caller.role !== UserRole.TEAM_LEADER && !isVpLevel(caller.role)) {
       throw new AppError('Only TLs and VPs can view team dashboards', 403);
     }
     if (!caller.departmentId) throw new AppError('No department assigned', 400);
 
     // Fetch personal stats for the top-level funnels
-    const scope = { ownerId: caller.id, departmentId: caller.departmentId };
-    
-    const statusCounts = await this.repo.getStatusCounts(scope);
-    const phaseCounts = await this.repo.getPhaseCounts(scope);
+    const scope = { ownerId: caller.id, departmentId: caller.departmentId, ...window };
     
     /*
       The breakdown covers the whole department, for a Team Leader as much as
@@ -82,12 +102,15 @@ export class DashboardUseCase {
       figures to their own team showed them a slice of work they are not
       actually confined to.
     */
-    const breakdown = await this.repo.getMemberBreakdown(caller.departmentId);
-
-    const base = this.buildBaseStats(statusCounts, phaseCounts);
+    const [counts, breakdown] = await Promise.all([
+      this.repo.getBaseCounts(scope),
+      // Team Leaders' own pipelines show for a VP reading this, not for a
+      // Team Leader reading their own team.
+      this.repo.getMemberBreakdown(caller.departmentId, undefined, window, isVpLevel(caller.role)),
+    ]);
 
     return {
-      ...base,
+      ...this.buildBaseStats(counts),
       memberBreakdown: breakdown,
     };
   }
@@ -95,7 +118,8 @@ export class DashboardUseCase {
   async getVpDashboard(
     caller: DashboardCaller,
     requestedDepartmentId?: string,
-    months: number = 6
+    months: number = 6,
+    window: DashboardWindow = {},
   ): Promise<VpDashboardDto> {
     if (!isVpLevel(caller.role)) {
       throw new AppError('Only VPs can view VP dashboards', 403);
@@ -117,23 +141,34 @@ export class DashboardUseCase {
       throw new AppError('You can only view your own department', 403);
     }
 
-    const scope = { departmentId };
+    const scope = { departmentId, ...window };
 
-    const statusCounts = await this.repo.getStatusCounts(scope);
-    const phaseCounts = await this.repo.getPhaseCounts(scope);
-    const leaderboard = await this.repo.getMemberBreakdown(departmentId);
-    
-    // Fetch trends based on dynamic months limit (default 6)
+    /*
+      How far back the trend line reaches.
+
+      A chosen period wins over the months count: picking "Yesterday" and
+      still being shown six months of approvals beside four cards reading
+      zero is the page contradicting itself. With no period chosen it falls
+      back to the months count, which is the old behaviour.
+    */
     const sinceDate = new Date();
     sinceDate.setMonth(sinceDate.getMonth() - months);
-    const trends = await this.repo.getStatusChangesOverTime(departmentId, sinceDate);
-    
-    const transitionStats = await this.repo.getTransitionStats(departmentId);
+    const trendsFrom = window.from ?? sinceDate;
 
-    const base = this.buildBaseStats(statusCounts, phaseCounts);
+    /*
+      Issued together rather than one after another. These four were awaited in
+      sequence, so the page waited for four full round trips to the database
+      even though none of them depends on the one before it.
+    */
+    const [counts, leaderboard, trends, transitionStats] = await Promise.all([
+      this.repo.getBaseCounts(scope),
+      this.repo.getMemberBreakdown(departmentId, undefined, window, true),
+      this.repo.getStatusChangesOverTime(departmentId, trendsFrom, window.to),
+      this.repo.getTransitionStats(departmentId),
+    ]);
 
     return {
-      ...base,
+      ...this.buildBaseStats(counts),
       memberLeaderboard: leaderboard, // ordered by SQL query
       trends,
       transitionStats,
@@ -179,45 +214,55 @@ export class DashboardUseCase {
     */
   }
 
-  private buildBaseStats(statusCounts: StatusCount[], phaseCounts: PhaseCount[]): BaseDashboardStats {
-    let totalAssigned = 0;
-    let totalContacted = 0;
-    let totalInterested = 0;
-    let totalApproved = 0;
-    let totalRealised = 0;
+  private buildBaseStats(counts: BaseCounts): BaseDashboardStats {
+    const f = counts.funnel;
 
-    for (const sc of statusCounts) {
-      totalAssigned += sc.count;
-      
-      // Funnel cascade (if they are approved, they must have been contacted... etc)
-      // Summing the exact statuses based on the DB enum
-      if (['CONTACTED', 'INTERESTED', 'APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED'].includes(sc.status)) {
-        totalContacted += sc.count;
-      }
-      if (['INTERESTED', 'APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED'].includes(sc.status)) {
-        totalInterested += sc.count;
-      }
-      if (['APPROVED', 'REALIZED', 'COMPLETED', 'FINISHED'].includes(sc.status)) {
-        totalApproved += sc.count;
-      }
-      if (['REALIZED', 'COMPLETED', 'FINISHED'].includes(sc.status)) {
-        totalRealised += sc.count;
-      }
-    }
+    /*
+      The funnel the chart draws, as stages rather than as a tally of each
+      EXPA status.
+
+      It used to send the raw status distribution — one bucket per value of
+      statusOnExpa — under the name "Pipeline Funnel". Two of those buckets
+      could never fill: the sync only ever writes LEAD or APPROVED and beyond,
+      so Contacted and Interested were drawn as empty every single time, on
+      every dashboard, while the work they represent was sitting in the CRM
+      columns the chart never looked at.
+
+      These are cumulative, which is what a funnel means: 'Contacted' is
+      everyone contacted, including those since approved, not the ones who got
+      no further.
+    */
+    const statusFunnel: StatusCount[] = [
+      { status: 'LEAD', count: f.total },
+      { status: 'CONTACTED', count: f.contacted },
+      { status: 'INTERESTED', count: f.interested },
+      { status: 'APPROVED', count: f.approved },
+      { status: 'REALIZED', count: f.realised },
+      { status: 'COMPLETED', count: f.completed },
+      { status: 'FINISHED', count: f.finished },
+    ];
 
     return {
-      statusFunnel: statusCounts,
-      phaseBreakdown: phaseCounts,
+      statusFunnel,
+      phaseBreakdown: counts.phases,
+      universityBreakdown: counts.universities,
+      fieldOfStudyBreakdown: counts.fieldsOfStudy,
       summary: {
-        totalAssigned,
-        totalContacted,
-        totalApproved,
-        totalRealised,
+        totalAssigned: f.total,
+        totalContacted: f.contacted,
+        totalApproved: f.approved,
+        totalRealised: f.realised,
       },
+      /*
+        Each rate is a step of the cascade against the step before it, so it
+        reads as "of the people who got this far, how many went on". The
+        interested rate was previously interested-over-contacted where both
+        sides counted the same approvals, which is why it was pinned at 100%.
+      */
       conversionRates: {
-        contactedRate: totalAssigned > 0 ? (totalContacted / totalAssigned) * 100 : 0,
-        interestedRate: totalContacted > 0 ? (totalInterested / totalContacted) * 100 : 0,
-        approvalRate: totalInterested > 0 ? (totalApproved / totalInterested) * 100 : 0,
+        contactedRate: f.total > 0 ? (f.contacted / f.total) * 100 : 0,
+        interestedRate: f.contacted > 0 ? (f.interested / f.contacted) * 100 : 0,
+        approvalRate: f.interested > 0 ? (f.approved / f.interested) * 100 : 0,
       },
     };
   }

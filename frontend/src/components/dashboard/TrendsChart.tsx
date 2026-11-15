@@ -39,6 +39,10 @@ function buildChartData(trends: StatusChangeTrend[]): TrendPoint[] {
     if (!TRACKED_STATUSES.includes(row.status as any)) continue;
     if (!byDate.has(row.date)) {
       byDate.set(row.date, {
+        // Kept alongside the label so the sort below has a real date to work
+        // with. Date objects cannot go in the row Recharts reads, so this is
+        // the sortable form of the same instant.
+        sortKey: new Date(row.date).getTime(),
         label: new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
         ...Object.fromEntries(TRACKED_STATUSES.map((s) => [s, 0])),
       });
@@ -46,8 +50,16 @@ function buildChartData(trends: StatusChangeTrend[]): TrendPoint[] {
     byDate.get(row.date)![row.status] = row.count;
   }
 
-  return Array.from(byDate.values()).sort((a, b) =>
-    (a.label as string).localeCompare(b.label as string),
+  /*
+    Sorted by the date, not by the text of the label.
+
+    It used to compare the labels as strings, and "02 Nov" sorts before
+    "19 Oct" alphabetically — so the line ran 02 Nov → 19 Oct → 26 Oct and
+    drew a trend that went backwards through time. Any two weeks whose day
+    numbers happened to ascend across a month boundary came out reversed.
+  */
+  return Array.from(byDate.values()).sort(
+    (a, b) => (a.sortKey as number) - (b.sortKey as number),
   );
 }
 

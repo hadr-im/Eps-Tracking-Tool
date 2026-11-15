@@ -96,14 +96,23 @@ export function TransitionStats({ data, isLoading }: TransitionStatsProps) {
                 contentStyle={TOOLTIP_STYLE}
                 // Soft brand-tinted highlight instead of Recharts' dark grey.
                 cursor={{ fill: CHART_HOVER_FILL }}
-                formatter={(value) => [value, 'Transitions']}
+                formatter={(value, _name, item) => {
+                  const b = item?.payload as BarPoint | undefined;
+                  return [value, b ? `From ${b.from}` : 'Transitions'];
+                }}
               />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {/* Each bar takes the colour of the destination product, so at
-                    a glance you see where EPs are going, not where they came
-                    from. */}
+                {/*
+                  Each bar wears the colour of the department the EP came
+                  FROM, not the one it went to. Every bar on this chart ends
+                  in the department whose dashboard you are reading, so
+                  colouring by destination painted them all the same — the one
+                  thing the colour could say, it was spending on the one thing
+                  that never varies. Source is what differs between bars, and
+                  it is the question being asked: who is sending us people.
+                */}
                 {bars.map((b) => (
-                  <Cell key={b.label} fill={PRODUCT_COLOR[b.to] ?? 'var(--chart-blue)'} />
+                  <Cell key={b.label} fill={PRODUCT_COLOR[b.from] ?? 'var(--chart-blue)'} />
                 ))}
               </Bar>
             </BarChart>

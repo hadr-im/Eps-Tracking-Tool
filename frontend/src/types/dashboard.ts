@@ -54,6 +54,13 @@ export interface TransitionStat {
 export interface MemberDashboardDto {
   statusFunnel: StatusCount[];
   phaseBreakdown: PhaseCount[];
+  /*
+    Where this scope's leads come from, ranked largest first. The API returns
+    every distinct value; the chart decides how many to draw and what to fold
+    into "Other".
+  */
+  universityBreakdown: DimensionCount[];
+  fieldOfStudyBreakdown: DimensionCount[];
   conversionRates: ConversionRates;
   summary: DashboardSummary;
 }
@@ -72,4 +79,13 @@ export interface DashboardApiResponse {
 
 export interface VpDashboardApiResponse {
   data: VpDashboardDto;
+}
+
+/*
+  A named value and how many leads carry it — used by the university and
+  field-of-study breakdowns. Mirrors DimensionCount on the API.
+*/
+export interface DimensionCount {
+  label: string;
+  count: number;
 }
