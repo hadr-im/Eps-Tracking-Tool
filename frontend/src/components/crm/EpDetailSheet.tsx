@@ -15,6 +15,7 @@ import { CheckboxCell }      from './cells/CheckboxCell';
 import { DateCell }          from './cells/DateCell';
 import { DurationCell }      from './cells/DurationCell';
 import { AvailabilityCell }  from './cells/AvailabilityCell';
+import { CopyButton }        from '@/components/ui/copy-button';
 import type { Ep, TrackingPhase } from '@/types/ep';
 
 interface EpDetailSheetProps {
@@ -55,10 +56,29 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function ReadOnlyField({ children }: { children: React.ReactNode }) {
+/*
+  `copy` adds a copy button inside the box.
+
+  It earns its place most here. The field truncates, so a relayed EXPA
+  address shows as "p_4c6813db1120eea533…" — unreadable, and with no way to
+  select the part that is hidden. The button is the only way to get the whole
+  value out of this panel.
+*/
+function ReadOnlyField({
+  children,
+  copy,
+  copyLabel,
+}: {
+  children: React.ReactNode;
+  copy?: string | null;
+  copyLabel?: string;
+}) {
   return (
-    <div className="px-3 py-2 rounded-xl border border-border bg-transparent text-xs min-h-9 flex items-center min-w-0 overflow-hidden">
+    <div className="px-3 py-2 rounded-xl border border-border bg-transparent text-xs min-h-9 flex items-center gap-1 min-w-0 overflow-hidden">
       <div className="truncate min-w-0 w-full">{children}</div>
+      {copy && (
+        <CopyButton value={copy} label={copyLabel ?? 'Value'} className="-my-2 -mr-2 h-8 w-8" />
+      )}
     </div>
   );
 }
@@ -99,12 +119,14 @@ export function EpDetailSheet({
           {/* General Info */}
           <SectionCard title="General Information" icon={User}>
             <Row label="Email">
-              <ReadOnlyField>
+              <ReadOnlyField copy={ep.email} copyLabel="Email">
                 {ep.email ? <a href={`mailto:${ep.email}`} className="text-blue-600 hover:underline break-all">{ep.email}</a> : <span className="text-muted-foreground">—</span>}
               </ReadOnlyField>
             </Row>
             <Row label="Phone">
-              <ReadOnlyField>{ep.phone ?? <span className="text-muted-foreground">—</span>}</ReadOnlyField>
+              <ReadOnlyField copy={ep.phone} copyLabel="Phone">
+                {ep.phone ?? <span className="text-muted-foreground">—</span>}
+              </ReadOnlyField>
             </Row>
             {/*
               Editable here as well as in the table: the sheet is where most
