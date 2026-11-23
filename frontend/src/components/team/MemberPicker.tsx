@@ -1,13 +1,17 @@
 // MemberPicker 
 // Used in both TeamCrmPage and TeamDashboardPage
 
+import { useState } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSearchInput,
   SelectTrigger,
   SelectValue,
+  matchesQuery,
 } from '@/components/ui/select';
+import { SEARCH_THRESHOLD } from '@/components/filters/FilterSelect';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { DepartmentMember } from '@/services/departmentService';
@@ -33,12 +37,22 @@ export function MemberPicker({
   variant = 'solid',
   className,
 }: MemberPickerProps) {
+  // A department runs to 25 members, so the list is scrolled rather than read.
+  const [query, setQuery] = useState('');
+  const showSearch = members.length > SEARCH_THRESHOLD;
+  const visible = query ? members.filter((m) => matchesQuery(m.fullName, query)) : members;
+
   if (isLoading) {
     return <Skeleton className={cn("h-9 w-52", className)} />;
   }
 
   return (
-    <Select value={selectedId ?? ''} onValueChange={(val) => val && onSelect(val)} disabled={disabled}>
+    <Select
+      value={selectedId ?? ''}
+      onValueChange={(val) => val && onSelect(val)}
+      disabled={disabled}
+      onOpenChange={(open) => { if (!open) setQuery(''); }}
+    >
       <SelectTrigger 
         id="member-picker" 
         className={cn(
@@ -53,15 +67,20 @@ export function MemberPicker({
           {(val) => (val ? members.find((m) => m.id === val)?.fullName ?? val : placeholder)}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
-        {members.map((m) => (
+      <SelectContent className="max-h-72">
+        {showSearch && (
+          <SelectSearchInput value={query} onChange={setQuery} placeholder="Search members…" />
+        )}
+
+        {visible.map((m) => (
           <SelectItem key={m.id} value={m.id} label={m.fullName}>
             {m.fullName}
           </SelectItem>
         ))}
-        {members.length === 0 && (
+
+        {visible.length === 0 && (
           <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-            No members found
+            {query ? `Nothing matches “${query}”` : 'No members found'}
           </div>
         )}
       </SelectContent>

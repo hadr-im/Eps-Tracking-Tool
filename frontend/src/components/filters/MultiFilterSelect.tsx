@@ -8,9 +8,12 @@
   opening it: the trigger names one, counts the rest.
 */
 
-import { Check, ChevronDown, X } from 'lucide-react';
+import { useState } from 'react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { matchesQuery } from '@/components/ui/select';
+import { SEARCH_THRESHOLD } from './FilterSelect';
 import { cn } from '@/lib/utils';
 
 export interface MultiFilterOption {
@@ -35,6 +38,15 @@ export function MultiFilterSelect({
 }: MultiFilterSelectProps) {
   const isActive = values.length > 0;
 
+  /*
+    Searchable once the list is long enough to scroll. This is a plain input
+    rather than the select's one: a popover of checkboxes has no typeahead to
+    collide with, so nothing needs intercepting.
+  */
+  const [query, setQuery] = useState('');
+  const showSearch = options.length > SEARCH_THRESHOLD;
+  const visible = query ? options.filter((o) => matchesQuery(o.label, query)) : options;
+
   function toggle(value: string) {
     onChange(
       values.includes(value) ? values.filter((v) => v !== value) : [...values, value],
@@ -50,7 +62,7 @@ export function MultiFilterSelect({
       : `${values.length} selected`;
 
   return (
-    <Popover>
+    <Popover onOpenChange={(open) => { if (!open) setQuery(''); }}>
       <PopoverTrigger
         render={
           <Button
@@ -71,12 +83,28 @@ export function MultiFilterSelect({
       </PopoverTrigger>
 
       <PopoverContent className="max-h-72 w-56 overflow-y-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {options.length === 0 ? (
+        {showSearch && (
+          <div className="sticky top-0 z-10 -mx-1 -mt-1 mb-1 border-b border-border/60 bg-popover px-1.5 py-1.5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Search ${allLabel.replace(/^All /i, '')}…`}
+                aria-label={`Search ${allLabel.replace(/^All /i, '')}`}
+                className="h-8 w-full rounded-lg border border-border bg-transparent pr-2 pl-7 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
+              />
+            </div>
+          </div>
+        )}
+
+        {visible.length === 0 ? (
           <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-            No members yet
+            {query ? `Nothing matches “${query}”` : 'No members yet'}
           </p>
         ) : (
-          options.map((o) => {
+          visible.map((o) => {
             const checked = values.includes(o.value);
             return (
               <button

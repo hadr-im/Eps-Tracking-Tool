@@ -119,13 +119,17 @@ export function DateRangePresetFilter({
 }: DateRangePresetFilterProps) {
   return (
     <div className="flex items-center gap-2">
-      <Loader2
-        size={14}
-        aria-hidden
-        className={`shrink-0 animate-spin text-muted-foreground transition-opacity duration-150 ${
-          isRefreshing ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
+      {/*
+        Rendered only while it spins, rather than kept invisible.
+
+        Holding the space with opacity-0 indented the control by the width of
+        an icon it never showed. On desktop the row is right-aligned so that
+        went unnoticed; on a phone the header stacks and the dropdown sat a
+        clear step in from the title above it.
+      */}
+      {isRefreshing && (
+        <Loader2 size={14} aria-hidden className="shrink-0 animate-spin text-muted-foreground" />
+      )}
       <span className="sr-only" role="status">
         {isRefreshing ? 'Updating the figures for the period you picked' : ''}
       </span>

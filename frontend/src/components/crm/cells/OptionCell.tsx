@@ -11,13 +11,17 @@
   Clearing is deliberately possible: a wrong answer is worse than none.
 */
 
+import { useState } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSearchInput,
   SelectTrigger,
   SelectValue,
+  matchesQuery,
 } from '@/components/ui/select';
+import { SEARCH_THRESHOLD } from '@/components/filters/FilterSelect';
 
 export interface CellOption {
   value: string;
@@ -64,11 +68,21 @@ export function OptionCell({
   */
   const unlisted = current && !items.some((o) => o.value === current);
 
+  /*
+    Searchable once the list is long — the universities and the fields of
+    study, not the year. Same threshold the filter bar uses, so correcting a
+    university in the CRM and filtering by one behave alike.
+  */
+  const [query, setQuery] = useState('');
+  const showSearch = items.length > SEARCH_THRESHOLD;
+  const visible = query ? items.filter((o) => matchesQuery(o.label, query)) : items;
+
   return (
     <Select
       value={current}
       disabled={isPending}
       onValueChange={(v) => onUpdate(id, field, !v || v === CLEAR ? null : String(v))}
+      onOpenChange={(open) => { if (!open) setQuery(''); }}
     >
       <SelectTrigger
         id={`${field}-${id}`}
@@ -89,17 +103,28 @@ export function OptionCell({
             : 'max-h-72 text-xs'
         }
       >
-        {unlisted && (
+        {showSearch && (
+          <SelectSearchInput value={query} onChange={setQuery} placeholder={`Search ${placeholder}…`} />
+        )}
+
+        {unlisted && !query && (
           <SelectItem value={current} label={current}>
             {current}
           </SelectItem>
         )}
-        {items.map((o) => (
+
+        {visible.map((o) => (
           <SelectItem key={o.value} value={o.value} label={o.label}>
             {o.label}
           </SelectItem>
         ))}
-        {current && (
+
+        {query && visible.length === 0 && (
+          <p className="px-3 py-4 text-center text-muted-foreground">Nothing matches “{query}”</p>
+        )}
+
+        {/* Clearing is an action on the field, not a search result. */}
+        {current && !query && (
           <SelectItem value={CLEAR} label="Clear">
             <span className="text-muted-foreground">Clear</span>
           </SelectItem>

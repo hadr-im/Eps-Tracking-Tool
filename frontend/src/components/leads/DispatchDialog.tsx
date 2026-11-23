@@ -16,9 +16,12 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSearchInput,
+  matchesQuery,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SEARCH_THRESHOLD } from '@/components/filters/FilterSelect';
 import { useDispatch }          from '@/hooks/useDispatch';
 import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import type { Lead }            from '@/types/lead';
@@ -71,6 +74,11 @@ export function DispatchDialog({
   // Include all department members (Members, TLs, VPs)
   const memberOptions = members;
 
+  const [memberQuery, setMemberQuery] = useState('');
+  const visibleMembers = memberQuery
+    ? memberOptions.filter((m) => matchesQuery(m.fullName, memberQuery))
+    : memberOptions;
+
   const leadCount = leads.length;
 
   return (
@@ -100,21 +108,35 @@ export function DispatchDialog({
               <Select
                 value={selectedMemberId}
                 onValueChange={(v) => setSelectedMemberId(v ?? '')}
+                onOpenChange={(open) => { if (!open) setMemberQuery(''); }}
               >
                 <SelectTrigger id="dispatch-member" className="w-full">
                   <SelectValue placeholder="Select a member…">
                     {(val: string) => (val ? members.find((m) => m.id === val)?.fullName ?? val : 'Select a member…')}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {memberOptions.map((m) => (
+                <SelectContent className="max-h-72">
+                  {/*
+                    The one dropdown in the app where picking the wrong row
+                    hands somebody else's leads to the wrong person, and a
+                    department of twenty-odd names is scrolled rather than
+                    read. Worth searching.
+                  */}
+                  {memberOptions.length > SEARCH_THRESHOLD && (
+                    <SelectSearchInput
+                      value={memberQuery}
+                      onChange={setMemberQuery}
+                      placeholder="Search members…"
+                    />
+                  )}
+                  {visibleMembers.map((m) => (
                     <SelectItem key={m.id} value={m.id} label={m.fullName}>
                       {m.fullName}
                     </SelectItem>
                   ))}
-                  {memberOptions.length === 0 && (
+                  {visibleMembers.length === 0 && (
                     <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                      No members available
+                      {memberQuery ? `Nothing matches “${memberQuery}”` : 'No members available'}
                     </div>
                   )}
                 </SelectContent>

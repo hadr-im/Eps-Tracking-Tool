@@ -9,6 +9,7 @@ import { PaginationBar } from '@/components/ui/pagination-bar';
 import {
   MessageSquare,
   User,
+  Users,
   GraduationCap,
   Mail,
   Phone,
@@ -102,10 +103,22 @@ export default function TeamCrmPage() {
         )}
       </div>
 
-      {/* No member selected prompt */}
+      {/*
+        No member picked yet.
+
+        The text was an anonymous flex child, so it stretched the full width
+        and wrapped — which left `justify-center` nothing to centre and the
+        two lines hard against the left edge of the phone, under a tall blank
+        space that read as a page that had failed to load. It is a proper
+        empty state now: an icon to fill the void, a bounded, centred column,
+        and padding so it is never flush with the screen edge.
+      */}
       {!selectedMemberId && !membersLoading && (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-          Select a member above to view their CRM data.
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <Users size={36} className="text-muted-foreground/30" strokeWidth={1.5} />
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Pick a member above to see the EPs they are working on.
+          </p>
         </div>
       )}
 
