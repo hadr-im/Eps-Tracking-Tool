@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateCell } from '@/components/crm/cells/DateCell';
 import { StatusBadgeCell } from '@/components/crm/cells/StatusBadgeCell';
 import { UserAvatar } from '@/components/layout/UserAvatar';
+import { CopyButton } from '@/components/ui/copy-button';
 import { cn } from '@/lib/utils';
 import type { Lead } from '@/types/lead';
 import type { EpStatus } from '@/types/ep';
@@ -139,8 +140,8 @@ function LeadRow({
       >
         <div className="overflow-hidden">
           <dl className="px-4 pb-3 space-y-1.5 text-[12px]">
-            {lead.email && <Row label="Email" value={lead.email} />}
-            {lead.phone && <Row label="Phone" value={lead.phone} />}
+            {lead.email && <Row label="Email" value={lead.email} copyable />}
+            {lead.phone && <Row label="Phone" value={lead.phone} copyable />}
             {lead.university && <Row label="University" value={lead.university} />}
             {lead.fieldOfStudy && <Row label="Field of Study" value={lead.fieldOfStudy} />}
             {lead.yearOfStudy !== null && (
@@ -159,7 +160,17 @@ function LeadRow({
   addresses, full university names) get the full card width instead of being
   crushed to half. Truncated with an ellipsis when they still overflow.
 */
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  copyable = false,
+}: {
+  label: string;
+  value: string;
+  // Email and phone, which are wanted in the dialler or a mail client
+  // rather than on screen. The rest are read, not carried away.
+  copyable?: boolean;
+}) {
   return (
     <div>
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
@@ -170,7 +181,10 @@ function Row({ label, value }: { label: string; value: string }) {
         break-words catches long email addresses that have no spaces to
         break at.
       */}
-      <dd className="mt-0.5 text-foreground break-words">{value}</dd>
+      <dd className="mt-0.5 flex items-start justify-between gap-1 text-foreground">
+        <span className="min-w-0 break-words">{value}</span>
+        {copyable && <CopyButton value={value} label={label} className="-my-1.5 -mr-2" />}
+      </dd>
     </div>
   );
 }

@@ -52,7 +52,7 @@ export function ApprovedEpMobileCard({ ep, canComment, onCommentClick }: Approve
     >
       <EpSection label="Contact" icon={User}>
         <EpInfoRow label="Member" icon={User} value={ep.memberName} />
-        <EpInfoRow label="Phone" icon={Phone} value={ep.phone} />
+        <EpInfoRow label="Phone" icon={Phone} value={ep.phone} copyValue={ep.phone} />
       </EpSection>
 
       <EpSection label="Opportunity" icon={Briefcase}>

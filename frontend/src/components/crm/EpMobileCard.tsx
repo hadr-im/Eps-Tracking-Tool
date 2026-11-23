@@ -11,6 +11,7 @@ import { ChevronDown, type LucideIcon } from 'lucide-react';
 
 import { UserAvatar } from '@/components/layout/UserAvatar';
 import { DateCell } from '@/components/crm/cells/DateCell';
+import { CopyButton } from '@/components/ui/copy-button';
 import { cn } from '@/lib/utils';
 
 interface EpMobileCardProps {
@@ -145,9 +146,16 @@ interface InfoRowProps {
   label: string;
   icon?: LucideIcon;
   value: ReactNode;
+  /*
+    Give this the raw text and the row grows a copy button. Passed separately
+    from `value` because what is rendered is often not what you want on the
+    clipboard — a link, an editable cell, a formatted enum — and because a
+    row with no text to copy should not show a button that does nothing.
+  */
+  copyValue?: string | null;
 }
 
-export function EpInfoRow({ label, icon: Icon, value }: InfoRowProps) {
+export function EpInfoRow({ label, icon: Icon, value, copyValue }: InfoRowProps) {
   const isEmpty = value === null || value === undefined || value === '';
   return (
     <div className="flex items-start justify-between gap-3 py-1.5 text-[12px]">
@@ -155,8 +163,17 @@ export function EpInfoRow({ label, icon: Icon, value }: InfoRowProps) {
         {Icon && <Icon size={12} className="text-muted-foreground/70" />}
         {label}
       </span>
-      <span className="text-foreground font-medium text-right break-words min-w-0">
-        {isEmpty ? <span className="text-muted-foreground">—</span> : value}
+      <span className="flex min-w-0 items-center justify-end gap-1 text-right">
+        <span className="min-w-0 break-words font-medium text-foreground">
+          {isEmpty ? <span className="text-muted-foreground">—</span> : value}
+        </span>
+        {/*
+          The button keeps its own margin out of the text flow, so a long
+          email still wraps against the row edge rather than against the
+          icon. -mr-2 pulls the oversized touch target back level with the
+          other rows' right edge.
+        */}
+        {copyValue && <CopyButton value={copyValue} label={label} className="-my-1.5 -mr-2" />}
       </span>
     </div>
   );

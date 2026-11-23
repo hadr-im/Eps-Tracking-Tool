@@ -104,8 +104,8 @@ export function EpCard({
         }
       >
         <EpSection label="Contact" icon={User}>
-          <EpInfoRow label="Email" icon={Mail} value={ep.email} />
-          <EpInfoRow label="Phone" icon={Phone} value={ep.phone} />
+          <EpInfoRow label="Email" icon={Mail} value={ep.email} copyValue={ep.email} />
+          <EpInfoRow label="Phone" icon={Phone} value={ep.phone} copyValue={ep.phone} />
         </EpSection>
 
         <EpSection label="Academic" icon={GraduationCap}>
