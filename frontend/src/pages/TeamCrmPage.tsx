@@ -40,6 +40,7 @@ import {
 import type { Ep }               from '@/types/ep';
 import { PageHeader }            from '@/components/layout/PageHeader';
 import { isVpLevel } from '@/types/auth';
+import { useEpsCount } from '@/hooks/useEpsCount';
 
 // No-op callbacks
 const noop = () => {};
@@ -56,15 +57,20 @@ export default function TeamCrmPage() {
 
   const { data: allMembers = [], isLoading: membersLoading } = useDepartmentMembers(departmentId);
 
-  // Only show MEMBER-role users — exclude TL and VP accounts
   /*
-    Team Leaders carry their own EPs, so a VP overseeing the department needs
-    to see their pipeline too — leaving them out meant part of the department's
-    work was invisible from here. A Team Leader still sees only members, since
-    their peers are not theirs to oversee.
+    Members and Team Leaders, never VP accounts.
+
+    Team Leaders carry their own EPs, so leaving them out hid part of the
+    department's work from this page. They used to be listed for a VP only;
+    they are listed for a Team Leader too now, which is everyone who can open
+    this page at all.
+
+    The viewer is dropped from their own list: this is a read-only view of
+    someone else's pipeline, and a Team Leader finding their own name here
+    would land them in a version of My CRM they cannot edit.
   */
   const members = allMembers.filter(
-    (m) => m.role === 'MEMBER' || (isVpLevel(user?.role) && m.role === 'TEAM_LEADER'),
+    (m) => (m.role === 'MEMBER' || m.role === 'TEAM_LEADER') && m.id !== user?.id,
   );
   const [page, setPage] = useState(1);
   const { data, isLoading: epsLoading } = useTeamEps(selectedMemberId, {}, page);
@@ -77,12 +83,48 @@ export default function TeamCrmPage() {
 
   const handleCommentClick = useCallback((ep: Ep) => setOpenEp(ep), []);
 
+  /*
+    The same progress badge My CRM carries, for whoever is being looked at.
+
+    Counted server-side over the member's whole list rather than the page on
+    screen — counting the rows here would turn "12 of 200 contacted" into
+    "12 of 50", which reads as a member falling behind when they are not.
+  */
+  const totalCount = data?.total ?? 0;
+  const contactedCount = useEpsCount(
+    { memberId: selectedMemberId ?? undefined, contacted: 'true' },
+    !!selectedMemberId,
+  );
+  const contactedPct = totalCount > 0 ? (contactedCount / totalCount) * 100 : 0;
+
+  const leadsBadge =
+    selectedMemberId && !epsLoading ? (
+      <div className="flex flex-col gap-1.5 rounded-lg border bg-card px-3.5 py-2 min-w-46">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Leads contacted
+          </span>
+          <span className="text-xs font-bold tabular-nums">
+            {contactedCount}
+            <span className="text-muted-foreground font-medium">/{totalCount}</span>
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-aiesec-blue transition-all duration-300"
+            style={{ width: `${contactedPct}%` }}
+          />
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div className="flex flex-col h-full">
 
       <PageHeader
         title="Team Pipeline"
         subtitle="Read-only view of a member's EP pipeline"
+        actions={leadsBadge}
       />
 
       {/* Member picker bar */}
