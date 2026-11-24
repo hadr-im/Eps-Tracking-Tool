@@ -9,8 +9,20 @@ name: EXPA Sync
 #                  (e.g. https://eps-tracking-api.vercel.app)
 #   CRON_SECRET  - must match the CRON_SECRET env var set on the backend
 #
-# Note: GitHub disables scheduled workflows after 60 days without repo activity,
-# and may delay runs under load. Swap in cron-job.org if timing gets strict.
+# WARNING: these schedules are not honoured. Measured over the week to
+# 24 Nov 2026, the three below ask for about 144 runs a day and GitHub
+# actually ran 5 to 11 - it drops roughly 93% of them. `schedule` is
+# best-effort, and high-frequency crons on the shared runner pool are the
+# first thing shed under load; there is no setting that changes this.
+#
+# The visible effect is leads arriving hours after someone signs up, and
+# contact details sitting unread in the sheet. Until an external scheduler
+# calls these endpoints directly - cron-job.org is free and fires on time -
+# treat what follows as a hope rather than a schedule, which is why every
+# job now enriches rather than only some of them.
+#
+# Note: GitHub also disables scheduled workflows after 60 days without repo
+# activity.
 
 on:
   schedule:
@@ -121,10 +133,18 @@ jobs:
           echo
           [ "$code" = "200" ]
 
+      # Runs on EVERY job, including the hourly status sync.
+      #
+      # It used to be attached to sync-leads and enrich-only only, on the
+      # reasoning that the status sync adds no new people. True, but beside
+      # the point: GitHub honours only a fraction of these schedules, and the
+      # run that does get through is as likely as not to be the status one -
+      # which then skipped this step and left the contact details sitting in
+      # the sheet. Enrichment costs one sheet read and a handful of writes
+      # (about five seconds in all), so there is nothing to save by skipping
+      # it, and a great deal to lose.
       - name: Enrich from the sign-up sheet
-        if: >-
-          steps.cfg.outputs.ready == 'true' &&
-          (steps.pick.outputs.job == 'sync-leads' || steps.pick.outputs.job == 'enrich-only')
+        if: steps.cfg.outputs.ready == 'true'
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
