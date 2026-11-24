@@ -4,6 +4,7 @@ import { ExpaLead } from '../../Domain/types/ExpaLead';
 import { ExpaApprovedDetail } from '../../Domain/types/ExpaApprovedDetail';
 import { EpStatusResult } from '../../Domain/types/EpStatusResult';
 import { ExpaApproval } from '../../Domain/types/ExpaApproval';
+import { prisma } from '../Database/PrismaService';
 import { PROGRAMME_FROM_EXPA_CODE } from '../../Domain/enums/Product';
 
 
@@ -229,12 +230,15 @@ export class ExpaRepository implements IExpaRepository {
     console.log(`[ExpaRepository] Fetching leads for programme ${programmeCode}...`);
 
     while (page <= totalPages) {
-      const data = await this.withRetry<PeopleResponse>(() =>
-        this.client.request(FETCH_LEADS_QUERY, {
-          page,
-          perPage: this.perPage,
-          programmeCode: [programmeCode], 
-        }),
+      const data = await this.withRetry<PeopleResponse>(
+        () =>
+          this.client.request(FETCH_LEADS_QUERY, {
+            page,
+            perPage: this.perPage,
+            programmeCode: [programmeCode],
+          }),
+        undefined,
+        'fetchLeads',
       );
 
       const { paging, data: people } = data.people;
@@ -272,12 +276,15 @@ export class ExpaRepository implements IExpaRepository {
     console.log(`[ExpaRepository] Checking application status for ${epIds.length} EPs...`);
 
     while (page <= totalPages) {
-      const data = await this.withRetry<ApplicationsResponse>(() =>
-        this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
-          page,
-          perPage: this.appsPerPage,
-          committeeId: this.committeeId,
-        }),
+      const data = await this.withRetry<ApplicationsResponse>(
+        () =>
+          this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
+            page,
+            perPage: this.appsPerPage,
+            committeeId: this.committeeId,
+          }),
+        undefined,
+        'fetchEpStatus',
       );
 
       const { paging, data: applications } = data.allOpportunityApplication;
@@ -326,20 +333,57 @@ export class ExpaRepository implements IExpaRepository {
   private async withRetry<T>(
     fn: () => Promise<T>,
     isFatal?: (err: unknown) => boolean,
+    // Named so the admin page can say which query is using the quota. The
+    // retry is logged as its own attempt, because EXPA counts it as one.
+    operation = 'unknown',
   ): Promise<T> {
     try {
-      return await fn();
+      return await this.timed(operation, fn);
     } catch (firstError) {
       if (isFatal?.(firstError)) throw firstError;
       console.warn('[ExpaRepository] Request failed, retrying in 2 s...', firstError);
       await new Promise((res) => setTimeout(res, 2_000));
       try {
-        return await fn();
+        return await this.timed(operation, fn);
       } catch (secondError) {
         console.error('[ExpaRepository] Retry also failed:', secondError);
         throw secondError;
       }
     }
+  }
+
+  /*
+    Runs the request and records that it happened.
+
+    EXPA is a shared service with a rate limit, and nothing here recorded how
+    hard this tool leans on it — so the first sign of trouble would have been
+    a sync failing mid-run. Every call is now a row, which is what the admin
+    page draws against the ceiling.
+
+    The write is fire-and-forget and swallows its own errors in both
+    directions: a logging failure must never turn into a sync failure, and an
+    unawaited rejection must not crash the process. The duration is measured
+    around the request whether it succeeds or throws, since a slow failure is
+    the more interesting one.
+  */
+  private async timed<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    const started = Date.now();
+    try {
+      const out = await fn();
+      this.record(operation, true, Date.now() - started);
+      return out;
+    } catch (err) {
+      this.record(operation, false, Date.now() - started);
+      throw err;
+    }
+  }
+
+  private record(operation: string, ok: boolean, ms: number): void {
+    void prisma.expaRequestLog
+      .create({ data: { operation, ok, ms } })
+      .catch((err: unknown) => {
+        console.warn('[ExpaRepository] Could not log the request:', err);
+      });
   }
 
   async fetchPersonById(expaId: string): Promise<ExpaLead | null> {
@@ -350,6 +394,7 @@ export class ExpaRepository implements IExpaRepository {
       const data = await this.withRetry<PersonResponse>(
         () => this.client.request(FETCH_PERSON_QUERY, { id: String(numeric) }),
         isRecordNotFound,
+        'fetchPersonById',
       );
       return data.person ? this.mapToExpaLead(data.person) : null;
     } catch (err) {
@@ -393,12 +438,15 @@ export class ExpaRepository implements IExpaRepository {
     let totalPages = 1;
 
     while (page <= totalPages) {
-      const data = await this.withRetry<ApplicationsResponse>(() =>
-        this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
-          page,
-          perPage: this.appsPerPage,
-          committeeId: this.committeeId,
-        }),
+      const data = await this.withRetry<ApplicationsResponse>(
+        () =>
+          this.client.request(FETCH_COMMITTEE_APPLICATIONS_QUERY, {
+            page,
+            perPage: this.appsPerPage,
+            committeeId: this.committeeId,
+          }),
+        undefined,
+        'fetchCommitteeApprovals',
       );
 
       const { paging, data: applications } = data.allOpportunityApplication;

@@ -299,3 +299,24 @@ model Comment {
 
   @@index([epId])
 }
+/// Every call this tool makes to EXPA, one row each.
+///
+/// EXPA is a shared service with a rate limit, and until now nothing recorded
+/// how heavily this tool leaned on it — so the only way to find out we were
+/// close to the ceiling would have been to hit it mid-sync. The admin page
+/// draws the last hour against the limit and the trend behind it.
+///
+/// Written fire-and-forget: a failure to log must never fail a sync.
+model ExpaRequestLog {
+  id        String   @id @default(uuid())
+  /// Which query — fetchLeads, fetchEpStatus, fetchPersonById, …
+  operation String
+  /// False when the request threw, including after its retry.
+  ok        Boolean  @default(true)
+  /// Round-trip in milliseconds, to spot EXPA slowing down before it fails.
+  ms        Int
+  at        DateTime @default(now())
+
+  /// The page only ever asks for a time range, newest first.
+  @@index([at])
+}

@@ -1,34 +1,271 @@
 /*
   The admin area — owner of the installation only.
 
-  A placeholder for now: the route, the guard and the sidebar entry are real,
-  the contents are not. Shipping the shell first means the permission boundary
-  is in place and tested before anything sensitive sits behind it, rather than
-  being added around a page that already exists.
+  It answers one question in several sizes: is the CRM actually being filled
+  in, and by whom. The LC total, then departments, then teams, then people —
+  so a number that looks wrong can be followed down to the row that caused
+  it without leaving the page.
+
+  Completion counts the six fields a member owns, and counts the last three
+  only once a conversation is live; the server's IAdminRepository explains
+  why. The short version sits under the rollups, because a score nobody can
+  interpret is a score people argue with.
 */
 
-import { Wrench } from 'lucide-react';
+import { useState } from 'react';
+import {
+  AlertCircle,
+  Building2,
+  ChevronUp,
+  ChevronDown,
+  Info,
+  Users2,
+} from 'lucide-react';
+
+import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ChampionCard } from '@/components/admin/ChampionCard';
+import { ExpaUsagePanel } from '@/components/admin/ExpaUsagePanel';
+import { CompletionRanking } from '@/components/admin/CompletionRanking';
+import { CompletionTable } from '@/components/admin/CompletionTable';
+import { cn } from '@/lib/utils';
+import type { AdminPeriod, CompletionRollup } from '@/types/admin';
+
+const PERIODS: { value: AdminPeriod; label: string }[] = [
+  { value: 'week', label: 'Last 7 days' },
+  { value: 'month', label: 'Last 30 days' },
+  { value: 'all', label: 'All time' },
+];
+
+function rollupTone(rate: number): string {
+  if (rate >= 75) return 'text-emerald-600';
+  if (rate >= 40) return 'text-amber-600';
+  return 'text-rose-600';
+}
+
+/*
+  A rollup as a figure with a bar under it. Used for the LC, each department
+  and each team, so the three levels read as the same measurement at
+  different zooms rather than three different charts.
+*/
+function RollupStat({ row, big = false }: { row: CompletionRollup; big?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className={cn('truncate font-medium', big ? 'text-sm' : 'text-xs')}>
+          {row.label}
+        </span>
+        <span
+          className={cn(
+            'shrink-0 font-bold tabular-nums',
+            big ? 'text-2xl' : 'text-sm',
+            rollupTone(row.rate),
+          )}
+        >
+          {row.rate}%
+        </span>
+      </div>
+      <div className={cn('mt-1.5 overflow-hidden rounded-full bg-muted', big ? 'h-2' : 'h-1.5')}>
+        <div
+          className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
+          style={{ width: `${Math.min(row.rate, 100)}%` }}
+        />
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        {row.people} {row.people === 1 ? 'person' : 'people'} · {row.epCount} EPs ·{' '}
+        {row.filled.toLocaleString()}/{row.expected.toLocaleString()} fields
+      </p>
+    </div>
+  );
+}
 
 export default function AdminDashboardPage() {
+  const [period, setPeriod] = useState<AdminPeriod>('month');
+  const [showRule, setShowRule] = useState(false);
+
+  const { data, isLoading, isFetching, isError } = useAdminDashboard(period, 24);
+
   return (
     <div className="flex h-full flex-col">
       <PageHeader
         title="Admin"
-        subtitle="Installation-wide settings and diagnostics"
+        subtitle="Data completion across the LC, and EXPA usage"
+        actions={
+          <div className="flex items-center gap-2">
+            {isFetching && !isLoading && (
+              <span className="text-[11px] text-muted-foreground">updating…</span>
+            )}
+            <Select value={period} onValueChange={(v) => v && setPeriod(v as AdminPeriod)}>
+              <SelectTrigger
+                className="h-9 w-40 rounded-lg border border-border bg-card text-xs font-medium"
+                aria-label="Period the completion figures cover"
+              >
+                <SelectValue>
+                  {(v) => PERIODS.find((p) => p.value === v)?.label ?? 'Last 30 days'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="text-xs">
+                {PERIODS.map((p) => (
+                  <SelectItem key={p.value} value={p.value} label={p.label}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
       />
 
-      <div className="flex flex-1 items-center justify-center px-4 py-10">
-        <div className="max-w-sm text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-            <Wrench size={22} className="text-muted-foreground" />
+      <div className="flex-1 space-y-6 overflow-auto px-4 py-6 md:px-6">
+        {isError && (
+          <div className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>Failed to load the admin data. Please refresh the page.</span>
           </div>
-          <h2 className="text-sm font-semibold">Nothing here yet</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            This is where the admin tools will live. The page is reachable only
-            by an admin — everyone else is redirected away.
-          </p>
+        )}
+
+        <ChampionCard champions={data?.champions} period={period} isLoading={isLoading} />
+
+        {/* LC, then departments */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Card className="border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Whole LC</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading || !data ? (
+                <Skeleton className="h-16 w-full rounded-lg" />
+              ) : (
+                <RollupStat row={data.rollups.lc} big />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border lg:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Building2 size={15} className="text-muted-foreground" />
+                By department
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading || !data ? (
+                <Skeleton className="h-16 w-full rounded-lg" />
+              ) : data.rollups.departments.length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">No departments with EPs yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                  {data.rollups.departments.map((d) => (
+                    <RollupStat key={d.label} row={d} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* What the score means — folded away, but one tap from the numbers */}
+        <Card className="border">
+          <button
+            type="button"
+            onClick={() => setShowRule((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-6 py-3 text-left"
+            aria-expanded={showRule}
+          >
+            <span className="flex items-center gap-2 text-xs font-medium">
+              <Info size={14} className="text-muted-foreground" />
+              How completion is worked out
+            </span>
+            <ChevronDown
+              size={16}
+              className={cn('shrink-0 text-muted-foreground transition-transform', showRule && 'rotate-180')}
+            />
+          </button>
+          {showRule && (
+            <CardContent className="border-t pt-4 text-xs leading-relaxed text-muted-foreground">
+              <p>
+                Three fields are expected on <strong>every</strong> EP assigned to someone:{' '}
+                <strong>contacted</strong>, <strong>tracking phase</strong> and{' '}
+                <strong>notes</strong>.
+              </p>
+              <p className="mt-2">
+                Three more are expected <strong>only once the conversation is live</strong> —
+                explaining AIESEC, looking for opportunities, interview, will sign, signed, or
+                waiting for a CV: <strong>duration</strong>, <strong>availability</strong> and{' '}
+                <strong>CV link</strong>. An EP who never replied is scored out of three, not six,
+                so closing a dead lead honestly does not cost anyone marks.
+              </p>
+              <p className="mt-2">
+                <strong>Interested</strong> is not scored — a blank is a fair "do not know yet".
+                University, field of study, year and source are not scored either: the sign-up
+                sheet fills those, so counting them would measure the sync rather than the member.
+              </p>
+              <p className="mt-2">
+                EPs assigned in the last 24 hours are left out, so a fresh dispatch does not
+                crater a score overnight.
+              </p>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Best and worst */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <CompletionRanking
+            title="Top 10"
+            subtitle="Highest completion in this period"
+            icon={ChevronUp}
+            rows={data?.top}
+            isLoading={isLoading}
+            tone="good"
+          />
+          <CompletionRanking
+            title="Needs a nudge"
+            subtitle="Lowest completion — only people who have EPs"
+            icon={ChevronDown}
+            rows={data?.bottom}
+            isLoading={isLoading}
+            tone="attention"
+          />
+        </div>
+
+        {/* Teams */}
+        <Card className="border">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Users2 size={15} className="text-muted-foreground" />
+              By team
+            </CardTitle>
+            <p className="text-[11px] text-muted-foreground">
+              Grouped by team leader; people with no leader are not shown here
+            </p>
+          </CardHeader>
+          <CardContent>
+            {isLoading || !data ? (
+              <Skeleton className="h-20 w-full rounded-lg" />
+            ) : data.rollups.teams.length === 0 ? (
+              <p className="py-4 text-sm text-muted-foreground">No teams set up yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {data.rollups.teams.map((t) => (
+                  <RollupStat key={t.label} row={t} />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <ExpaUsagePanel usage={data?.expa} isLoading={isLoading} />
+
+        <CompletionTable rows={data?.people} isLoading={isLoading} />
       </div>
     </div>
   );

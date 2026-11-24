@@ -17,6 +17,8 @@ import { SignupOptionsUseCase } from '../Application/use-cases/user/SignupOption
 import { ExpaFactory } from './factories/ExpaFactory';
 import { DispatchFactory } from './factories/DispatchFactory';
 import { EpManagementFactory } from './factories/EpManagementFactory';
+import { AdminRepository } from './repositories/AdminRepository';
+import { AdminDashboardUseCase } from '../Application/use-cases/admin/AdminDashboardUseCase';
 import { DashboardFactory } from './factories/DashboardFactory';
 
 // Auth
@@ -76,5 +78,12 @@ export const getTransitionsUseCase = epManagementFactory.makeGetTransitionsUseCa
 
 const dashboardFactory = new DashboardFactory();
 export const dashboardUseCase = dashboardFactory.makeDashboardUseCase();
+
+/*
+  The admin page reads straight from its repository — no factory, because
+  there is nothing to assemble: one repository, one use case, no alternate
+  sources the way the sheet repositories have.
+*/
+export const adminDashboardUseCase = new AdminDashboardUseCase(new AdminRepository());
 
 export { jwtService };

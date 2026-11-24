@@ -10,6 +10,7 @@ import dashboardRoutes from './dashboard.routes';
 import usersRoutes from './users.routes';
 import cronRoutes from './cron.routes';
 import reportsRoutes from './reports.routes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/manual-leads', manualLeadsRoutes);
 router.use('/departments', departmentsRoutes);
 router.use('/dashboard',   dashboardRoutes);
 router.use('/users',       usersRoutes);
+router.use('/admin',       adminRoutes);
 
 export default router;
