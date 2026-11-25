@@ -15,7 +15,6 @@
 import { useState } from 'react';
 import {
   AlertCircle,
-  ChevronUp,
   ChevronDown,
   Info,
   Users2,
@@ -36,6 +35,7 @@ import { ChampionCard } from '@/components/admin/ChampionCard';
 import { ExpaUsagePanel } from '@/components/admin/ExpaUsagePanel';
 import { CompletionRanking } from '@/components/admin/CompletionRanking';
 import { CompletionTable } from '@/components/admin/CompletionTable';
+import { CompletionScope } from '@/components/admin/CompletionScope';
 import { StatTile } from '@/components/admin/StatTile';
 import { cn } from '@/lib/utils';
 import type { AdminPeriod } from '@/types/admin';
@@ -91,37 +91,14 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <ChampionCard
-          champions={data?.champions}
-          ranking={data?.top}
-          period={period}
+        <ChampionCard champions={data?.champions} period={period} isLoading={isLoading} />
+
+        <CompletionScope
+          lc={data?.rollups.lc}
+          departments={data?.rollups.departments}
+          people={data?.people}
           isLoading={isLoading}
         />
-
-        {/*
-          The LC and the departments as one row of tiles.
-
-          They were two cards before — a narrow one holding a single figure
-          under a heading that repeated the figure's own label, and a wide
-          one holding three. That spelled "Whole LC" twice, gave the same
-          measurement two different layouts, and left both cards mostly
-          empty. One row of equals, with the LC tile marked as the headline,
-          says the same thing in a quarter of the space.
-        */}
-        {isLoading || !data ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile row={data.rollups.lc} emphasis />
-            {data.rollups.departments.map((d) => (
-              <StatTile key={d.label} row={d} />
-            ))}
-          </div>
-        )}
 
         {/* What the score means — folded away, but one tap from the numbers */}
         <Card className="border">
@@ -167,25 +144,7 @@ export default function AdminDashboardPage() {
           )}
         </Card>
 
-        {/* Best and worst */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <CompletionRanking
-            title="Top 10"
-            subtitle="Highest completion in this period"
-            icon={ChevronUp}
-            rows={data?.top}
-            isLoading={isLoading}
-            tone="good"
-          />
-          <CompletionRanking
-            title="Needs a nudge"
-            subtitle="Lowest completion — only people who have EPs"
-            icon={ChevronDown}
-            rows={data?.bottom}
-            isLoading={isLoading}
-            tone="attention"
-          />
-        </div>
+        <CompletionRanking people={data?.people} isLoading={isLoading} />
 
         {/* Teams */}
         <Card className="border">

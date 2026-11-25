@@ -7,11 +7,9 @@
   Ties are shown together: two people on 97.4% are both the champion, and
   picking one by name order would be a quiet lie the page tells every week.
 
-  The runners-up sit on the right. They are there partly because second and
-  third are worth knowing, and partly because without them the banner was a
-  name in the top-left corner of an otherwise empty strip — the width was
-  being spent on nothing. They are deliberately quieter than the champion:
-  smaller, no avatar, one line each.
+  The width that leaves is given to the card rather than filled: a single
+  name and one large figure, with the tint doing the work of making the
+  strip feel occupied.
 */
 
 import { Trophy } from 'lucide-react';
@@ -19,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/layout/UserAvatar';
 import { SoftBadge } from '@/components/ui/soft-badge';
-import type { Champion, AdminPeriod, CompletionRow } from '@/types/admin';
+import type { Champion, AdminPeriod } from '@/types/admin';
 
 const PERIOD_LABEL: Record<AdminPeriod, string> = {
   week: 'last 7 days',
@@ -29,18 +27,11 @@ const PERIOD_LABEL: Record<AdminPeriod, string> = {
 
 interface ChampionCardProps {
   champions?: Champion[];
-  /** The ranking, so the next few places can be shown beside the winner. */
-  ranking?: CompletionRow[];
   period: AdminPeriod;
   isLoading: boolean;
 }
 
-export function ChampionCard({
-  champions = [],
-  ranking = [],
-  period,
-  isLoading,
-}: ChampionCardProps) {
+export function ChampionCard({ champions = [], period, isLoading }: ChampionCardProps) {
   if (isLoading) {
     return (
       <Card className="border">
@@ -57,13 +48,34 @@ export function ChampionCard({
   }
 
   const many = champions.length > 1;
-  const championIds = new Set(champions.map((c) => c.userId));
-  // The next three distinct people below whoever is tied at the top.
-  const runnersUp = ranking.filter((r) => !championIds.has(r.userId)).slice(0, 3);
 
   return (
-    <Card className="overflow-hidden border bg-gradient-to-br from-aiesec-blue/10 via-card to-card">
-      <CardContent className="py-5">
+    /*
+      The tint is a layer of its own rather than a background utility on the
+      card.
+
+      `from-aiesec-blue/10 via-card to-card` spread a tenth of the brand blue
+      across the whole width and read as a grubby off-white — a wash with no
+      direction, which is what a gradient looks like when its two ends are
+      nearly the same colour. This is a radial fall-off anchored at the top
+      left, strong where the trophy sits and gone by the middle, so it reads
+      as light coming from somewhere rather than as a tinted rectangle.
+
+      Painted in an absolutely positioned child so it cannot interact with
+      the card's own border or ring, and marked aria-hidden since it carries
+      nothing.
+    */
+    <Card className="relative overflow-hidden border">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(110%_140%_at_0%_0%,var(--chart-blue)_0%,transparent_55%)] opacity-[0.12]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -left-10 h-48 w-48 rounded-full bg-[var(--chart-blue)] opacity-[0.07] blur-3xl"
+      />
+
+      <CardContent className="relative py-5">
         <div className="flex items-center gap-2">
           <Trophy size={14} className="shrink-0 text-amber-500" />
           <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -79,13 +91,9 @@ export function ChampionCard({
             Nobody has EPs to be scored on in this period yet.
           </p>
         ) : (
-          /*
-            One column on a phone, two from lg: the winner keeps the room on
-            the left and the runners-up stack underneath rather than being
-            squeezed into a column too narrow for a name.
-          */
-          <div className="mt-4 grid grid-cols-1 gap-x-10 gap-y-5 lg:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+          <div className="mt-4">
+            {/* Wraps rather than scrolls, so a tie stacks on a phone. */}
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
               {champions.map((c) => (
                 <div key={c.userId} className="flex min-w-0 items-center gap-3.5">
                   <UserAvatar
@@ -109,25 +117,6 @@ export function ChampionCard({
                 </div>
               ))}
             </div>
-
-            {runnersUp.length > 0 && (
-              <div className="min-w-0 border-t pt-4 lg:min-w-56 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Close behind
-                </p>
-                <ol className="space-y-1.5">
-                  {runnersUp.map((r, i) => (
-                    <li key={r.userId} className="flex items-baseline gap-2 text-xs">
-                      <span className="w-3 shrink-0 text-right tabular-nums text-muted-foreground">
-                        {i + 2}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{r.fullName}</span>
-                      <span className="shrink-0 font-semibold tabular-nums">{r.rate}%</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
           </div>
         )}
       </CardContent>
