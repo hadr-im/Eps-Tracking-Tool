@@ -17,13 +17,11 @@ import {
   AlertCircle,
   ChevronDown,
   Info,
-  Users2,
 } from 'lucide-react';
 
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -36,7 +34,7 @@ import { ExpaUsagePanel } from '@/components/admin/ExpaUsagePanel';
 import { CompletionRanking } from '@/components/admin/CompletionRanking';
 import { CompletionTable } from '@/components/admin/CompletionTable';
 import { CompletionScope } from '@/components/admin/CompletionScope';
-import { StatTile } from '@/components/admin/StatTile';
+import { TeamsPanel } from '@/components/admin/TeamsPanel';
 import { cn } from '@/lib/utils';
 import type { AdminPeriod } from '@/types/admin';
 
@@ -144,33 +142,19 @@ export default function AdminDashboardPage() {
           )}
         </Card>
 
-        <CompletionRanking people={data?.people} isLoading={isLoading} />
-
-        {/* Teams */}
-        <Card className="border">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Users2 size={15} className="text-muted-foreground" />
-              By team
-            </CardTitle>
-            <p className="text-[11px] text-muted-foreground">
-              Grouped by team leader; people with no leader are not shown here
-            </p>
-          </CardHeader>
-          <CardContent>
-            {isLoading || !data ? (
-              <Skeleton className="h-20 w-full rounded-lg" />
-            ) : data.rollups.teams.length === 0 ? (
-              <p className="py-4 text-sm text-muted-foreground">No teams set up yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.rollups.teams.map((t) => (
-                  <StatTile key={t.label} row={t} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/*
+          Ranking and teams side by side: both answer "who is behind", one
+          per person and one per team, and reading them together is what
+          turns a name into something a VP can act on.
+        */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <CompletionRanking people={data?.people} isLoading={isLoading} />
+          <TeamsPanel
+            people={data?.people}
+            departments={(data?.rollups.departments ?? []).map((d) => d.label)}
+            isLoading={isLoading}
+          />
+        </div>
 
         <ExpaUsagePanel usage={data?.expa} isLoading={isLoading} />
 

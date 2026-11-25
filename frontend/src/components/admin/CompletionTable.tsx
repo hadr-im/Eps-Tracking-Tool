@@ -16,12 +16,16 @@ import { useMemo, useState } from 'react';
 import { ArrowUpDown, Search, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SoftBadge } from '@/components/ui/soft-badge';
+import { PaginationBar } from '@/components/ui/pagination-bar';
 import { cn } from '@/lib/utils';
+import { DepartmentBadge } from './DepartmentBadge';
 import { SCORED_FIELDS } from '@/types/admin';
 import type { CompletionRow } from '@/types/admin';
 
 type SortKey = 'rate' | 'name' | 'eps';
+
+// Fixed, as asked: every page is twenty-five rows.
+const PAGE_SIZE = 25;
 
 interface CompletionTableProps {
   rows?: CompletionRow[];
@@ -45,6 +49,7 @@ function pct(f: { filled: number; expected: number }): string {
 export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('rate');
+  const [page, setPage] = useState(1);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -71,6 +76,19 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
       return b.rate - a.rate;
     });
   }, [rows, query, sort]);
+
+  /*
+    Paged rather than scrolled. Seventy rows of six columns is a page that
+    never ends and a scroll position nobody can refer to; a page number is
+    something two people can say to each other.
+  */
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const pageRows = visible.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
+  // No setState here: `current` clamps for this render, and the search and
+  // sort reset the page themselves. Writing state during render is how you
+  // get a loop that only shows up on someone else's machine.
 
   if (isLoading) {
     return (
@@ -110,7 +128,10 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
               <input
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search name, department, team…"
                 aria-label="Search people"
                 className="h-8 w-full rounded-lg border border-border bg-transparent pr-2 pl-8 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
@@ -119,9 +140,10 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
 
             <button
               type="button"
-              onClick={() =>
-                setSort((s) => (s === 'rate' ? 'name' : s === 'name' ? 'eps' : 'rate'))
-              }
+              onClick={() => {
+                setSort((s) => (s === 'rate' ? 'name' : s === 'name' ? 'eps' : 'rate'));
+                setPage(1);
+              }}
               className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-medium transition-colors hover:bg-muted"
             >
               <ArrowUpDown size={13} className="opacity-60" />
@@ -157,14 +179,14 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                   </tr>
                 </thead>
                 <tbody>
-                  {visible.map((r) => (
+                  {pageRows.map((r) => (
                     <tr key={r.userId} className="border-b last:border-0 hover:bg-muted/20">
                       <td className="py-2 pr-3 pl-6 font-medium">{r.fullName}</td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {r.role === 'TEAM_LEADER' ? 'Team Leader' : 'Member'}
                       </td>
                       <td className="px-3 py-2">
-                        {r.department ? <SoftBadge tone="blue">{r.department}</SoftBadge> : '—'}
+                        {r.department ? <DepartmentBadge department={r.department} /> : '—'}
                       </td>
                       <td className="max-w-32 truncate px-3 py-2 text-muted-foreground">
                         {r.teamLeaderName ?? '—'}
@@ -194,7 +216,7 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
 
             {/* Mobile */}
             <ul className="divide-y md:hidden">
-              {visible.map((r) => (
+              {pageRows.map((r) => (
                 <li key={r.userId} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -244,6 +266,18 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                 </li>
               ))}
             </ul>
+
+            {totalPages > 1 && (
+              <div className="border-t px-4 py-3 md:px-6">
+                <PaginationBar
+                  page={current}
+                  totalPages={totalPages}
+                  total={visible.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
           </>
         )}
       </CardContent>

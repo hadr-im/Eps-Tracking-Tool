@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { departmentColor, departmentTint, LC_COLOR } from '@/lib/departmentColor';
 import { SCORED_FIELDS } from '@/types/admin';
 import type { CompletionRollup, CompletionRow } from '@/types/admin';
 
@@ -72,6 +73,11 @@ export function CompletionScope({
     });
   }, [people, scope]);
 
+  // The card takes the colour of whatever is selected, so switching scope is
+  // visible before any number is read. The LC gets the brand blue, which no
+  // department uses.
+  const accent = scope === LC ? LC_COLOR : departmentColor(scope);
+
   if (isLoading) {
     return (
       <Card className="border">
@@ -87,8 +93,23 @@ export function CompletionScope({
   }
 
   return (
-    <Card className="border">
-      <CardHeader className="pb-3">
+    /*
+      The tint is its own layer, anchored top-left and gone by the middle,
+      rather than a background utility spread across the whole card — a
+      gradient whose two ends are nearly the same colour reads as a stain.
+    */
+    <Card className="relative overflow-hidden border">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 transition-[background] duration-500"
+        style={{
+          background: `radial-gradient(110% 140% at 0% 0%, ${departmentTint(
+            scope === LC ? null : scope,
+            14,
+          )} 0%, transparent 55%)`,
+        }}
+      />
+      <CardHeader className="relative pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="text-sm font-semibold">Data completion</CardTitle>
@@ -122,26 +143,28 @@ export function CompletionScope({
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="relative">
         {/*
           Headline and breakdown side by side from lg: the figure is what you
           glance at, the six bars are what you read, and stacking them put
           the thing worth reading below the fold on a laptop.
         */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] lg:gap-10">
-          <div>
-            <p className={cn('text-5xl font-bold leading-none tabular-nums', tone(rollup?.rate ?? 0))}>
+          {/*
+            The headline has no bar of its own any more. It was a second
+            reading of a number already printed above it at four times the
+            size, and the six bars to the right are where a bar actually
+            earns its place — they are what the figure is made of.
+          */}
+          <div className="flex flex-col items-center justify-center text-center">
+            <p
+              className={cn('text-6xl font-bold leading-none tabular-nums', tone(rollup?.rate ?? 0))}
+            >
               {rollup?.rate ?? 0}
-              <span className="text-2xl font-semibold">%</span>
+              <span className="text-3xl font-semibold">%</span>
             </p>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
-                style={{ width: `${Math.min(rollup?.rate ?? 0, 100)}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              of the fields that were expected across {scope === LC ? 'the LC' : scope}
+            <p className="mt-3 max-w-48 text-[11px] leading-relaxed text-muted-foreground">
+              of the fields expected across {scope === LC ? 'the LC' : scope}
             </p>
           </div>
 
@@ -160,8 +183,11 @@ export function CompletionScope({
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-aiesec-blue/70 transition-all duration-500"
-                      style={{ width: `${Math.min(f.rate, 100)}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(f.rate, 100)}%`,
+                        backgroundColor: accent,
+                      }}
                     />
                   </div>
                   <p className="mt-0.5 text-[10px] text-muted-foreground">

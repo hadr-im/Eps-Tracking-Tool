@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { departmentColor } from '@/lib/departmentColor';
+import { DepartmentBadge } from './DepartmentBadge';
 import type { CompletionRow } from '@/types/admin';
 
 type Mode = 'top10' | 'least10' | 'below50' | 'above50';
@@ -148,11 +150,7 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
                       {i + 1}
                     </span>
                     <span className="truncate font-medium">{r.fullName}</span>
-                    {r.department && (
-                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        {r.department}
-                      </span>
-                    )}
+                    <DepartmentBadge department={r.department} />
                   </span>
                   <span className="shrink-0 tabular-nums font-semibold">{r.rate}%</span>
                 </div>
@@ -164,8 +162,11 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
                 */}
                 <div className="ml-7 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
-                    style={{ width: `${Math.min(r.rate, 100)}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(r.rate, 100)}%`,
+                      backgroundColor: departmentColor(r.department),
+                    }}
                   />
                 </div>
               </li>
