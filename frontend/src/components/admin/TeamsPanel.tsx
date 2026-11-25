@@ -147,8 +147,8 @@ export function TeamsPanel({ people = [], departments = [], isLoading }: TeamsPa
             leader, and a column of names set in the same weight as every
             other label made eight teams read as eight table rows — the eye
             had nothing to land on. An initialled circle gives each card an
-            anchor, and the department stripe down its edge means the
-            grouping survives even when the badge is clipped.
+            anchor — tinted with its department, which the badge beside it
+            names.
 
             The ring around the percentage is the completion itself, drawn
             with conic-gradient: at a glance the shape of the ring is the
@@ -163,17 +163,11 @@ export function TeamsPanel({ people = [], departments = [], isLoading }: TeamsPa
               return (
                 <div
                   key={t.leader}
-                  className="relative flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-4 transition-colors hover:bg-muted/20"
+                  className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/20"
                 >
                   <span
                     aria-hidden
-                    className="absolute inset-y-0 left-0 w-1"
-                    style={{ backgroundColor: colour }}
-                  />
-
-                  <span
-                    aria-hidden
-                    className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold"
                     style={{ backgroundColor: departmentTint(t.department, 14), color: colour }}
                   >
                     {initials(t.leader)}
