@@ -15,7 +15,6 @@
 import { useState } from 'react';
 import {
   AlertCircle,
-  Building2,
   ChevronUp,
   ChevronDown,
   Info,
@@ -37,56 +36,15 @@ import { ChampionCard } from '@/components/admin/ChampionCard';
 import { ExpaUsagePanel } from '@/components/admin/ExpaUsagePanel';
 import { CompletionRanking } from '@/components/admin/CompletionRanking';
 import { CompletionTable } from '@/components/admin/CompletionTable';
+import { StatTile } from '@/components/admin/StatTile';
 import { cn } from '@/lib/utils';
-import type { AdminPeriod, CompletionRollup } from '@/types/admin';
+import type { AdminPeriod } from '@/types/admin';
 
 const PERIODS: { value: AdminPeriod; label: string }[] = [
   { value: 'week', label: 'Last 7 days' },
   { value: 'month', label: 'Last 30 days' },
   { value: 'all', label: 'All time' },
 ];
-
-function rollupTone(rate: number): string {
-  if (rate >= 75) return 'text-emerald-600';
-  if (rate >= 40) return 'text-amber-600';
-  return 'text-rose-600';
-}
-
-/*
-  A rollup as a figure with a bar under it. Used for the LC, each department
-  and each team, so the three levels read as the same measurement at
-  different zooms rather than three different charts.
-*/
-function RollupStat({ row, big = false }: { row: CompletionRollup; big?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className={cn('truncate font-medium', big ? 'text-sm' : 'text-xs')}>
-          {row.label}
-        </span>
-        <span
-          className={cn(
-            'shrink-0 font-bold tabular-nums',
-            big ? 'text-2xl' : 'text-sm',
-            rollupTone(row.rate),
-          )}
-        >
-          {row.rate}%
-        </span>
-      </div>
-      <div className={cn('mt-1.5 overflow-hidden rounded-full bg-muted', big ? 'h-2' : 'h-1.5')}>
-        <div
-          className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
-          style={{ width: `${Math.min(row.rate, 100)}%` }}
-        />
-      </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">
-        {row.people} {row.people === 1 ? 'person' : 'people'} · {row.epCount} EPs ·{' '}
-        {row.filled.toLocaleString()}/{row.expected.toLocaleString()} fields
-      </p>
-    </div>
-  );
-}
 
 export default function AdminDashboardPage() {
   const [period, setPeriod] = useState<AdminPeriod>('month');
@@ -133,45 +91,37 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <ChampionCard champions={data?.champions} period={period} isLoading={isLoading} />
+        <ChampionCard
+          champions={data?.champions}
+          ranking={data?.top}
+          period={period}
+          isLoading={isLoading}
+        />
 
-        {/* LC, then departments */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Whole LC</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading || !data ? (
-                <Skeleton className="h-16 w-full rounded-lg" />
-              ) : (
-                <RollupStat row={data.rollups.lc} big />
-              )}
-            </CardContent>
-          </Card>
+        {/*
+          The LC and the departments as one row of tiles.
 
-          <Card className="border lg:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Building2 size={15} className="text-muted-foreground" />
-                By department
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading || !data ? (
-                <Skeleton className="h-16 w-full rounded-lg" />
-              ) : data.rollups.departments.length === 0 ? (
-                <p className="py-4 text-sm text-muted-foreground">No departments with EPs yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                  {data.rollups.departments.map((d) => (
-                    <RollupStat key={d.label} row={d} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          They were two cards before — a narrow one holding a single figure
+          under a heading that repeated the figure's own label, and a wide
+          one holding three. That spelled "Whole LC" twice, gave the same
+          measurement two different layouts, and left both cards mostly
+          empty. One row of equals, with the LC tile marked as the headline,
+          says the same thing in a quarter of the space.
+        */}
+        {isLoading || !data ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatTile row={data.rollups.lc} emphasis />
+            {data.rollups.departments.map((d) => (
+              <StatTile key={d.label} row={d} />
+            ))}
+          </div>
+        )}
 
         {/* What the score means — folded away, but one tap from the numbers */}
         <Card className="border">
@@ -254,9 +204,9 @@ export default function AdminDashboardPage() {
             ) : data.rollups.teams.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground">No teams set up yet.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {data.rollups.teams.map((t) => (
-                  <RollupStat key={t.label} row={t} />
+                  <StatTile key={t.label} row={t} />
                 ))}
               </div>
             )}
