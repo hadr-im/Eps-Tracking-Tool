@@ -50,7 +50,37 @@ async function runStatusSync(): Promise<void> {
 
 // Scheduler
 
+/*
+  Off unless ENABLE_IN_PROCESS_CRON is set.
+
+  This scheduler predates the move to an external one, and on a serverless
+  host it never fires — there is no process between requests — so it looked
+  harmless and was left in place. It is not harmless anywhere a process does
+  stay up: a developer running `npm run dev` was silently syncing every five
+  minutes against the real EXPA and the production database, which came to
+  about 600 requests an hour. Measured against the admin page's own figures
+  that was roughly 85% of all the traffic this tool sent to EXPA — far more
+  than every scheduled job put together, and invisible because nobody
+  associates a local dev server with load on a shared service.
+
+  The work is done by cron-job.org now. This stays only so a persistent
+  deployment could opt back in, and it says loudly what it is doing when
+  it does.
+*/
 export function startCronJobs(): void {
+  if (process.env['ENABLE_IN_PROCESS_CRON'] !== 'true') {
+    console.log(
+      '[Cron] In-process scheduler is off. The syncs are driven externally; ' +
+        'set ENABLE_IN_PROCESS_CRON=true only on a host that stays running.',
+    );
+    return;
+  }
+
+  console.warn(
+    '[Cron] In-process scheduler is ON — this process will call EXPA every ' +
+      '5 minutes and write to whichever database DATABASE_URL points at.',
+  );
+
   // Leads sync: every 5 minutes
   cron.schedule('*/5 * * * *', runLeadsSync, {
     name: 'leads-sync',

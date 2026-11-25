@@ -218,7 +218,12 @@ export class AdminRepository implements IAdminRepository {
     stretches.
   */
   async getExpaUsage(range: ExpaRange = 'day'): Promise<ExpaUsage> {
-    const hourlyLimit = Number(process.env['EXPA_HOURLY_LIMIT'] ?? 1000);
+    /*
+      250 an hour. The default used to be 1000, which was a guess; this is
+      the figure the LC is working to, so the bar means something now.
+      EXPA_HOURLY_LIMIT still overrides it without a deploy.
+    */
+    const hourlyLimit = Number(process.env['EXPA_HOURLY_LIMIT'] ?? 250);
 
     /*
       'all' has no lower bound; the rest are fixed intervals.

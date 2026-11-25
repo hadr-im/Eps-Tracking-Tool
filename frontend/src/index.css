@@ -253,42 +253,52 @@
   }
 }
 /*
-  Twinkling sparkles, for the champion banner.
+  Sparks drifting up the champion banner.
 
-  Each sparkle carries its own delay and duration inline, so a field of them
-  reads as scattered rather than as one thing blinking in unison — the
-  giveaway of a cheap effect. Scale and opacity move together because a real
-  glint grows as it brightens.
+  Rising rather than blinking. A field of sparkles pulsing in place reads as
+  a loading state — the same visual grammar as a skeleton — whereas motion
+  with a direction reads as something being alight. They travel bottom to
+  top, fading in off the floor and out before the ceiling so nothing ever
+  visibly pops out of existence, and each drifts sideways a little so the
+  column does not look like a strip of LEDs.
 
-  Nothing load-bearing depends on this: the banner is complete and legible
-  with the animation off, which is what makes honouring reduced-motion free.
+  Every spark carries its own delay, duration and drift inline; shared
+  timing is what makes this sort of effect look cheap.
 */
-@keyframes twinkle {
-  0%,
+@keyframes spark-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.35) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.85;
+  }
   100% {
     opacity: 0;
-    transform: scale(0.4) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1) rotate(45deg);
+    transform: translate3d(var(--drift, 6px), -110px, 0) scale(1) rotate(130deg);
   }
 }
 
 @layer utilities {
-  .animate-twinkle {
-    animation: twinkle 3s ease-in-out infinite;
+  .animate-spark-rise {
+    animation: spark-rise 4s ease-out infinite;
+    /* Its own layer: eight of these repainting the banner behind them is
+       work the compositor can do instead. */
+    will-change: transform, opacity;
   }
 
   /*
-    Some people get motion sickness from exactly this kind of ambient
-    movement. The sparkles stay — they are part of the look — but they hold
-    still at a readable opacity instead of pulsing.
+    Ambient drift is exactly the motion that makes some people queasy. The
+    banner is complete without it, so it simply stops — the sparks stay put
+    at a low opacity rather than disappearing and leaving a bare corner.
   */
   @media (prefers-reduced-motion: reduce) {
-    .animate-twinkle {
+    .animate-spark-rise {
       animation: none;
-      opacity: 0.55;
+      opacity: 0.4;
     }
   }
 }
