@@ -47,12 +47,18 @@ export interface ExpaUsagePoint {
   avgMs: number;
 }
 
+export type ExpaRange = 'day' | 'week' | 'month' | 'all';
+
 export interface ExpaUsage {
   lastHour: number;
   lastHourFailed: number;
   hourlyLimit: number;
   peakHour: number;
   series: ExpaUsagePoint[];
+  /** What one point on the line represents. */
+  bucket: 'hour' | 'day';
+  /** Calls over the whole range, not just the last hour. */
+  total: number;
   byOperation: { operation: string; requests: number }[];
 }
 

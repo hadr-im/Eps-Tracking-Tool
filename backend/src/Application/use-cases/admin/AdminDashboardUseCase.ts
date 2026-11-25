@@ -3,6 +3,7 @@ import {
   CompletionRow,
   CompletionRollup,
   ExpaUsage,
+  ExpaRange,
 } from '../../../Domain/abstracts/IAdminRepository';
 import { UserRole, isAdmin } from '../../../Domain/enums/UserRole';
 import { AppError } from '../../errors/AppError';
@@ -58,7 +59,7 @@ export class AdminDashboardUseCase {
   async getDashboard(
     caller: AdminCaller,
     period: AdminPeriod = 'month',
-    usageHours = 24,
+    expaRange: ExpaRange = 'day',
   ): Promise<AdminDashboardDto> {
     if (!isAdmin(caller.role)) {
       throw new AppError('Admins only', 403);
@@ -69,7 +70,7 @@ export class AdminDashboardUseCase {
     const [people, rollups, expa] = await Promise.all([
       this.repo.getCompletionByUser(window),
       this.repo.getCompletionRollups(window),
-      this.repo.getExpaUsage(usageHours),
+      this.repo.getExpaUsage(expaRange),
     ]);
 
     /*

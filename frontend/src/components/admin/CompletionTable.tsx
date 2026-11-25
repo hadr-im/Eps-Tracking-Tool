@@ -17,6 +17,13 @@ import { ArrowUpDown, Search, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PaginationBar } from '@/components/ui/pagination-bar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { DepartmentBadge } from './DepartmentBadge';
 import { SCORED_FIELDS } from '@/types/admin';
@@ -27,8 +34,11 @@ type SortKey = 'rate' | 'name' | 'eps';
 // Fixed, as asked: every page is twenty rows.
 const PAGE_SIZE = 20;
 
+const ALL_DEPTS = '__all__';
+
 interface CompletionTableProps {
   rows?: CompletionRow[];
+  departments?: string[];
   isLoading: boolean;
 }
 
@@ -46,22 +56,28 @@ function pct(f: { filled: number; expected: number }): string {
   return `${Math.round((f.filled / f.expected) * 100)}%`;
 }
 
-export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) {
+export function CompletionTable({
+  rows = [],
+  departments = [],
+  isLoading,
+}: CompletionTableProps) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('rate');
   const [page, setPage] = useState(1);
+  const [dept, setDept] = useState<string>(ALL_DEPTS);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const scoped = dept === ALL_DEPTS ? rows : rows.filter((r) => r.department === dept);
     const filtered = q
-      ? rows.filter(
+      ? scoped.filter(
           (r) =>
             r.fullName.toLowerCase().includes(q) ||
             (r.department ?? '').toLowerCase().includes(q) ||
             r.role.toLowerCase().includes(q) ||
             (r.teamLeaderName ?? '').toLowerCase().includes(q),
         )
-      : rows;
+      : scoped;
 
     return [...filtered].sort((a, b) => {
       if (sort === 'name') return a.fullName.localeCompare(b.fullName);
@@ -75,7 +91,7 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
       if (b.expected === 0 && a.expected !== 0) return -1;
       return b.rate - a.rate;
     });
-  }, [rows, query, sort]);
+  }, [rows, query, sort, dept]);
 
   /*
     Paged rather than scrolled. Seventy rows of six columns is a page that
@@ -137,6 +153,34 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                 className="h-8 w-full rounded-lg border border-border bg-transparent pr-2 pl-8 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
               />
             </div>
+
+            <Select
+              value={dept}
+              onValueChange={(v) => {
+                if (!v) return;
+                setDept(String(v));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                className="h-8 w-36 shrink-0 rounded-lg border border-border bg-transparent text-xs"
+                aria-label="Filter by department"
+              >
+                <SelectValue>
+                  {(v) => (v === ALL_DEPTS ? 'All departments' : String(v))}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="text-xs">
+                <SelectItem value={ALL_DEPTS} label="All departments">
+                  All departments
+                </SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d} value={d} label={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <button
               type="button"

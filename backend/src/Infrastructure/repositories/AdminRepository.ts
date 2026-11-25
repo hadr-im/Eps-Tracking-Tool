@@ -6,6 +6,7 @@ import {
   CompletionWindow,
   ExpaUsage,
   ExpaUsagePoint,
+  ExpaRange,
 } from '../../Domain/abstracts/IAdminRepository';
 import { prisma } from '../Database/PrismaService';
 
@@ -187,38 +188,87 @@ export class AdminRepository implements IAdminRepository {
     };
   }
 
-  async getExpaUsage(hours: number): Promise<ExpaUsage> {
+  /*
+    EXPA volume over a chosen range.
+
+    Bucketed by the hour for a day and by the day beyond that: a month read
+    hour by hour is 720 points on an axis two inches tall, which is a texture
+    rather than a trend. The bucket is returned so the chart can label its
+    axis for what it actually shows.
+
+    The hourly figures beside it stay hourly whatever the range — the limit
+    is per hour, so the bar has to be too, and only the line behind it
+    stretches.
+  */
+  async getExpaUsage(range: ExpaRange = 'day'): Promise<ExpaUsage> {
     const hourlyLimit = Number(process.env['EXPA_HOURLY_LIMIT'] ?? 1000);
 
-    const [series, totals, byOperation] = await Promise.all([
+    /*
+      'all' has no lower bound; the rest are fixed intervals.
+
+      Looked up rather than interpolated from the argument. These strings
+      reach the query as text, so a value that is not one of the four would
+      otherwise put the word "undefined" inside an INTERVAL literal — a
+      broken query at best, and the shape of an injection at worst. Anything
+      unrecognised falls back to a day.
+    */
+    const SINCE: Record<string, string | null> = {
+      day: '24 hours',
+      week: '7 days',
+      month: '30 days',
+      all: null,
+    };
+    const key = range in SINCE ? range : 'day';
+    const bucket: 'hour' | 'day' = key === 'day' ? 'hour' : 'day';
+    const interval = SINCE[key];
+    const where = interval === null ? '' : `WHERE "at" >= NOW() - INTERVAL '${interval}'`;
+
+    const [series, totals, byOperation, peak] = await Promise.all([
       this.db.$queryRawUnsafe(`
-        SELECT DATE_TRUNC('hour', "at")::text AS at,
+        SELECT DATE_TRUNC('${bucket}', "at")::text AS at,
                COUNT(*)::int AS requests,
                COUNT(*) FILTER (WHERE NOT ok)::int AS failed,
                COALESCE(ROUND(AVG(ms))::int, 0) AS "avgMs"
         FROM "ExpaRequestLog"
-        WHERE "at" >= NOW() - INTERVAL '${hours} hours'
+        ${where}
         GROUP BY 1 ORDER BY 1 ASC
       `) as Promise<ExpaUsagePoint[]>,
-      this.db.$queryRaw`
-        SELECT COUNT(*)::int AS "lastHour",
-               COUNT(*) FILTER (WHERE NOT ok)::int AS "lastHourFailed"
+      this.db.$queryRawUnsafe(`
+        SELECT
+          COUNT(*) FILTER (WHERE "at" >= NOW() - INTERVAL '1 hour')::int AS "lastHour",
+          COUNT(*) FILTER (WHERE "at" >= NOW() - INTERVAL '1 hour' AND NOT ok)::int AS "lastHourFailed",
+          COUNT(*)::int AS total
         FROM "ExpaRequestLog"
-        WHERE "at" >= NOW() - INTERVAL '1 hour'
-      ` as Promise<{ lastHour: number; lastHourFailed: number }[]>,
+        ${where}
+      `) as Promise<{ lastHour: number; lastHourFailed: number; total: number }[]>,
       this.db.$queryRawUnsafe(`
         SELECT operation, COUNT(*)::int AS requests
         FROM "ExpaRequestLog"
-        WHERE "at" >= NOW() - INTERVAL '${hours} hours'
+        ${where}
         GROUP BY 1 ORDER BY 2 DESC
       `) as Promise<{ operation: string; requests: number }[]>,
+      /*
+        The busiest hour, always measured in hours even when the line is
+        drawn in days — it is the figure the limit is compared against, and
+        a daily total would make the quota look breached every day.
+      */
+      this.db.$queryRawUnsafe(`
+        SELECT COALESCE(MAX(n), 0)::int AS peak FROM (
+          SELECT COUNT(*)::int AS n
+          FROM "ExpaRequestLog"
+          ${where}
+          GROUP BY DATE_TRUNC('hour', "at")
+        ) h
+      `) as Promise<{ peak: number }[]>,
     ]);
 
     return {
       lastHour: totals[0]?.lastHour ?? 0,
       lastHourFailed: totals[0]?.lastHourFailed ?? 0,
+      total: totals[0]?.total ?? 0,
       hourlyLimit,
-      peakHour: series.reduce((max, p) => Math.max(max, p.requests), 0),
+      peakHour: peak[0]?.peak ?? 0,
+      bucket,
       series,
       byOperation,
     };

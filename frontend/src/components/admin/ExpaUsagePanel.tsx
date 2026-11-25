@@ -30,12 +30,28 @@ import {
 import { Activity, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TOOLTIP_STYLE } from '@/components/dashboard/chartTokens';
 import { cn } from '@/lib/utils';
-import type { ExpaUsage } from '@/types/admin';
+import type { ExpaUsage, ExpaRange } from '@/types/admin';
+
+const RANGES: { value: ExpaRange; label: string }[] = [
+  { value: 'day', label: 'Last 24 hours' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+  { value: 'all', label: 'All time' },
+];
 
 interface ExpaUsagePanelProps {
   usage?: ExpaUsage;
+  range: ExpaRange;
+  onRangeChange: (range: ExpaRange) => void;
   isLoading: boolean;
 }
 
@@ -50,7 +66,12 @@ function barTone(pct: number): { bar: string; text: string; word: string } {
   return { bar: 'bg-emerald-500', text: 'text-emerald-600', word: 'comfortable' };
 }
 
-export function ExpaUsagePanel({ usage, isLoading }: ExpaUsagePanelProps) {
+export function ExpaUsagePanel({
+  usage,
+  range,
+  onRangeChange,
+  isLoading,
+}: ExpaUsagePanelProps) {
   if (isLoading) {
     return (
       <Card className="border">
@@ -66,7 +87,14 @@ export function ExpaUsagePanel({ usage, isLoading }: ExpaUsagePanelProps) {
   }
 
   const u = usage ?? {
-    lastHour: 0, lastHourFailed: 0, hourlyLimit: 1000, peakHour: 0, series: [], byOperation: [],
+    lastHour: 0,
+    lastHourFailed: 0,
+    hourlyLimit: 1000,
+    peakHour: 0,
+    series: [],
+    bucket: 'hour' as const,
+    total: 0,
+    byOperation: [],
   };
 
   const pct = u.hourlyLimit > 0 ? Math.min((u.lastHour / u.hourlyLimit) * 100, 100) : 0;
@@ -74,21 +102,55 @@ export function ExpaUsagePanel({ usage, isLoading }: ExpaUsagePanelProps) {
 
   const points = u.series.map((p) => ({
     ...p,
-    // Hour of day; the window is a day or two, so the date would only crowd
-    // the axis.
-    label: new Date(p.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    /*
+      An hour bucket is a clock time; a day bucket is a date. Printing a
+      time against a daily total would claim a precision the point does not
+      have.
+    */
+    label:
+      u.bucket === 'hour'
+        ? new Date(p.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        : new Date(p.at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
   }));
 
   return (
     <Card className="border">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Activity size={15} className="text-muted-foreground" />
-          EXPA requests
-        </CardTitle>
-        <p className="text-[11px] text-muted-foreground">
-          Calls this tool made to EXPA, last rolling hour against the limit
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Activity size={15} className="text-muted-foreground" />
+              EXPA requests
+            </CardTitle>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {u.total.toLocaleString()} calls in this range · one point per {u.bucket}
+            </p>
+          </div>
+
+          {/*
+            Only the line moves with this. The bar below stays hourly
+            whatever is chosen, because the limit it is drawn against is an
+            hourly limit — a month's total against a per-hour ceiling would
+            read as catastrophically over.
+          */}
+          <Select value={range} onValueChange={(v) => v && onRangeChange(v as ExpaRange)}>
+            <SelectTrigger
+              className="h-9 w-36 rounded-lg border border-border bg-card text-xs font-medium"
+              aria-label="How far back the request chart reaches"
+            >
+              <SelectValue>
+                {(v) => RANGES.find((r) => r.value === v)?.label ?? 'Last 24 hours'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              {RANGES.map((r) => (
+                <SelectItem key={r.value} value={r.value} label={r.label}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-5">
@@ -114,7 +176,7 @@ export function ExpaUsagePanel({ usage, isLoading }: ExpaUsagePanelProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span>Busiest hour in view: {u.peakHour.toLocaleString()}</span>
+            <span>Busiest hour in this range: {u.peakHour.toLocaleString()}</span>
             {u.lastHourFailed > 0 && (
               <span className="flex items-center gap-1 font-medium text-rose-600">
                 <AlertTriangle size={11} />

@@ -36,7 +36,7 @@ import { CompletionTable } from '@/components/admin/CompletionTable';
 import { CompletionScope } from '@/components/admin/CompletionScope';
 import { TeamsPanel } from '@/components/admin/TeamsPanel';
 import { cn } from '@/lib/utils';
-import type { AdminPeriod } from '@/types/admin';
+import type { AdminPeriod, ExpaRange } from '@/types/admin';
 
 const PERIODS: { value: AdminPeriod; label: string }[] = [
   { value: 'week', label: 'Last 7 days' },
@@ -47,8 +47,11 @@ const PERIODS: { value: AdminPeriod; label: string }[] = [
 export default function AdminDashboardPage() {
   const [period, setPeriod] = useState<AdminPeriod>('month');
   const [showRule, setShowRule] = useState(false);
+  // The EXPA chart has its own range: it answers a different question from
+  // the completion period and the two should not drag each other about.
+  const [expaRange, setExpaRange] = useState<ExpaRange>('day');
 
-  const { data, isLoading, isFetching, isError } = useAdminDashboard(period, 24);
+  const { data, isLoading, isFetching, isError } = useAdminDashboard(period, expaRange);
 
   return (
     <div className="flex h-full flex-col">
@@ -156,9 +159,18 @@ export default function AdminDashboardPage() {
           />
         </div>
 
-        <ExpaUsagePanel usage={data?.expa} isLoading={isLoading} />
+        <ExpaUsagePanel
+          usage={data?.expa}
+          range={expaRange}
+          onRangeChange={setExpaRange}
+          isLoading={isLoading}
+        />
 
-        <CompletionTable rows={data?.people} isLoading={isLoading} />
+        <CompletionTable
+          rows={data?.people}
+          departments={(data?.rollups.departments ?? []).map((d) => d.label)}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

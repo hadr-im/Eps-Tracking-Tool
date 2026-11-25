@@ -93,7 +93,7 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
               <ListFilter size={15} className="text-muted-foreground" />
               Ranking
             </CardTitle>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {meta.hint}
               {isThreshold && ` · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`}
             </p>
@@ -138,14 +138,14 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
             className={cn(
               'space-y-2.5',
               isThreshold &&
-                'max-h-[28rem] overflow-y-auto pr-1 [scrollbar-width:thin]',
+                'max-h-[34rem] overflow-y-auto pr-1 [scrollbar-width:thin]',
             )}
           >
             {rows.map((r, i) => (
               <li key={r.userId} className="space-y-1">
-                <div className="flex items-baseline justify-between gap-3 text-xs">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
                   <span className="flex min-w-0 items-baseline gap-2">
-                    <span className="w-5 shrink-0 text-right tabular-nums text-muted-foreground">
+                    <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                       {i + 1}
                     </span>
                     <span className="truncate font-medium">{r.fullName}</span>

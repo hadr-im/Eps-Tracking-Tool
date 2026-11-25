@@ -22,11 +22,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { departmentColor } from '@/lib/departmentColor';
+import { departmentColor, departmentTint } from '@/lib/departmentColor';
 import { DepartmentBadge } from './DepartmentBadge';
 import type { CompletionRow } from '@/types/admin';
 
 const ALL = '__all__';
+
+// Two letters from the leader's name, the same way the app's avatars read.
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+}
 
 interface TeamSummary {
   leader: string;
@@ -131,51 +141,76 @@ export function TeamsPanel({ people = [], departments = [], isLoading }: TeamsPa
           </p>
         ) : (
           /*
-            Cards, not a ranked list. A team is a thing with a name, a size
-            and a department — several facts that want their own line — and
-            a row of bars flattened all of that into one. The grid also
-            stops a list of eight from running down a column half the page
-            tall beside a ranking that is ten rows long.
-          */
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {teams.map((t) => (
-              <div
-                key={t.leader}
-                className="relative overflow-hidden rounded-xl border bg-card p-3.5"
-              >
-                {/* The department reads off the card's own edge. */}
-                <span
-                  aria-hidden
-                  className="absolute inset-y-0 left-0 w-1"
-                  style={{ backgroundColor: departmentColor(t.department) }}
-                />
+            A card per team, led by the person who runs it.
 
-                <div className="flex items-start justify-between gap-2 pl-1.5">
-                  <div className="min-w-0">
+            The avatar is the point of the redesign. A team is known by its
+            leader, and a column of names set in the same weight as every
+            other label made eight teams read as eight table rows — the eye
+            had nothing to land on. An initialled circle gives each card an
+            anchor, and the department stripe down its edge means the
+            grouping survives even when the badge is clipped.
+
+            The ring around the percentage is the completion itself, drawn
+            with conic-gradient: at a glance the shape of the ring is the
+            figure, and the number inside it is there for when the glance is
+            not enough. It is also the one place on this page where a
+            measure can be read without a straight bar, which is what keeps
+            the teams from looking like a second ranking.
+          */
+          <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
+            {teams.map((t) => {
+              const colour = departmentColor(t.department);
+              return (
+                <div
+                  key={t.leader}
+                  className="relative flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-4 transition-colors hover:bg-muted/20"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-1"
+                    style={{ backgroundColor: colour }}
+                  />
+
+                  <span
+                    aria-hidden
+                    className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    style={{ backgroundColor: departmentTint(t.department, 14), color: colour }}
+                  >
+                    {initials(t.leader)}
+                  </span>
+
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold leading-tight">{t.leader}</p>
-                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <DepartmentBadge department={t.department} />
                       <span>
                         {t.people} {t.people === 1 ? 'member' : 'members'}
                       </span>
-                      <span>·</span>
+                      <span aria-hidden>·</span>
                       <span>{t.epCount.toLocaleString()} EPs</span>
                     </p>
                   </div>
-                  <span className="shrink-0 text-xl font-bold leading-none tabular-nums">
-                    {t.rate}
-                    <span className="text-sm font-semibold">%</span>
-                  </span>
-                </div>
 
-                <div className="mt-3 ml-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                  {/*
+                    The ring is decorative; the figure inside it is the
+                    accessible reading, which is why the number is never
+                    omitted however clear the shape looks.
+                  */}
                   <div
-                    className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
-                    style={{ width: `${Math.min(t.rate, 100)}%` }}
-                  />
+                    className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full"
+                    style={{
+                      background: `conic-gradient(${colour} ${Math.min(t.rate, 100) * 3.6}deg, var(--color-muted) 0deg)`,
+                    }}
+                    aria-hidden
+                  >
+                    <span className="grid h-11 w-11 place-items-center rounded-full bg-card text-xs font-bold tabular-nums">
+                      {Math.round(t.rate)}%
+                    </span>
+                  </div>
+                  <span className="sr-only">{t.rate}% complete</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>

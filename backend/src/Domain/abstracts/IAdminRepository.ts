@@ -68,6 +68,16 @@ export interface ExpaUsagePoint {
   avgMs: number;
 }
 
+/*
+  How far back the EXPA chart reaches, and therefore how it is bucketed.
+
+  A day of traffic is read hour by hour; a month of it read that way is 720
+  points on an axis two inches tall. So anything past a day buckets by day,
+  and the chart says which it is rather than leaving the reader to infer it
+  from the labels.
+*/
+export type ExpaRange = 'day' | 'week' | 'month' | 'all';
+
 export interface ExpaUsage {
   /** Calls in the last rolling 60 minutes. */
   lastHour: number;
@@ -77,8 +87,12 @@ export interface ExpaUsage {
   hourlyLimit: number;
   /** Busiest single hour in the window, for context on the bar. */
   peakHour: number;
-  /** Hourly buckets, oldest first. */
+  /** Buckets, oldest first. */
   series: ExpaUsagePoint[];
+  /** What one point represents, so the axis can be labelled honestly. */
+  bucket: 'hour' | 'day';
+  /** Total calls over the whole range, not just the last hour. */
+  total: number;
   /** Calls per query name in the window. */
   byOperation: { operation: string; requests: number }[];
 }
@@ -96,6 +110,6 @@ export interface IAdminRepository {
   getCompletionRollups(
     window: CompletionWindow,
   ): Promise<{ lc: CompletionRollup; departments: CompletionRollup[]; teams: CompletionRollup[] }>;
-  /** EXPA call volume over the given number of hours. */
-  getExpaUsage(hours: number): Promise<ExpaUsage>;
+  /** EXPA call volume over the chosen range. */
+  getExpaUsage(range: ExpaRange): Promise<ExpaUsage>;
 }
