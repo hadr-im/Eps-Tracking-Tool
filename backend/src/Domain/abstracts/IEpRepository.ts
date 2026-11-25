@@ -64,6 +64,13 @@ export interface EpContactEnrichment {
 }
 
 export interface IEpRepository {
+  /*
+    The newest EXPA registration date held for a product, or null when none
+    is. This is the leads sync's watermark: nothing registered before it can
+    be new to us, so there is no reason to page EXPA for it.
+  */
+  newestExpaRegistration(product: Product): Promise<Date | null>;
+
   // Queries 
 
   // Filtered query : supports all EpFilters fields

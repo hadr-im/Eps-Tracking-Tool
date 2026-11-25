@@ -9,32 +9,19 @@ name: EXPA Sync
 #                  (e.g. https://eps-tracking-api.vercel.app)
 #   CRON_SECRET  - must match the CRON_SECRET env var set on the backend
 #
-# WARNING: these schedules are not honoured. Measured over the week to
-# 24 Nov 2026, the three below ask for about 144 runs a day and GitHub
-# actually ran 5 to 11 - it drops roughly 93% of them. `schedule` is
-# best-effort, and high-frequency crons on the shared runner pool are the
-# first thing shed under load; there is no setting that changes this.
+# Manual runs only. The schedule was removed - see below.
 #
-# The visible effect is leads arriving hours after someone signs up, and
-# contact details sitting unread in the sheet. Until an external scheduler
-# calls these endpoints directly - cron-job.org is free and fires on time -
-# treat what follows as a hope rather than a schedule, which is why every
-# job now enriches rather than only some of them.
-#
-# Note: GitHub also disables scheduled workflows after 60 days without repo
-# activity.
-
 on:
-  schedule:
-    # Leads: pages through EXPA for all three departments, so it is the
-    # expensive one. Enrichment runs with it, immediately after.
-    - cron: '*/30 * * * *'  # leads sync, every 30 minutes
-    - cron: '0 * * * *'     # status/approvals sync, hourly
-    # Enrichment on its own, filling in the details EXPA does not return.
-    # It only reads the sign-up sheet and writes a handful of rows, so it
-    # costs nothing to run often - and it is what decides how long a new
-    # lead sits with a relay address and no phone number.
-    - cron: '10,20,40,50 * * * *'
+  # No schedule any more.
+  #
+  # GitHub honoured 5 to 11 of the ~144 runs a day these crons asked for -
+  # it drops roughly 93% of them, and there is no setting that changes it.
+  # cron-job.org calls the same endpoints on time, so keeping this as well
+  # only doubled the work on the runs that did get through and spent EXPA
+  # quota twice.
+  #
+  # Kept for manual runs: a full resync, or a sync while the external
+  # scheduler is being reconfigured.
   workflow_dispatch:
     inputs:
       job:

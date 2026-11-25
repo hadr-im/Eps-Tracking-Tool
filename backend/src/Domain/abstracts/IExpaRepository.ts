@@ -14,7 +14,11 @@ export interface IExpaRepository {
     Retries once on failure before throwing
     @param programmeCode EXPA numeric programme id (9=GV, 8=GTA, 10=GTE)
    */
-  fetchLeads(programmeCode: number): Promise<ExpaLead[]>;
+  /*
+    `registeredFrom` (YYYY-MM-DD) narrows the EXPA query to people who
+    registered on or after that date. Omitted, it sweeps the whole season.
+  */
+  fetchLeads(programmeCode: number, registeredFrom?: string): Promise<ExpaLead[]>;
 
   /*
     Fetch the current EXPA status for a batch of EP IDs

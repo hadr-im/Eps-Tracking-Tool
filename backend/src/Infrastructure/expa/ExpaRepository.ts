@@ -10,11 +10,19 @@ import { PROGRAMME_FROM_EXPA_CODE } from '../../Domain/enums/Product';
 
 // GraphQL Queries
 
+/*
+  The season this committee is recruiting for. The lower bound is only used
+  when there is no watermark to work from — a first run, or a deliberate
+  full resync.
+*/
+const SEASON_START = process.env['EXPA_SEASON_START'] ?? '2026-09-01';
+const SEASON_END = process.env['EXPA_SEASON_END'] ?? '2027-01-31';
+
 const FETCH_LEADS_QUERY = `
-  query FetchLeads($page: Int!, $perPage: Int!, $programmeCode: [Int]!) {
+  query FetchLeads($page: Int!, $perPage: Int!, $programmeCode: [Int]!, $from: DateTime!, $to: DateTime!) {
     people(
       filters: {
-        registered: { from: "2026-09-01", to: "2027-01-31" }
+        registered: { from: $from, to: $to }
         selected_programmes: $programmeCode
       }
       per_page: $perPage
@@ -222,7 +230,17 @@ export class ExpaRepository implements IExpaRepository {
 
   // fetchLeads
 
-  async fetchLeads(programmeCode: number): Promise<ExpaLead[]> {
+  /*
+    `registeredFrom` is the watermark. EXPA pages at fifty, so sweeping the
+    whole season costs fifty requests per run however little has changed —
+    and nothing older than the last sync can have changed. Narrowing the
+    registration window to the recent past takes a run from about fifty
+    requests to about eight.
+
+    Omit it and the full season is swept, which is what a first run and a
+    manual resync want.
+  */
+  async fetchLeads(programmeCode: number, registeredFrom?: string): Promise<ExpaLead[]> {
     const allLeads: ExpaLead[] = [];
     let page = 1;
     let totalPages = 1;
@@ -236,6 +254,8 @@ export class ExpaRepository implements IExpaRepository {
             page,
             perPage: this.perPage,
             programmeCode: [programmeCode],
+            from: registeredFrom ?? SEASON_START,
+            to: SEASON_END,
           }),
         undefined,
         'fetchLeads',

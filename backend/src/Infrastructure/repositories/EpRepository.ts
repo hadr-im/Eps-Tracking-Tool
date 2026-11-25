@@ -108,6 +108,23 @@ export class EpRepository implements IEpRepository {
     this.db = db;
   }
 
+  /*
+    The newest EXPA registration date we hold for a product.
+
+    Used as the leads sync's watermark. Read from the EP rows rather than
+    stored in a table of its own: the rows are the record of what has been
+    imported, so there is no second thing to keep in step with them, and a
+    restore or a manual delete moves the watermark correctly for free.
+  */
+  async newestExpaRegistration(product: Product): Promise<Date | null> {
+    const row = await this.db.ep.aggregate({
+      where: { product, expaId: { not: null } },
+      _max: { createdAtExpa: true },
+    });
+    return row._max.createdAtExpa ?? null;
+  }
+
+
 
   async findStatusSnapshotsByDepartment(departmentId: string): Promise<EpStatusSnapshot[]> {
     const rows = await this.db.ep.findMany({

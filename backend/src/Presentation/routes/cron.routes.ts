@@ -61,9 +61,18 @@ function parseProduct(req: Request): Product | undefined {
 
 router.use(authoriseCron);
 
+/*
+  ?full=1 sweeps the whole season instead of starting from the watermark.
+
+  The scheduled runs do not need it — nothing registered before the last
+  sync can be new — but a resync after a restore, or after someone edits
+  records on EXPA by hand, does. It costs about fifty requests against an
+  hourly ceiling of 250, so it is a deliberate act rather than a default.
+*/
 router.all('/sync-leads', async (req: Request, res: Response) => {
   try {
-    const results = await syncLeadsUseCase.execute(parseProduct(req));
+    const full = req.query['full'] === '1' || req.query['full'] === 'true';
+    const results = await syncLeadsUseCase.execute(parseProduct(req), full);
     res.json({ job: 'sync-leads', results });
   } catch (err) {
     console.error('[Cron] sync-leads failed:', err);
