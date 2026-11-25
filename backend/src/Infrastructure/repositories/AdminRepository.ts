@@ -20,6 +20,18 @@ const GRACE_HOURS = Number(process.env['COMPLETION_GRACE_HOURS'] ?? 24);
   The phases that mean a conversation actually started. Reaching one of these
   is what makes duration, availability and a CV answerable at all.
 */
+/*
+  Programmes that do not ask for a CV.
+
+  Global Volunteer takes people without one, so counting a missing CV
+  against a GV lead marks a member down for a document the process never
+  requested — and, worse, makes the GV department look permanently behind
+  the other two on a field it does not use. GV EPs are left out of both
+  sides of that fraction rather than counted as filled, so the figure stays
+  a fraction of what was actually expected.
+*/
+const NO_CV_PRODUCTS = ['GV'];
+
 const ENGAGED_PHASES = [
   'EXPLAINING_AIESEC',
   'LOOKING_FOR_OPPORTUNITIES',
@@ -43,6 +55,7 @@ const ENGAGED_PHASES = [
 */
 function completionSelect(alias = 'e'): string {
   const engaged = ENGAGED_PHASES.map((p) => `'${p}'`).join(', ');
+  const noCv = NO_CV_PRODUCTS.map((p) => `'${p}'`).join(', ');
   return `
     -- always expected
     COUNT(${alias}.id)                                                        AS exp_contacted,
@@ -56,8 +69,10 @@ function completionSelect(alias = 'e'): string {
     COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged}) AND ${alias}."duration" IS NOT NULL) AS fil_duration,
     COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged})) AS exp_availability,
     COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged}) AND ${alias}."availability" IS NOT NULL) AS fil_availability,
-    COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged})) AS exp_cv,
-    COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged}) AND BTRIM(COALESCE(${alias}."cvLink", '')) <> '') AS fil_cv,
+    -- A CV is not asked for on Global Volunteer, so GV EPs are not counted
+    -- against it at all; see NO_CV_PRODUCTS.
+    COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged}) AND ${alias}."product"::text NOT IN (${noCv})) AS exp_cv,
+    COUNT(${alias}.id) FILTER (WHERE ${alias}."trackingPhase"::text IN (${engaged}) AND ${alias}."product"::text NOT IN (${noCv}) AND BTRIM(COALESCE(${alias}."cvLink", '')) <> '') AS fil_cv,
     COUNT(${alias}.id)                                                        AS ep_count
   `;
 }
@@ -85,6 +100,7 @@ function toRow(r: RawRow): CompletionRow {
   return {
     userId: r.userId,
     fullName: r.fullName,
+    avatarUrl: r.avatarUrl ?? null,
     role: r.role,
     department: r.department ?? null,
     teamLeaderId: r.teamLeaderId ?? null,
@@ -127,6 +143,7 @@ export class AdminRepository implements IAdminRepository {
       SELECT
         u.id AS "userId",
         u."fullName" AS "fullName",
+        u."avatarUrl" AS "avatarUrl",
         u.role::text AS role,
         d.name AS department,
         u."teamLeaderId" AS "teamLeaderId",
@@ -138,7 +155,7 @@ export class AdminRepository implements IAdminRepository {
       ${this.epJoin(window)}
       WHERE u."isDisabled" = false
         AND u.role IN ('MEMBER', 'TEAM_LEADER')
-      GROUP BY u.id, u."fullName", u.role, d.name, u."teamLeaderId", tl."fullName"
+      GROUP BY u.id, u."fullName", u."avatarUrl", u.role, d.name, u."teamLeaderId", tl."fullName"
       ORDER BY u."fullName" ASC
     `)) as RawRow[];
 

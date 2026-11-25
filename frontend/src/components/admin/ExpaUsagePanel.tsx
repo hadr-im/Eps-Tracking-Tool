@@ -122,9 +122,6 @@ export function ExpaUsagePanel({
               <Activity size={15} className="text-muted-foreground" />
               EXPA requests
             </CardTitle>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {u.total.toLocaleString()} calls in this range · one point per {u.bucket}
-            </p>
           </div>
 
           {/*

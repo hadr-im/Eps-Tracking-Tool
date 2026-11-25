@@ -16,6 +16,7 @@ export interface AdminCaller {
 export interface ChampionDto {
   userId: string;
   fullName: string;
+  avatarUrl: string | null;
   role: string;
   department: string | null;
   rate: number;
@@ -89,6 +90,7 @@ export class AdminDashboardUseCase {
       .map((p) => ({
         userId: p.userId,
         fullName: p.fullName,
+        avatarUrl: p.avatarUrl,
         role: p.role,
         department: p.department,
         rate: p.rate,

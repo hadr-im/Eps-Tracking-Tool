@@ -33,11 +33,11 @@ import type { CompletionRow } from '@/types/admin';
 
 type Mode = 'top10' | 'least10' | 'below50' | 'above50';
 
-const MODES: { value: Mode; label: string; hint: string }[] = [
-  { value: 'top10', label: 'Top 10', hint: 'Highest completion in this period' },
-  { value: 'least10', label: 'Least 10', hint: 'Lowest completion in this period' },
-  { value: 'below50', label: 'Below 50%', hint: 'Everyone under half, lowest first' },
-  { value: 'above50', label: 'Above 50%', hint: 'Everyone at half or better, highest first' },
+const MODES: { value: Mode; label: string }[] = [
+  { value: 'top10', label: 'Top 10' },
+  { value: 'least10', label: 'Least 10' },
+  { value: 'below50', label: 'Below 50%' },
+  { value: 'above50', label: 'Above 50%' },
 ];
 
 interface CompletionRankingProps {
@@ -65,7 +65,6 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
     return desc.filter((p) => p.rate >= 50);
   }, [people, mode]);
 
-  const meta = MODES.find((m) => m.value === mode)!;
   // A threshold list is as long as it is; its length is part of the answer.
   const isThreshold = mode === 'below50' || mode === 'above50';
 
@@ -93,10 +92,6 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
               <ListFilter size={15} className="text-muted-foreground" />
               Ranking
             </CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {meta.hint}
-              {isThreshold && ` · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`}
-            </p>
           </div>
 
           <Select value={mode} onValueChange={(v) => v && setMode(v as Mode)}>

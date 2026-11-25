@@ -11,6 +11,7 @@ export interface FieldScore {
 export interface CompletionRow {
   userId: string;
   fullName: string;
+  avatarUrl: string | null;
   role: string;
   department: string | null;
   teamLeaderId: string | null;
@@ -34,6 +35,7 @@ export interface CompletionRollup {
 export interface Champion {
   userId: string;
   fullName: string;
+  avatarUrl: string | null;
   role: string;
   department: string | null;
   rate: number;

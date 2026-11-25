@@ -252,3 +252,43 @@
     display: none;
   }
 }
+/*
+  Twinkling sparkles, for the champion banner.
+
+  Each sparkle carries its own delay and duration inline, so a field of them
+  reads as scattered rather than as one thing blinking in unison — the
+  giveaway of a cheap effect. Scale and opacity move together because a real
+  glint grows as it brightens.
+
+  Nothing load-bearing depends on this: the banner is complete and legible
+  with the animation off, which is what makes honouring reduced-motion free.
+*/
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+}
+
+@layer utilities {
+  .animate-twinkle {
+    animation: twinkle 3s ease-in-out infinite;
+  }
+
+  /*
+    Some people get motion sickness from exactly this kind of ambient
+    movement. The sparkles stay — they are part of the look — but they hold
+    still at a readable opacity instead of pulsing.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-twinkle {
+      animation: none;
+      opacity: 0.55;
+    }
+  }
+}

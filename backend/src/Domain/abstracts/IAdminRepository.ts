@@ -33,6 +33,8 @@
 export interface CompletionRow {
   userId: string;
   fullName: string;
+  /** Their Google picture, when they signed in with one. */
+  avatarUrl: string | null;
   role: string;
   department: string | null;
   teamLeaderId: string | null;

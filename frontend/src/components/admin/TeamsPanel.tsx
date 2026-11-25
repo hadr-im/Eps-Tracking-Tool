@@ -108,9 +108,6 @@ export function TeamsPanel({ people = [], departments = [], isLoading }: TeamsPa
               <Users2 size={15} className="text-muted-foreground" />
               Teams
             </CardTitle>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              By team leader · {teams.length} {teams.length === 1 ? 'team' : 'teams'}
-            </p>
           </div>
 
           <Select value={dept} onValueChange={(v) => v && setDept(String(v))}>

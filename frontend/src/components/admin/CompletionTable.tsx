@@ -130,9 +130,6 @@ export function CompletionTable({
               <Users size={15} className="text-muted-foreground" />
               Everyone
             </CardTitle>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {visible.length} of {rows.length} {rows.length === 1 ? 'person' : 'people'}
-            </p>
           </div>
 
           <div className="flex flex-1 flex-wrap items-center justify-end gap-2">

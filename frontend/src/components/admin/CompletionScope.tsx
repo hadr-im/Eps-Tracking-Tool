@@ -113,11 +113,6 @@ export function CompletionScope({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="text-sm font-semibold">Data completion</CardTitle>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {rollup
-                ? `${rollup.people} ${rollup.people === 1 ? 'person' : 'people'} · ${rollup.epCount.toLocaleString()} EPs · ${rollup.filled.toLocaleString()}/${rollup.expected.toLocaleString()} fields filled`
-                : 'Nothing recorded for this group yet'}
-            </p>
           </div>
 
           <Select value={scope} onValueChange={(v) => v && setScope(String(v))}>

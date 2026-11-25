@@ -15,13 +15,10 @@
 import { useState } from 'react';
 import {
   AlertCircle,
-  ChevronDown,
-  Info,
 } from 'lucide-react';
 
 import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -35,7 +32,6 @@ import { CompletionRanking } from '@/components/admin/CompletionRanking';
 import { CompletionTable } from '@/components/admin/CompletionTable';
 import { CompletionScope } from '@/components/admin/CompletionScope';
 import { TeamsPanel } from '@/components/admin/TeamsPanel';
-import { cn } from '@/lib/utils';
 import type { AdminPeriod, ExpaRange } from '@/types/admin';
 
 const PERIODS: { value: AdminPeriod; label: string }[] = [
@@ -46,7 +42,6 @@ const PERIODS: { value: AdminPeriod; label: string }[] = [
 
 export default function AdminDashboardPage() {
   const [period, setPeriod] = useState<AdminPeriod>('month');
-  const [showRule, setShowRule] = useState(false);
   // The EXPA chart has its own range: it answers a different question from
   // the completion period and the two should not drag each other about.
   const [expaRange, setExpaRange] = useState<ExpaRange>('day');
@@ -92,7 +87,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <ChampionCard champions={data?.champions} period={period} isLoading={isLoading} />
+        <ChampionCard champions={data?.champions} isLoading={isLoading} />
 
         <CompletionScope
           lc={data?.rollups.lc}
@@ -100,50 +95,6 @@ export default function AdminDashboardPage() {
           people={data?.people}
           isLoading={isLoading}
         />
-
-        {/* What the score means — folded away, but one tap from the numbers */}
-        <Card className="border">
-          <button
-            type="button"
-            onClick={() => setShowRule((v) => !v)}
-            className="flex w-full items-center justify-between gap-3 px-6 py-3 text-left"
-            aria-expanded={showRule}
-          >
-            <span className="flex items-center gap-2 text-xs font-medium">
-              <Info size={14} className="text-muted-foreground" />
-              How completion is worked out
-            </span>
-            <ChevronDown
-              size={16}
-              className={cn('shrink-0 text-muted-foreground transition-transform', showRule && 'rotate-180')}
-            />
-          </button>
-          {showRule && (
-            <CardContent className="border-t pt-4 text-xs leading-relaxed text-muted-foreground">
-              <p>
-                Three fields are expected on <strong>every</strong> EP assigned to someone:{' '}
-                <strong>contacted</strong>, <strong>tracking phase</strong> and{' '}
-                <strong>notes</strong>.
-              </p>
-              <p className="mt-2">
-                Three more are expected <strong>only once the conversation is live</strong> —
-                explaining AIESEC, looking for opportunities, interview, will sign, signed, or
-                waiting for a CV: <strong>duration</strong>, <strong>availability</strong> and{' '}
-                <strong>CV link</strong>. An EP who never replied is scored out of three, not six,
-                so closing a dead lead honestly does not cost anyone marks.
-              </p>
-              <p className="mt-2">
-                <strong>Interested</strong> is not scored — a blank is a fair "do not know yet".
-                University, field of study, year and source are not scored either: the sign-up
-                sheet fills those, so counting them would measure the sync rather than the member.
-              </p>
-              <p className="mt-2">
-                EPs assigned in the last 24 hours are left out, so a fresh dispatch does not
-                crater a score overnight.
-              </p>
-            </CardContent>
-          )}
-        </Card>
 
         {/*
           Ranking and teams side by side: both answer "who is behind", one
