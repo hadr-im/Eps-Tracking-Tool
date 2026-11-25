@@ -24,8 +24,8 @@ import type { CompletionRow } from '@/types/admin';
 
 type SortKey = 'rate' | 'name' | 'eps';
 
-// Fixed, as asked: every page is twenty-five rows.
-const PAGE_SIZE = 25;
+// Fixed, as asked: every page is twenty rows.
+const PAGE_SIZE = 20;
 
 interface CompletionTableProps {
   rows?: CompletionRow[];
@@ -162,9 +162,9 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
           <>
             {/* Desktop */}
             <div className="hidden md:block">
-              <table className="w-full text-xs">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-y bg-muted/30 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <tr className="border-y bg-muted/30 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <th className="py-2 pr-3 pl-6 text-left font-semibold">Person</th>
                     <th className="px-3 py-2 text-left font-semibold">Role</th>
                     <th className="px-3 py-2 text-left font-semibold">Dept</th>
@@ -181,28 +181,28 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                 <tbody>
                   {pageRows.map((r) => (
                     <tr key={r.userId} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="py-2 pr-3 pl-6 font-medium">{r.fullName}</td>
-                      <td className="px-3 py-2 text-muted-foreground">
+                      <td className="py-2.5 pr-3 pl-6 font-medium">{r.fullName}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">
                         {r.role === 'TEAM_LEADER' ? 'Team Leader' : 'Member'}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2.5">
                         {r.department ? <DepartmentBadge department={r.department} /> : '—'}
                       </td>
-                      <td className="max-w-32 truncate px-3 py-2 text-muted-foreground">
+                      <td className="max-w-32 truncate px-3 py-2.5 text-muted-foreground">
                         {r.teamLeaderName ?? '—'}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{r.epCount}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">{r.epCount}</td>
                       {SCORED_FIELDS.map((f) => (
                         <td
                           key={f.key}
-                          className="px-2 py-2 text-right tabular-nums text-muted-foreground"
+                          className="px-2 py-2.5 text-right tabular-nums text-muted-foreground"
                         >
                           {pct(r.byField[f.key] ?? { filled: 0, expected: 0 })}
                         </td>
                       ))}
                       <td
                         className={cn(
-                          'py-2 pr-6 pl-3 text-right font-bold tabular-nums',
+                          'py-2.5 pr-6 pl-3 text-right font-bold tabular-nums',
                           rateTone(r.rate, r.expected),
                         )}
                       >
@@ -220,8 +220,8 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                 <li key={r.userId} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{r.fullName}</p>
-                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <p className="truncate text-sm font-semibold">{r.fullName}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         <span>{r.role === 'TEAM_LEADER' ? 'Team Leader' : 'Member'}</span>
                         {r.department && (
                           <>
@@ -251,7 +251,7 @@ export function CompletionTable({ rows = [], isLoading }: CompletionTableProps) 
                           style={{ width: `${Math.min(r.rate, 100)}%` }}
                         />
                       </div>
-                      <ul className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                      <ul className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                         {SCORED_FIELDS.map((f) => (
                           <li key={f.key} className="flex items-center justify-between gap-1">
                             <span className="truncate">{f.short}</span>

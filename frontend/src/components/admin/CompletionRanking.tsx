@@ -28,7 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { departmentColor } from '@/lib/departmentColor';
 import { DepartmentBadge } from './DepartmentBadge';
 import type { CompletionRow } from '@/types/admin';
 
@@ -160,13 +159,16 @@ export function CompletionRanking({ people = [], isLoading }: CompletionRankingP
                   the left edge of the bars and read the ranking as a shape
                   rather than as twenty separate numbers.
                 */}
+                {/*
+                  One hue for every bar. The badge carries the department;
+                  the bar carries the measure, and the measure is the same
+                  measure whoever you belong to. Colouring both made a list
+                  sorted by rate look sorted by department.
+                */}
                 <div className="ml-7 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(r.rate, 100)}%`,
-                      backgroundColor: departmentColor(r.department),
-                    }}
+                    className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
+                    style={{ width: `${Math.min(r.rate, 100)}%` }}
                   />
                 </div>
               </li>

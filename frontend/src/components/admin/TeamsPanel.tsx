@@ -130,34 +130,53 @@ export function TeamsPanel({ people = [], departments = [], isLoading }: TeamsPa
             {dept === ALL ? 'No teams set up yet.' : `No teams in ${dept}.`}
           </p>
         ) : (
-          <ol className="max-h-[28rem] space-y-2.5 overflow-y-auto pr-1 [scrollbar-width:thin]">
-            {teams.map((t, i) => (
-              <li key={t.leader} className="space-y-1">
-                <div className="flex items-baseline justify-between gap-3 text-xs">
-                  <span className="flex min-w-0 items-baseline gap-2">
-                    <span className="w-5 shrink-0 text-right tabular-nums text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <span className="truncate font-medium">{t.leader}</span>
-                    <DepartmentBadge department={t.department} />
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {t.people} {t.people === 1 ? 'member' : 'members'}
-                    </span>
+          /*
+            Cards, not a ranked list. A team is a thing with a name, a size
+            and a department — several facts that want their own line — and
+            a row of bars flattened all of that into one. The grid also
+            stops a list of eight from running down a column half the page
+            tall beside a ranking that is ten rows long.
+          */
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {teams.map((t) => (
+              <div
+                key={t.leader}
+                className="relative overflow-hidden rounded-xl border bg-card p-3.5"
+              >
+                {/* The department reads off the card's own edge. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-1"
+                  style={{ backgroundColor: departmentColor(t.department) }}
+                />
+
+                <div className="flex items-start justify-between gap-2 pl-1.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold leading-tight">{t.leader}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <DepartmentBadge department={t.department} />
+                      <span>
+                        {t.people} {t.people === 1 ? 'member' : 'members'}
+                      </span>
+                      <span>·</span>
+                      <span>{t.epCount.toLocaleString()} EPs</span>
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xl font-bold leading-none tabular-nums">
+                    {t.rate}
+                    <span className="text-sm font-semibold">%</span>
                   </span>
-                  <span className="shrink-0 tabular-nums font-semibold">{t.rate}%</span>
                 </div>
-                <div className="ml-7 h-1.5 overflow-hidden rounded-full bg-muted">
+
+                <div className="mt-3 ml-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(t.rate, 100)}%`,
-                      backgroundColor: departmentColor(t.department),
-                    }}
+                    className="h-full rounded-full bg-aiesec-blue transition-all duration-500"
+                    style={{ width: `${Math.min(t.rate, 100)}%` }}
                   />
                 </div>
-              </li>
+              </div>
             ))}
-          </ol>
+          </div>
         )}
       </CardContent>
     </Card>

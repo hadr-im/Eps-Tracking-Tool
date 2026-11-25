@@ -149,7 +149,7 @@ export function CompletionScope({
           glance at, the six bars are what you read, and stacking them put
           the thing worth reading below the fold on a laptop.
         */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] lg:gap-10">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-8">
           {/*
             The headline has no bar of its own any more. It was a second
             reading of a number already printed above it at four times the
@@ -158,27 +158,32 @@ export function CompletionScope({
           */}
           <div className="flex flex-col items-center justify-center text-center">
             <p
-              className={cn('text-6xl font-bold leading-none tabular-nums', tone(rollup?.rate ?? 0))}
+              className={cn('text-5xl font-bold leading-none tabular-nums', tone(rollup?.rate ?? 0))}
             >
               {rollup?.rate ?? 0}
-              <span className="text-3xl font-semibold">%</span>
+              <span className="text-2xl font-semibold">%</span>
             </p>
-            <p className="mt-3 max-w-48 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-44 text-[11px] leading-snug text-muted-foreground">
               of the fields expected across {scope === LC ? 'the LC' : scope}
             </p>
           </div>
 
           <div>
-            <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Field by field
             </p>
-            <ul className="grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
               {byField.map((f) => (
                 <li key={f.key} className="min-w-0">
                   <div className="flex items-baseline justify-between gap-2 text-xs">
                     <span className="truncate">{f.label}</span>
-                    <span className="shrink-0 tabular-nums font-medium">
-                      {f.expected === 0 ? '—' : `${f.rate}%`}
+                    <span className="shrink-0 tabular-nums">
+                      <span className="text-[10px] text-muted-foreground">
+                        {f.filled.toLocaleString()}/{f.expected.toLocaleString()}
+                      </span>
+                      <span className="ml-2 font-medium">
+                        {f.expected === 0 ? '—' : `${f.rate}%`}
+                      </span>
                     </span>
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -190,9 +195,6 @@ export function CompletionScope({
                       }}
                     />
                   </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {f.filled.toLocaleString()}/{f.expected.toLocaleString()}
-                  </p>
                 </li>
               ))}
             </ul>
